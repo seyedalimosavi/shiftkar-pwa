@@ -1,0 +1,115 @@
+/* ============================================================
+   ShiftKar — roster page & full-screen viewer
+   ============================================================ */
+
+.roster-card {
+  padding: var(--space-4);
+}
+
+.roster-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: var(--space-7) 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+
+.roster-preview {
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-strong);
+  position: relative;
+  display: block;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.roster-preview img {
+  width: 100%;
+  height: auto;
+}
+
+.roster-open-hint {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 12px;
+  margin: 0 auto;
+  width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  color: var(--color-primary-strong);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+
+/* ---------- full-screen viewer ---------- */
+.roster-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-viewer);
+  display: flex;
+  flex-direction: column;
+  background: rgba(238, 243, 251, 0.94);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transition: opacity var(--motion) var(--ease-out);
+}
+
+.roster-viewer.is-open {
+  opacity: 1;
+}
+
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: calc(var(--safe-top) + 10px) 16px 10px;
+  flex-shrink: 0;
+}
+
+.viewer-hint {
+  font-size: var(--fs-xs);
+  color: var(--color-text-faint);
+}
+
+.viewer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.viewer-stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.viewer-stage:active {
+  cursor: grabbing;
+}
+
+.viewer-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  will-change: transform;
+  box-shadow: var(--shadow-float);
+}

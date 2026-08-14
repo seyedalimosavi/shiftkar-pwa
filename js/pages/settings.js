@@ -1,0 +1,167 @@
+/**
+ * Settings page: personal group, theme, calendar view, help, about,
+ * contact, and restart onboarding. All choices persist immediately.
+ */
+import { state } from "../core/state.js";
+import { navigate } from "../core/router.js";
+import { toPersianDigits } from "../domain/jalali.js";
+import { GROUPS, GROUP_FA, THEMES, APP_INFO } from "../domain/models.js";
+import { icon } from "../components/icons.js";
+import { confirmDialog, toast } from "../components/dialogs.js";
+
+let container = null;
+let unsubscribe = null;
+
+export function renderSettings(el) {
+  container = el;
+  if (!unsubscribe) {
+    unsubscribe = state.subscribe(() => {
+      if (container && container.isConnected) draw();
+    });
+  }
+  draw();
+}
+
+const HELP_ITEMS = [
+  {
+    title: "محاسبه شیفت",
+    body: `چرخهٔ شیفت دقیقاً ۸ روز است: دو روز کاری (M1، M2)، دو روز شب‌کاری (N1، N2) و سپس چهار روز استراحت (R1 تا R4).\nتاریخ پایه: ۱۴۰۵/۰۵/۰۴. افست گروه‌ها: A=7، B=1، C=5، D=3.\nشاخص هر روز با فرمول floorMod(تعداد روز از تاریخ پایه + افست گروه، ۸) به‌دست می‌آید؛ به این ترتیب تاریخ‌های قبل از تاریخ پایه هم درست محاسبه می‌شوند.`,
+  },
+  {
+    title: "گروه‌های شیفت",
+    body: "چهار گروه A تا D وجود دارد. گروه شخصی خود را از بخش «گروه شخصی» انتخاب کنید؛ تقویم به‌طور پیش‌فرض بر اساس آن نمایش داده می‌شود. با فیلتر «همه» روی تقویم، وضعیت هر چهار گروه در یک نگاه دیده می‌شود.",
+  },
+  {
+    title: "انواع شیفت",
+    body: "سه وضعیت نمایشی وجود دارد:\n• روز — شیفت روزانه\n• شب — شیفت شبانه\n• استراحت — روزهای استراحت\nهر وضعیت با رنگ و نشان اختصاصی در تقویم نمایش داده می‌شود.",
+  },
+  {
+    title: "تقویم",
+    body: "تقویم بر اساس تاریخ هجری شمسی است و هفته از شنبه آغاز می‌شود. با دکمه‌های کنار عنوان ماه یا کشیدن انگشت بین ماه‌ها جابه‌جا شوید؛ روی عنوان ماه بزنید تا ماه و سال را انتخاب کنید. دو نمای شبکه‌ای و فهرستی در دسترس است.",
+  },
+  {
+    title: "یادداشت‌ها",
+    body: "برای هر روز یک یادداشت ذخیره می‌شود. روزهای دارای یادداشت با یک نقطهٔ کوچک در تقویم مشخص می‌شوند. با آیکون یادداشت در بالای تقویم، همهٔ یادداشت‌ها را مرور، ویرایش یا حذف کنید. یادداشت‌ها روی دستگاه شما (IndexedDB) ذخیره می‌شوند و بدون اینترنت هم در دسترس‌اند.",
+  },
+  {
+    title: "تم‌ها",
+    body: "شش تم رنگی در دسترس است: آبی، زمردی، بنفش، نارنجی، رز و فیروزه‌ای. تم انتخابی ذخیره می‌شود و بلافاصله در کل برنامه اعمال می‌گردد.",
+  },
+  {
+    title: "تعطیلات",
+    body: "دادهٔ تعطیلات این نسخه، مجموعهٔ نمونه (غیررسمی) از چند تعطیل ثابت هجری شمسی است و مرجع رسمی ندارد؛ به همین دلیل نباید آن را فهرست کاملی از تعطیلات رسمی دانست.",
+  },
+];
+
+function draw() {
+  const s = state.settings;
+
+  container.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">تنظیمات</h1>
+      <p class="page-subtitle">شخصی‌سازی برنامه</p>
+    </div>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("groups")} گروه شخصی</h2>
+      <p class="settings-desc">تقویم به‌طور پیش‌فرض بر اساس این گروه نمایش داده می‌شود.</p>
+      <div class="segmented" role="group" aria-label="گروه شخصی">
+        ${GROUPS.map((g) => `
+          <button type="button" class="segment ${s.myGroup === g ? "is-active" : ""}" data-mygroup="${g}">
+            ${GROUP_FA[g]}
+          </button>`).join("")}
+      </div>
+    </section>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("palette")} تم</h2>
+      <p class="settings-desc">رنگ اصلی برنامه را انتخاب کنید.</p>
+      <div class="theme-grid" role="group" aria-label="انتخاب تم">
+        ${THEMES.map((t) => `
+          <button type="button" class="theme-option ${s.theme === t.id ? "is-active" : ""}" data-theme="${t.id}"
+            aria-label="تم ${t.fa}">
+            <span class="theme-swatch" style="--swatch: ${t.color}"></span>
+            <span class="theme-name">${t.fa}</span>
+          </button>`).join("")}
+      </div>
+    </section>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("grid")} نمای تقویم</h2>
+      <div class="segmented" role="group" aria-label="نمای تقویم">
+        <button type="button" class="segment ${s.calendarViewType === "grid" ? "is-active" : ""}" data-view="grid">${icon("grid")} شبکه‌ای</button>
+        <button type="button" class="segment ${s.calendarViewType === "list" ? "is-active" : ""}" data-view="list">${icon("list")} فهرستی</button>
+      </div>
+    </section>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("help")} راهنما</h2>
+      ${HELP_ITEMS.map(
+        (h, i) => `
+        <details class="help-item">
+          <summary>${h.title}</summary>
+          <p class="help-body">${h.body.replace(/\n/g, "<br>")}</p>
+        </details>`,
+      ).join("")}
+    </section>
+
+    <section class="settings-card glass-card about-card">
+      <h2 class="settings-title">${icon("info")} درباره</h2>
+      <div class="about-row">
+        <img class="about-logo" src="./assets/logo.png" alt="لوگوی شیفت‌کار" width="72" height="72" />
+        <div class="about-text">
+          <strong>${APP_INFO.nameFa}</strong>
+          <span>${APP_INFO.nameEn} — نسخهٔ ${toPersianDigits(APP_INFO.version)}</span>
+          <span>${APP_INFO.tagline}</span>
+          <span class="settings-muted">نسخهٔ وب (PWA) با HTML5، CSS3 و JavaScript خالص — بدون فریم‌ورک</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("info")} تماس</h2>
+      <p class="settings-muted">اطلاعات تماس در این نسخه در دسترس نیست.</p>
+    </section>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("refresh")} راهنمای شروع</h2>
+      <p class="settings-desc">راهنمای شروع برنامه دوباره نمایش داده می‌شود.</p>
+      <button type="button" class="btn btn-ghost btn-danger-ghost" id="restart-onboarding">
+        نمایش دوباره راهنما
+      </button>
+    </section>`;
+
+  wireEvents();
+}
+
+function wireEvents() {
+  container.querySelectorAll("[data-mygroup]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.set({ myGroup: btn.dataset.mygroup });
+      toast(`گروه شخصی: ${GROUP_FA[btn.dataset.mygroup]}`);
+    });
+  });
+
+  container.querySelectorAll("[data-theme]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.set({ theme: btn.dataset.theme });
+    });
+  });
+
+  container.querySelectorAll("[data-view]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.set({ calendarViewType: btn.dataset.view });
+    });
+  });
+
+  container.querySelector("#restart-onboarding").addEventListener("click", async () => {
+    const ok = await confirmDialog({
+      title: "نمایش دوباره راهنما",
+      message: "راهنمای شروع دوباره نمایش داده شود؟ تنظیمات شما حفظ می‌شود.",
+      confirmText: "بله",
+    });
+    if (!ok) return;
+    state.set({ onboardingCompleted: false });
+    navigate("onboarding");
+  });
+}

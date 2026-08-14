@@ -1,0 +1,141 @@
+/* ============================================================
+   ShiftKar — base: reset, typography, RTL foundation, layout
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--fs-base);
+  line-height: 1.75;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(1100px 720px at 88% -8%, var(--glow-a), transparent 62%),
+    radial-gradient(960px 680px at -10% 106%, var(--glow-b), transparent 60%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.4;
+  font-weight: var(--fw-bold);
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+textarea,
+input,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 158, 196, 0.45) transparent;
+}
+
+/* App shell */
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 18px) 16px calc(var(--nav-height) + var(--safe-bottom) + 28px);
+}
+
+.page-head {
+  margin-bottom: var(--space-4);
+}
+
+.page-title {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-black);
+  letter-spacing: -0.01em;
+}
+
+.page-subtitle {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  margin-top: 2px;
+}
+
+.icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex-shrink: 0;
+  vertical-align: -0.25em;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

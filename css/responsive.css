@@ -1,0 +1,114 @@
+/* ============================================================
+   ShiftKar — responsive: tablet & desktop
+   Mobile is the default (primary target).
+   ============================================================ */
+
+/* ---------- tablet ---------- */
+@media (min-width: 768px) {
+  :root {
+    --nav-height: 72px;
+  }
+
+  .page {
+    padding-inline: 28px;
+  }
+
+  .cal-grid,
+  .cal-weekdays {
+    gap: 6px;
+  }
+
+  .cal-cell {
+    padding: 8px 4px;
+  }
+
+  .today-card {
+    padding: var(--space-6);
+  }
+
+  .sheet {
+    border-radius: 28px 28px 0 0;
+  }
+
+  .sheet-body {
+    padding-inline: 24px;
+  }
+
+  .theme-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .cal-row {
+    padding: 12px 16px;
+  }
+}
+
+/* ---------- desktop: sidebar navigation ---------- */
+@media (min-width: 1100px) {
+  #bottom-nav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    inset-inline-end: 24px;
+    width: 92px;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .bottom-nav {
+    width: 92px;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .bottom-nav-inner {
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 8px;
+    border-radius: 26px;
+    pointer-events: auto;
+  }
+
+  .nav-item {
+    min-height: 56px;
+  }
+
+  .page {
+    max-width: 860px;
+    /* sidebar sits on the right in RTL, so push content with inline-start margin */
+    margin-inline-start: calc(92px + 56px);
+    margin-inline-end: auto;
+  }
+
+  .cal-grid {
+    gap: 8px;
+  }
+
+  .cal-cell {
+    padding: 10px 6px;
+  }
+
+  .cal-row {
+    padding: 13px 18px;
+  }
+}
+
+/* ---------- small phones ---------- */
+@media (max-width: 360px) {
+  .today-all {
+    grid-template-columns: 1fr;
+  }
+
+  .cal-cell {
+    padding: 4px 2px;
+  }
+
+  .cell-badge .mini-badge {
+    width: 15px;
+    height: 15px;
+    font-size: 8px;
+  }
+}
