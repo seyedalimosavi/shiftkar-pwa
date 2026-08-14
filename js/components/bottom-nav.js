@@ -15,7 +15,8 @@ const ITEMS = [
 export function renderBottomNav(container, activeRoute) {
   container.hidden = false;
   container.innerHTML = `
-    <div class="bottom-nav-inner" role="tablist" aria-label="بخش‌های اصلی برنامه">
+    <div class="bottom-nav">
+      <div class="bottom-nav-inner" role="tablist" aria-label="بخش‌های اصلی برنامه">
       ${ITEMS.map(
         (it) => `
         <button type="button"
@@ -28,6 +29,7 @@ export function renderBottomNav(container, activeRoute) {
           <span class="nav-label">${it.fa}</span>
         </button>`,
       ).join("")}
+      </div>
     </div>`;
 
   container.querySelectorAll(".nav-item").forEach((btn) => {
