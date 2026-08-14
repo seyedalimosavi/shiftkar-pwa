@@ -81,9 +81,17 @@ shiftkar-web/
 
 ## Features
 
-- **Splash → onboarding** (4 slides, swipe + keyboard, skippable)
+- **Splash → onboarding** (4 intro slides + a personalization slide with live
+  group / theme-mode / calendar-view selection, swipe + keyboard, skippable)
+- **Themes** — light / dark / follow-system mode (live, follows the OS setting,
+  no flash-of-light-theme thanks to a pre-paint boot script) × 6 color palettes,
+  all components optimized for dark mode
 - **Calendar** — Jalali month grid/list, today card, group filter (A–D / all),
-  month picker, swipe between months, holiday + note indicators
+  month picker, swipe between months, holiday + note indicators; the group
+  filter and the Settings personal group stay in sync
+- **«برو به شیفت امروز»** — floating button that appears whenever you're viewing
+  a month other than the current one; it jumps back to today's month, selects
+  and pulses the today cell, and disappears once you're back in the current month
 - **Shift engine** — fixed 8-day cycle `M1 M2 N1 N2 R1 R2 R3 R4`
   (2 days work, 2 nights, 4 rest). Base date `1405/05/04`;
   group offsets `A=7, B=1, C=5, D=3`.
@@ -135,6 +143,10 @@ node scripts/generate-assets.mjs # regenerate logo + PWA icons (pure Node, no de
 The dev server registers the service worker only in production builds
 (`import.meta.env.DEV` guard in `js/app.js`), so the preview always serves fresh files.
 
+The theme is applied before first paint by a tiny inline script in `index.html`
+(reads `themeMode` + `theme` from LocalStorage and sets the `data-theme-mode` /
+`data-theme` attributes), so the saved dark/light preference never flashes.
+
 ## Removed Android-only features
 
 Per spec, the following are intentionally **not** implemented: home-screen
@@ -147,4 +159,5 @@ through normal web deployment.
 ## Adding your roster image
 
 Put your real roster board photo at `assets/roster-1405.png` — the Roster page
-picks it up automatically (no code change needed).
+picks it up automatically (no code change needed) and it is cached for offline
+use on first view.

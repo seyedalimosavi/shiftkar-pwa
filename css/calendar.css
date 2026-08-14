@@ -491,3 +491,76 @@
   font-weight: var(--fw-bold);
   font-size: var(--fs-sm);
 }
+
+/* ---------- "go to today" floating button ---------- */
+.today-fab {
+  position: fixed;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+  inset-inline-start: 18px;
+  z-index: var(--z-nav);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
+  color: var(--color-on-primary);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  animation: fab-in 340ms var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.today-fab .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.today-fab:hover {
+  filter: brightness(1.06);
+}
+
+.today-fab:active {
+  transform: scale(0.96);
+}
+
+@keyframes fab-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Pulse ring on the today cell after jumping back to the current month */
+.cal-cell.is-pulsing,
+.cal-row.is-pulsing {
+  animation: today-pulse 900ms var(--ease-out);
+}
+
+@keyframes today-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 50%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 16px transparent;
+  }
+}
+
+/* ---------- dark mode calendar overrides ---------- */
+[data-theme-mode="dark"] .cal-cell.is-today {
+  background: linear-gradient(160deg, var(--color-primary-soft), rgba(255, 255, 255, 0.04));
+}
+
+[data-theme-mode="dark"] .cal-cell.is-holiday {
+  background: linear-gradient(160deg, var(--holiday-soft), rgba(255, 255, 255, 0.04));
+}
+
+[data-theme-mode="dark"] .cal-row.is-today {
+  background: var(--color-primary-soft);
+}

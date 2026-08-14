@@ -12,6 +12,7 @@ const NOTES_STORE = "notes";
 
 export const DEFAULT_SETTINGS = {
   theme: "blue",
+  themeMode: "system", // "light" | "dark" | "system"
   myGroup: "A",
   filterGroup: "ALL",
   calendarViewType: "grid",

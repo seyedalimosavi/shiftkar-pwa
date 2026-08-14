@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="شیفت‌کار — تقویم هوشمند شیفت کاری با محاسبه خودکار شیفت‌های روز، شب و استراحت" />
   <meta name="theme-color" content="#3d6bf5" />
+  <meta name="color-scheme" content="light dark" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -12,6 +13,25 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" type="image/png" href="./assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
+  <script>
+    /* Apply the saved theme before first paint to avoid a light-mode flash. */
+    (function () {
+      try {
+        var raw = localStorage.getItem("shiftkar.settings.v1");
+        var s = raw ? JSON.parse(raw) : {};
+        var mode = s.themeMode || "system";
+        var dark =
+          mode === "dark" ||
+          (mode === "system" &&
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.themeMode = dark ? "dark" : "light";
+        if (s.theme) document.documentElement.dataset.theme = s.theme;
+      } catch (e) {
+        /* keep defaults */
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="./css/variables.css" />
   <link rel="stylesheet" href="./css/base.css" />
   <link rel="stylesheet" href="./css/components.css" />

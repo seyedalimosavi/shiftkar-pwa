@@ -32,6 +32,13 @@ export const THEMES = [
   { id: "teal", fa: "فیروزهای", color: "#0ea5a0" },
 ];
 
+/** Theme appearance modes: light, dark, or follow the OS setting. */
+export const THEME_MODES = [
+  { id: "light", fa: "روشن", icon: "sun" },
+  { id: "dark", fa: "تیره", icon: "moon" },
+  { id: "system", fa: "پیروی از سیستم", icon: "settings" },
+];
+
 export const APP_INFO = {
   nameFa: "شیفتکار",
   nameEn: "ShiftKar",

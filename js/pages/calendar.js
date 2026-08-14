@@ -59,8 +59,10 @@ function draw() {
 
   const today = todayJalaali();
   const todayKey = makeDateKey(today.jy, today.jm, today.jd);
+  const isCurrentMonth = jy === today.jy && jm === today.jm;
 
   container.innerHTML = `
+    ${isCurrentMonth ? "" : todayFabHtml()}
     <div class="cal-wrap">
       <header class="cal-header">
         <div class="cal-nav">
@@ -98,6 +100,15 @@ function draw() {
 
   wireEvents(s);
   loadNotes(jy, jm);
+}
+
+/* ---------------- "go to today" floating button ---------------- */
+
+function todayFabHtml() {
+  return `
+    <button type="button" class="today-fab" data-action="today" aria-label="رفتن به شیفت امروز">
+      ${icon("calendar")} برو به شیفت امروز
+    </button>`;
 }
 
 /* ---------------- today card ---------------- */
@@ -228,14 +239,44 @@ function shiftMonth(delta) {
   state.set({ viewYear: jy, viewMonth: jm });
 }
 
+/** Jump back to the current month and make today prominent. */
+function goToToday() {
+  const t = todayJalaali();
+  const todayKey = makeDateKey(t.jy, t.jm, t.jd);
+  state.set({ viewYear: t.jy, viewMonth: t.jm });
+  state.setUi({ selectedDateKey: todayKey });
+  requestAnimationFrame(() => {
+    const cell = container.querySelector(".cal-cell.is-today, .cal-row.is-today");
+    if (!cell) return;
+    if (typeof cell.scrollIntoView === "function") {
+      cell.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    cell.classList.add("is-pulsing");
+    setTimeout(() => cell.classList.remove("is-pulsing"), 1000);
+  });
+}
+
 function wireEvents(s) {
   container.querySelector('[data-action="prev"]').addEventListener("click", () => shiftMonth(-1));
   container.querySelector('[data-action="next"]').addEventListener("click", () => shiftMonth(1));
   container.querySelector('[data-action="picker"]').addEventListener("click", openMonthPicker);
   container.querySelector('[data-action="notes"]').addEventListener("click", openAllNotes);
 
+  const todayFab = container.querySelector('[data-action="today"]');
+  if (todayFab) {
+    todayFab.addEventListener("click", () => goToToday());
+  }
+
   container.querySelectorAll('[data-filter]').forEach((btn) => {
-    btn.addEventListener("click", () => state.set({ filterGroup: btn.dataset.filter }));
+    btn.addEventListener("click", () => {
+      const g = btn.dataset.filter;
+      // Keep the calendar filter and the personal group in sync.
+      if (g === "ALL") {
+        state.set({ filterGroup: g });
+      } else {
+        state.set({ filterGroup: g, myGroup: g });
+      }
+    });
   });
 
   container.querySelectorAll('[data-view]').forEach((btn) => {

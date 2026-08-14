@@ -161,3 +161,41 @@
   --glow-b: rgba(100, 220, 210, 0.24);
   --shadow-primary: 0 10px 22px -8px rgba(14, 165, 160, 0.42);
 }
+
+/* ============================================================
+   Dark mode — optimized for every theme ([data-theme-mode="dark"])
+   Soft/pastel tokens are re-derived from the active theme color
+   with color-mix so all six palettes stay consistent.
+   ============================================================ */
+[data-theme-mode="dark"] {
+  --color-background: #0c1322;
+  --color-surface: rgba(255, 255, 255, 0.05);
+  --color-surface-strong: rgba(255, 255, 255, 0.08);
+  --color-surface-solid: #171f37;
+  --color-text: #e9eefb;
+  --color-text-muted: #a4b2cf;
+  --color-text-faint: #6e7d9d;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  --shadow-card: 0 6px 24px -10px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 14px 36px -12px rgba(0, 0, 0, 0.6);
+
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  --color-primary-border: color-mix(in srgb, var(--color-primary) 42%, transparent);
+
+  --shift-day-soft: color-mix(in srgb, var(--shift-day) 20%, transparent);
+  --shift-day-border: color-mix(in srgb, var(--shift-day) 48%, transparent);
+  --shift-day-ink: #ffd98c;
+
+  --shift-night-soft: color-mix(in srgb, var(--shift-night) 20%, transparent);
+  --shift-night-border: color-mix(in srgb, var(--shift-night) 48%, transparent);
+  --shift-night-ink: #c5c9ff;
+
+  --shift-rest-soft: color-mix(in srgb, var(--shift-rest) 18%, transparent);
+  --shift-rest-border: color-mix(in srgb, var(--shift-rest) 45%, transparent);
+  --shift-rest-ink: #83e2bb;
+
+  --holiday-soft: color-mix(in srgb, var(--holiday) 20%, transparent);
+  --holiday-border: color-mix(in srgb, var(--holiday) 48%, transparent);
+}

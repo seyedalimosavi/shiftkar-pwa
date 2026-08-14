@@ -1,10 +1,13 @@
 /**
- * Onboarding — 4 slides, horizontal swipe, prev/next/skip, page indicators.
+ * Onboarding — 5 slides (4 intro + personalization), horizontal swipe,
+ * prev/next/skip, page indicators. Selections on the last slide apply live.
  * Completing sets onboardingCompleted = true (persisted) and enters the app.
  */
 import { state } from "../core/state.js";
 import { navigate } from "../core/router.js";
 import { icon } from "../components/icons.js";
+import { GROUPS, THEME_MODES } from "../domain/models.js";
+import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
 
 const SLIDES = [
   {
@@ -29,6 +32,46 @@ const SLIDES = [
   },
 ];
 
+const TOTAL_SLIDES = SLIDES.length + 1; // + personalization slide
+
+function personalizeSlideHtml() {
+  const s = state.settings;
+  return `
+    <section class="onboarding-slide onboarding-personalize" role="tabpanel">
+      <div class="onboarding-art">${icon("settings", "onboarding-icon")}</div>
+      <h2 class="onboarding-title">شخصی‌سازی برنامه</h2>
+      <p class="onboarding-desc">گروه شیفت، حالت نمایش و تم را انتخاب کنید؛ تغییرات همین حالا اعمال می‌شود.</p>
+      <div class="personalize-form">
+        <div class="personalize-field">
+          <span class="personalize-label">گروه شیفت</span>
+          <div class="segmented" role="group" aria-label="گروه شیفت">
+            ${GROUPS.map(
+              (g) => `
+              <button type="button" class="segment ${s.myGroup === g ? "is-active" : ""}" data-mygroup="${g}">${g}</button>`,
+            ).join("")}
+          </div>
+        </div>
+        <div class="personalize-field">
+          <span class="personalize-label">حالت نمایش</span>
+          <div class="theme-mode-grid" role="group" aria-label="حالت نمایش">
+            ${THEME_MODES.map(
+              (m) => `
+              <button type="button" class="theme-mode-option ${s.themeMode === m.id ? "is-active" : ""}" data-thememode="${m.id}"
+                aria-label="${m.fa}">
+                ${icon(m.icon, "theme-mode-icon")}
+                <span class="theme-mode-name">${m.fa}</span>
+              </button>`,
+            ).join("")}
+          </div>
+        </div>
+        <div class="personalize-field">
+          <span class="personalize-label">حالت نمایش تقویم</span>
+          <div id="onboarding-view-picker">${viewPickerMarkup()}</div>
+        </div>
+      </div>
+    </section>`;
+}
+
 export function renderOnboarding(container) {
   let index = 0;
 
@@ -45,10 +88,11 @@ export function renderOnboarding(container) {
               <p class="onboarding-desc">${s.desc}</p>
             </section>`,
           ).join("")}
+          ${personalizeSlideHtml()}
         </div>
       </div>
       <div class="onboarding-dots" role="tablist" aria-label="مراحل راهنما">
-        ${SLIDES.map((_, i) => `<button type="button" class="dot" data-index="${i}" aria-label="مرحله ${i + 1}"></button>`).join("")}
+        ${Array.from({ length: TOTAL_SLIDES }, (_, i) => `<button type="button" class="dot" data-index="${i}" aria-label="مرحله ${i + 1}"></button>`).join("")}
       </div>
       <div class="onboarding-actions">
         <button type="button" class="btn btn-ghost onboarding-prev">قبلی</button>
@@ -68,12 +112,8 @@ export function renderOnboarding(container) {
     track.style.transform = `translateX(${index * width}px)`;
     dots.forEach((d, i) => d.classList.toggle("is-active", i === index));
     prevBtn.disabled = index === 0;
-    nextBtn.textContent = index === SLIDES.length - 1 ? "شروع کنید" : "بعدی";
-    if (index === SLIDES.length - 1) {
-      nextBtn.classList.add("is-final");
-    } else {
-      nextBtn.classList.remove("is-final");
-    }
+    nextBtn.textContent = index === TOTAL_SLIDES - 1 ? "شروع کنید" : "بعدی";
+    nextBtn.classList.toggle("is-final", index === TOTAL_SLIDES - 1);
   }
 
   function complete() {
@@ -89,7 +129,7 @@ export function renderOnboarding(container) {
   });
 
   nextBtn.addEventListener("click", () => {
-    if (index < SLIDES.length - 1) {
+    if (index < TOTAL_SLIDES - 1) {
       index += 1;
       update();
     } else {
@@ -106,7 +146,30 @@ export function renderOnboarding(container) {
     });
   });
 
-  // Swipe
+  /* ---------------- personalization wiring (live changes) ---------------- */
+
+  container.querySelectorAll("[data-mygroup]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      // Keep the personal group and the calendar group filter in sync.
+      state.set({ myGroup: btn.dataset.mygroup, filterGroup: btn.dataset.mygroup });
+      container.querySelectorAll("[data-mygroup]").forEach((b) => {
+        b.classList.toggle("is-active", b === btn);
+      });
+    });
+  });
+
+  container.querySelectorAll("[data-thememode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.set({ themeMode: btn.dataset.thememode });
+      container.querySelectorAll("[data-thememode]").forEach((b) => {
+        b.classList.toggle("is-active", b === btn);
+      });
+    });
+  });
+
+  wireViewPicker(container.querySelector("#onboarding-view-picker"));
+
+  /* ---------------- swipe ---------------- */
   let startX = null;
   let startY = null;
   const wrap = container.querySelector(".onboarding-track-wrap");
@@ -125,7 +188,7 @@ export function renderOnboarding(container) {
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-        if (dx < 0 && index < SLIDES.length - 1) {
+        if (dx < 0 && index < TOTAL_SLIDES - 1) {
           index += 1;
           update();
         } else if (dx > 0 && index > 0) {
@@ -141,7 +204,7 @@ export function renderOnboarding(container) {
 
   // Keyboard
   const onKey = (e) => {
-    if (e.key === "ArrowLeft" && index < SLIDES.length - 1) {
+    if (e.key === "ArrowLeft" && index < TOTAL_SLIDES - 1) {
       index += 1;
       update();
     } else if (e.key === "ArrowRight" && index > 0) {

@@ -5,9 +5,10 @@
 import { state } from "../core/state.js";
 import { navigate } from "../core/router.js";
 import { toPersianDigits } from "../domain/jalali.js";
-import { GROUPS, GROUP_FA, THEMES, APP_INFO } from "../domain/models.js";
+import { GROUPS, GROUP_FA, THEMES, THEME_MODES, APP_INFO } from "../domain/models.js";
 import { icon } from "../components/icons.js";
 import { confirmDialog, toast } from "../components/dialogs.js";
+import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
 
 let container = null;
 let unsubscribe = null;
@@ -64,7 +65,7 @@ function draw() {
 
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("groups")} گروه شخصی</h2>
-      <p class="settings-desc">تقویم به‌طور پیش‌فرض بر اساس این گروه نمایش داده می‌شود.</p>
+      <p class="settings-desc">گروه شیفت شما؛ همیشه با فیلتر گروه در تقویم هماهنگ است.</p>
       <div class="segmented" role="group" aria-label="گروه شخصی">
         ${GROUPS.map((g) => `
           <button type="button" class="segment ${s.myGroup === g ? "is-active" : ""}" data-mygroup="${g}">
@@ -74,7 +75,20 @@ function draw() {
     </section>
 
     <section class="settings-card glass-card">
-      <h2 class="settings-title">${icon("palette")} تم</h2>
+      <h2 class="settings-title">${icon("palette")} حالت نمایش</h2>
+      <p class="settings-desc">روشن، تیره یا پیروی از تم سیستم؛ تغییر به‌صورت زنده اعمال می‌شود.</p>
+      <div class="theme-mode-grid" role="group" aria-label="حالت نمایش">
+        ${THEME_MODES.map((m) => `
+          <button type="button" class="theme-mode-option ${s.themeMode === m.id ? "is-active" : ""}" data-thememode="${m.id}"
+            aria-label="${m.fa}">
+            ${icon(m.icon, "theme-mode-icon")}
+            <span class="theme-mode-name">${m.fa}</span>
+          </button>`).join("")}
+      </div>
+    </section>
+
+    <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("palette")} رنگ اصلی</h2>
       <p class="settings-desc">رنگ اصلی برنامه را انتخاب کنید.</p>
       <div class="theme-grid" role="group" aria-label="انتخاب تم">
         ${THEMES.map((t) => `
@@ -88,10 +102,8 @@ function draw() {
 
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("grid")} نمای تقویم</h2>
-      <div class="segmented" role="group" aria-label="نمای تقویم">
-        <button type="button" class="segment ${s.calendarViewType === "grid" ? "is-active" : ""}" data-view="grid">${icon("grid")} شبکه‌ای</button>
-        <button type="button" class="segment ${s.calendarViewType === "list" ? "is-active" : ""}" data-view="list">${icon("list")} فهرستی</button>
-      </div>
+      <p class="settings-desc">حالت نمایش جدولی (شبکه‌ای) یا فهرستی تقویمی را انتخاب کنید.</p>
+      ${viewPickerMarkup()}
     </section>
 
     <section class="settings-card glass-card">
@@ -137,8 +149,15 @@ function draw() {
 function wireEvents() {
   container.querySelectorAll("[data-mygroup]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      state.set({ myGroup: btn.dataset.mygroup });
+      // Keep the personal group and the calendar group filter in sync.
+      state.set({ myGroup: btn.dataset.mygroup, filterGroup: btn.dataset.mygroup });
       toast(`گروه شخصی: ${GROUP_FA[btn.dataset.mygroup]}`);
+    });
+  });
+
+  container.querySelectorAll("[data-thememode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.set({ themeMode: btn.dataset.thememode });
     });
   });
 
@@ -148,11 +167,7 @@ function wireEvents() {
     });
   });
 
-  container.querySelectorAll("[data-view]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.set({ calendarViewType: btn.dataset.view });
-    });
-  });
+  wireViewPicker(container);
 
   container.querySelector("#restart-onboarding").addEventListener("click", async () => {
     const ok = await confirmDialog({

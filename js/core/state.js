@@ -9,10 +9,20 @@ import { THEMES } from "../domain/models.js";
 let settings = loadSettings();
 const listeners = new Set();
 let notesVersion = 0;
+let systemListenerAttached = false;
+
+/** Resolves the effective mode: "dark" | "light" (system preference honored). */
+function resolveDark() {
+  const mode = settings.themeMode || "system";
+  if (mode === "dark") return true;
+  if (mode === "light") return false;
+  return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+}
 
 function applyTheme() {
   const root = document.documentElement;
   root.dataset.theme = settings.theme || "blue";
+  root.dataset.themeMode = resolveDark() ? "dark" : "light";
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", theme.color);
@@ -35,7 +45,7 @@ export const state = {
   set(patch) {
     settings = { ...settings, ...patch };
     saveSettings(settings);
-    if ("theme" in patch) applyTheme();
+    if ("theme" in patch || "themeMode" in patch) applyTheme();
     this.emit();
   },
 
@@ -71,4 +81,15 @@ export const state = {
 
 export function initState() {
   applyTheme();
+
+  // Follow OS theme changes live while in "system" mode.
+  if (!systemListenerAttached && window.matchMedia) {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq && typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", () => {
+        if ((settings.themeMode || "system") === "system") applyTheme();
+      });
+      systemListenerAttached = true;
+    }
+  }
 }

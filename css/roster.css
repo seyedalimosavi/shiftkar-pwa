@@ -113,3 +113,14 @@
   will-change: transform;
   box-shadow: var(--shadow-float);
 }
+
+/* ---------- dark mode roster overrides ---------- */
+[data-theme-mode="dark"] .roster-viewer {
+  background: rgba(10, 16, 30, 0.95);
+}
+
+[data-theme-mode="dark"] .roster-open-hint {
+  background: rgba(23, 31, 55, 0.92);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
