@@ -23,6 +23,35 @@ export function renderSettings(el) {
   draw();
 }
 
+const CONTACTS = [
+  { id: "telegram", fa: "تلگرام", icon: "telegram", value: "@shiftkar", kind: "id" },
+  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", value: "لینک گروه واتساپ", kind: "link" },
+  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", value: "+98 912 345 6789", kind: "phone" },
+  { id: "phone", fa: "شماره تلفن", icon: "phone", value: "+98 21 1234 5678", kind: "phone" },
+  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", value: "@shiftkar", kind: "id" },
+];
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
 const HELP_ITEMS = [
   {
     title: "محاسبه شیفت",
@@ -38,7 +67,7 @@ const HELP_ITEMS = [
   },
   {
     title: "تقویم",
-    body: "تقویم بر اساس تاریخ هجری شمسی است و هفته از شنبه آغاز می‌شود. با دکمه‌های کنار عنوان ماه یا کشیدن انگشت بین ماه‌ها جابه‌جا شوید؛ روی عنوان ماه بزنید تا ماه و سال را انتخاب کنید. دو نمای شبکه‌ای و فهرستی در دسترس است.",
+    body: "تقویم بر اساس تاریخ هجری شمسی است و هفته از شنبه آغاز می‌شود. با دکمه‌های کنار عنوان ماه یا کشیدن انگشت بین ماه‌ها جابه‌جا شوید؛ روی عنوان ماه بزنید تا ماه و سال را انتخاب کنید. دو حالت نمایش تقویم (شبکه‌ای) و جدولی در دسترس است؛ نمای جدولی دکمه‌ای برای تمام‌صفحه شدن دارد و نوار ماه همان‌طور کار می‌کند.",
   },
   {
     title: "یادداشت‌ها",
@@ -131,8 +160,22 @@ function draw() {
     </section>
 
     <section class="settings-card glass-card">
-      <h2 class="settings-title">${icon("info")} تماس</h2>
-      <p class="settings-muted">اطلاعات تماس در این نسخه در دسترس نیست.</p>
+      <h2 class="settings-title">${icon("whatsapp")} تماس</h2>
+      <p class="settings-desc">راه‌های ارتباط با ما — روی هر مورد بزنید تا کپی شود.</p>
+      <div class="contact-list" role="list">
+        ${CONTACTS.map(
+          (c) => `
+          <button type="button" class="contact-row" data-copy="${c.value}" aria-label="کپی ${c.fa}" role="listitem">
+            <span class="contact-icon contact-icon-${c.id}">${icon(c.icon)}</span>
+            <span class="contact-info">
+              <span class="contact-name">${c.fa} <span class="contact-kind">${c.kind === "id" ? "آیدی" : c.kind === "phone" ? "شماره" : "لینک"}</span></span>
+              <span class="contact-value">${c.value}</span>
+            </span>
+            <span class="contact-copy">${icon("copy")}</span>
+          </button>`,
+        ).join("")}
+      </div>
+      <p class="settings-muted contact-note">مقادیر بالا نمونه هستند و پس از تعیین اطلاعات واقعی جایگزین می‌شوند.</p>
     </section>
 
     <section class="settings-card glass-card">
@@ -168,6 +211,13 @@ function wireEvents() {
   });
 
   wireViewPicker(container);
+
+  container.querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const ok = await copyText(btn.dataset.copy);
+      toast(ok ? `کپی شد: ${btn.dataset.copy}` : "کپی ممکن نشد");
+    });
+  });
 
   container.querySelector("#restart-onboarding").addEventListener("click", async () => {
     const ok = await confirmDialog({

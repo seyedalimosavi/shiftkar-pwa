@@ -1,30 +1,36 @@
 /**
- * View picker — calendar display mode (grid vs list) with visual previews.
+ * View picker — calendar display mode (تقویم vs جدولی) with visual previews.
  * Used on onboarding and in Settings. Selection persists immediately.
  */
 import { state } from "../core/state.js";
-
-const GRID_CELLS = `
-  <span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-holiday"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-day"></span>`;
 
 function gridPreview() {
   return `
     <span class="view-preview view-preview-grid" aria-hidden="true">
       <span class="vp-row-head"></span>
-      <span class="vp-grid-row">${GRID_CELLS}</span>
-      <span class="vp-grid-row">${GRID_CELLS}</span>
+      <span class="vp-grid-row">
+        <span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-holiday"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-day"></span>
+      </span>
+      <span class="vp-grid-row">
+        <span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span>
+      </span>
     </span>`;
 }
 
-function listPreview() {
-  const rows = [["is-day"], ["is-night"], ["is-rest"], ["is-day"]];
+function tablePreview() {
+  const rows = [
+    ["vp-dot is-rest", "vp-tbar is-rest", ""],
+    ["vp-dot is-night", "vp-tbar is-night", "is-holiday"],
+    ["vp-dot is-day", "vp-tbar is-day", ""],
+    ["vp-dot is-day", "vp-tbar is-day", "is-holiday"],
+  ];
   return `
-    <span class="view-preview view-preview-list" aria-hidden="true">
-      <span class="vp-list-head"></span>
+    <span class="view-preview view-preview-table" aria-hidden="true">
+      <span class="vp-table-head"><span></span><span></span><span></span><span></span></span>
       ${rows
         .map(
-          (r) => `
-      <span class="vp-list-row"><span class="vp-dot ${r[0]}"></span><span class="vp-bar"></span></span>`,
+          ([dot, bar, extra]) => `
+      <span class="vp-table-row ${extra}"><span class="vp-num"></span><span class="vp-bar"></span><span class="${dot}"></span><span class="vp-bar"></span></span>`,
         )
         .join("")}
     </span>`;
@@ -38,12 +44,12 @@ export function viewPickerMarkup() {
       <button type="button" role="radio" aria-checked="${current === "grid"}"
         class="view-option ${current === "grid" ? "is-active" : ""}" data-view="grid">
         ${gridPreview()}
-        <span class="view-label">شبکه‌ای (جدولی)</span>
+        <span class="view-label">تقویم</span>
       </button>
-      <button type="button" role="radio" aria-checked="${current === "list"}"
-        class="view-option ${current === "list" ? "is-active" : ""}" data-view="list">
-        ${listPreview()}
-        <span class="view-label">فهرستی (تقویمی)</span>
+      <button type="button" role="radio" aria-checked="${current === "table"}"
+        class="view-option ${current === "table" ? "is-active" : ""}" data-view="table">
+        ${tablePreview()}
+        <span class="view-label">جدولی</span>
       </button>
     </div>`;
 }

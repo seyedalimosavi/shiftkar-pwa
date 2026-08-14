@@ -1,6 +1,7 @@
 /**
  * Calendar page — the primary screen.
- * Jalali month grid/list, today card, group filter, notes, swipe navigation.
+ * Jalali calendar: تقویم (grid) or جدولی (table) view, compact today banner,
+ * group filter, notes, swipe navigation, fullscreen table mode.
  */
 import { state } from "../core/state.js";
 import {
@@ -18,12 +19,12 @@ import {
 } from "../domain/jalali.js";
 import { calculateShift } from "../domain/shift-calculator.js";
 import { getHoliday } from "../domain/holidays.js";
-import { GROUPS, GROUP_FA, GROUP_FILTERS } from "../domain/models.js";
+import { GROUPS, GROUP_FILTERS } from "../domain/models.js";
 import { getNotesForMonth } from "../core/storage.js";
 import { openDayDetail } from "../components/day-detail.js";
 import { openMonthPicker } from "../components/month-picker.js";
 import { openAllNotes, noteDotMarkup } from "../components/notes.js";
-import { shiftBadge, miniGroupBadge } from "../components/shift-badge.js";
+import { shiftBadge, shiftCodeBadge, miniGroupBadge } from "../components/shift-badge.js";
 import { icon } from "../components/icons.js";
 
 let container = null;
@@ -50,6 +51,10 @@ export function renderCalendar(el) {
   draw();
 }
 
+function currentView() {
+  return state.settings.calendarViewType === "table" ? "table" : "grid";
+}
+
 function draw() {
   const s = state.settings;
   let jy = Number(s.viewYear) || 1405;
@@ -60,41 +65,46 @@ function draw() {
   const today = todayJalaali();
   const todayKey = makeDateKey(today.jy, today.jm, today.jd);
   const isCurrentMonth = jy === today.jy && jm === today.jm;
+  const view = currentView();
 
   container.innerHTML = `
     ${isCurrentMonth ? "" : todayFabHtml()}
     <div class="cal-wrap">
-      <header class="cal-header">
-        <div class="cal-nav">
-          <button type="button" class="icon-btn cal-nav-btn" data-action="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
-          <button type="button" class="cal-title-btn" data-action="picker" aria-label="انتخاب ماه و سال">
-            <span class="cal-title">${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}</span>
-            <span class="cal-title-caret">${icon("chevronDown")}</span>
-          </button>
-          <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
+      ${todayBannerHtml(s, today, todayKey)}
+
+      <div class="cal-nav-row">
+        <button type="button" class="icon-btn cal-nav-btn" data-action="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
+        <button type="button" class="cal-title-btn" data-action="picker" aria-label="انتخاب ماه و سال">
+          <span class="cal-title">${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}</span>
+          <span class="cal-title-caret">${icon("chevronDown")}</span>
+        </button>
+        <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
+      </div>
+
+      <div class="cal-toolbar">
+        <div class="view-toggle" role="group" aria-label="نمای تقویم">
+          <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
+          <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
         </div>
-        <div class="cal-toolbar">
-          <div class="view-toggle" role="group" aria-label="نمای تقویم">
-            <button type="button" class="${s.calendarViewType === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای شبکه‌ای">${icon("grid")}</button>
-            <button type="button" class="${s.calendarViewType === "list" ? "is-active" : ""}" data-view="list" aria-label="نمای فهرستی">${icon("list")}</button>
-          </div>
+        <div class="cal-toolbar-end">
+          ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
           <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
         </div>
-      </header>
-
-      ${todayCardHtml(s, today, todayKey)}
+      </div>
 
       <div class="group-filter" role="group" aria-label="فیلتر گروه">
         ${GROUP_FILTERS.map(
           (g) => `
           <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">
-            ${g === "ALL" ? "همه" : g}
+            ${g === "ALL" ? "همه" : `گروه ${g}`}
           </button>`,
         ).join("")}
       </div>
 
-      <section class="cal-body ${s.calendarViewType === "list" ? "is-list" : ""}" aria-label="تقویم ${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}">
-        ${s.calendarViewType === "grid" ? gridHtml(jy, jm, s, todayKey) : listHtml(jy, jm, s, todayKey)}
+      ${view === "grid" ? legendHtml() : ""}
+
+      <section class="cal-body" aria-label="تقویم ${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}">
+        ${view === "grid" ? gridHtml(jy, jm, s, todayKey) : tableHtml(jy, jm, s, todayKey)}
       </section>
     </div>`;
 
@@ -111,47 +121,51 @@ function todayFabHtml() {
     </button>`;
 }
 
-/* ---------------- today card ---------------- */
+/* ---------------- compact today banner ---------------- */
 
-function todayCardHtml(s, today, todayKey) {
+function todayBannerHtml(s, today, todayKey) {
   const filter = s.filterGroup;
   const greg = toGregorian(today.jy, today.jm, today.jd);
-  let shiftBlock;
+  const dateLine = `${formatWeekday(today.jy, today.jm, today.jd)} ${toPersianDigits(today.jd)} ${JALALI_MONTHS[today.jm - 1]}`;
 
+  let shiftHtml;
   if (filter === "ALL") {
-    shiftBlock = `
-      <div class="today-all">
-        ${GROUPS.map((g) => {
-          const shift = calculateShift(today, g);
-          return `
-            <div class="today-all-row">
-              <span class="today-all-group">${g}</span>
-              ${shiftBadge(shift.type, { size: "sm" })}
-            </div>`;
-        }).join("")}
+    shiftHtml = `
+      <div class="today-banner-all" title="${GROUPS.map((g) => {
+        const sh = calculateShift(today, g);
+        return `گروه ${g}: ${sh.type === "DAY" ? "روز" : sh.type === "NIGHT" ? "شب" : "استراحت"}`;
+      }).join("، ")}">
+        ${GROUPS.map((g) => miniGroupBadge(g, calculateShift(today, g).type)).join("")}
       </div>`;
   } else {
     const shift = calculateShift(today, filter);
-    shiftBlock = `
-      <div class="today-shift">
-        <span class="today-shift-group">${GROUP_FA[filter]}</span>
-        ${shiftBadge(shift.type, { size: "lg" })}
-      </div>`;
+    shiftHtml = shiftCodeBadge(shift.code, { group: filter });
   }
 
   return `
-    <section class="today-card glass-card" aria-label="شیفت امروز">
-      <div class="today-head">
-        <span class="today-label">شیفت امروز</span>
-        <span class="chip chip-today chip-sm">امروز</span>
+    <section class="today-banner glass-card" data-datekey="${todayKey}" role="button" tabindex="0"
+      aria-label="شیفت امروز — ${dateLine}، باز کردن جزئیات">
+      <span class="today-banner-pill">${dateLine}</span>
+      <div class="today-banner-right">
+        <span class="today-banner-label">${icon("calendar")} شیفت امروز</span>
+        ${shiftHtml}
       </div>
-      <div class="today-date">${formatJalali(today.jy, today.jm, today.jd)} · ${formatWeekday(today.jy, today.jm, today.jd)}</div>
-      <div class="today-gregorian">${formatGregorian(greg.gy, greg.gm, greg.gd)}</div>
-      ${shiftBlock}
+      <span class="today-banner-gregorian" aria-hidden="true">${formatGregorian(greg.gy, greg.gm, greg.gd)}</span>
     </section>`;
 }
 
-/* ---------------- grid / list ---------------- */
+/* ---------------- legend ---------------- */
+
+function legendHtml() {
+  return `
+    <div class="cal-legend" aria-label="راهنمای شیفت‌ها">
+      <span class="legend-item"><span class="legend-dot is-day"></span>روز</span>
+      <span class="legend-item"><span class="legend-dot is-night"></span>شب</span>
+      <span class="legend-item"><span class="legend-dot is-rest"></span>استراحت</span>
+    </div>`;
+}
+
+/* ---------------- grid view ---------------- */
 
 function cellShiftHtml(s, jy, jm, jd) {
   if (s.filterGroup === "ALL") {
@@ -200,26 +214,134 @@ function gridHtml(jy, jm, s, todayKey) {
     <div class="cal-grid">${cells.join("")}</div>`;
 }
 
-function listHtml(jy, jm, s, todayKey) {
+/* ---------------- table view (جدولی) ---------------- */
+
+function tableHtml(jy, jm, s, todayKey) {
   const days = jalaaliMonthLength(jy, jm);
   const rows = [];
+  const all = s.filterGroup === "ALL";
+
   for (let d = 1; d <= days; d++) {
     const key = makeDateKey(jy, jm, d);
     const holiday = getHoliday(jy, jm, d);
     const isToday = key === todayKey;
-    const hasNote = notesCache.has(key);
+    const isFriday = jalaaliWeekday(jy, jm, d) === 6;
+    const note = notesCache.get(key);
+
+    let shiftHtml;
+    if (all) {
+      shiftHtml = GROUPS.map((g) => miniGroupBadge(g, calculateShift({ jy, jm, jd: d }, g).type)).join("");
+    } else {
+      shiftHtml = shiftCodeBadge(calculateShift({ jy, jm, jd: d }, s.filterGroup).code, { group: s.filterGroup });
+    }
+
+    const occasion = holiday ? `<span class="table-occasion">${holiday.name}</span>` : "";
+    const noteHtml = note ? `<span class="table-note">${icon("note")} ${note.noteText}</span>` : "";
+
     rows.push(`
-      <button type="button" class="cal-row ${isToday ? "is-today" : ""}" data-datekey="${key}"
-        aria-label="${formatJalali(jy, jm, d)}، ${formatWeekday(jy, jm, d)}">
-        <span class="cal-row-date">
-          <span class="cal-row-day">${toPersianDigits(d)}</span>
-          <span class="cal-row-meta">${formatWeekday(jy, jm, d)}${holiday ? ' <span class="cal-row-holiday">· تعطیل</span>' : ""}</span>
-        </span>
-        <span class="cal-row-shift">${cellShiftHtml(s, jy, jm, d)}</span>
-        ${noteDotMarkup(hasNote)}
-      </button>`);
+      <tr class="${holiday ? "is-holiday" : ""} ${isFriday ? "is-friday" : ""} ${isToday ? "is-today" : ""}"
+        data-datekey="${key}" tabindex="0"
+        aria-label="${formatJalali(jy, jm, d)}، ${formatWeekday(jy, jm, d)}${holiday ? "، تعطیل" : ""}">
+        <td class="table-day">${toPersianDigits(String(d).padStart(2, "0"))}</td>
+        <td class="table-weekday">${WEEKDAYS[jalaaliWeekday(jy, jm, d)]}</td>
+        <td class="table-shift">${shiftHtml}</td>
+        <td class="table-occasion-cell">${occasion}${noteHtml}</td>
+      </tr>`);
   }
-  return `<div class="cal-list">${rows.join("")}</div>`;
+
+  return `
+    <div class="shift-table glass-card">
+      <div class="shift-table-head">
+        <span class="shift-table-title">جدول شیفت‌کاری ${JALALI_MONTHS[jm - 1]}</span>
+        <span class="shift-table-hint">${icon("info")} برای جزئیات، روی هر روز ضربه بزنید</span>
+      </div>
+      <div class="shift-table-scroll">
+        <table class="shift-table-grid">
+          <thead>
+            <tr><th>روز</th><th>هفته</th><th>شیفت</th><th>مناسبت و یادداشت</th></tr>
+          </thead>
+          <tbody>${rows.join("")}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ---------------- fullscreen table ---------------- */
+
+function openTableFullscreen() {
+  const overlay = document.createElement("div");
+  overlay.className = "table-fullscreen";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "جدول شیفت‌کاری تمام‌صفحه");
+  document.body.appendChild(overlay);
+  document.body.classList.add("sheet-open");
+  requestAnimationFrame(() => overlay.classList.add("is-open"));
+
+  // Keep in sync with the calendar page state (month, filter, notes).
+  const unsub = state.subscribe(() => {
+    if (overlay.isConnected) render();
+  });
+
+  function render() {
+    const s = state.settings;
+    let jy = Number(s.viewYear) || 1405;
+    let jm = Number(s.viewMonth) || 5;
+    const today = todayJalaali();
+    const todayKey = makeDateKey(today.jy, today.jm, today.jd);
+    const isCurrentMonth = jy === today.jy && jm === today.jm;
+
+    overlay.innerHTML = `
+      <div class="tf-header">
+        <div class="tf-nav">
+          <button type="button" class="icon-btn" data-tf="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
+          <button type="button" class="tf-title" data-tf="picker" aria-label="انتخاب ماه و سال">
+            <span>${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}</span>
+            <span class="tf-caret">${icon("chevronDown")}</span>
+          </button>
+          <button type="button" class="icon-btn" data-tf="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
+        </div>
+        <div class="tf-actions">
+          ${isCurrentMonth ? "" : `<button type="button" class="tf-today" data-tf="today">${icon("calendar")} برو به امروز</button>`}
+          <button type="button" class="icon-btn tf-collapse" data-tf="close" aria-label="بازگشت به نمای تقویم">${icon("collapse")}</button>
+        </div>
+      </div>
+      <div class="tf-body">
+        ${tableHtml(jy, jm, s, todayKey)}
+      </div>`;
+
+    overlay.querySelector('[data-tf="prev"]').addEventListener("click", () => shiftMonth(-1));
+    overlay.querySelector('[data-tf="next"]').addEventListener("click", () => shiftMonth(1));
+    overlay.querySelector('[data-tf="picker"]').addEventListener("click", openMonthPicker);
+    const todayBtn = overlay.querySelector('[data-tf="today"]');
+    if (todayBtn) todayBtn.addEventListener("click", () => goToToday());
+    overlay.querySelector('[data-tf="close"]').addEventListener("click", close);
+    overlay.querySelectorAll("tr[data-datekey]").forEach((tr) => {
+      tr.addEventListener("click", () => openDayDetail(tr.dataset.datekey));
+      tr.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDayDetail(tr.dataset.datekey);
+        }
+      });
+    });
+  }
+
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+  };
+  document.addEventListener("keydown", onKey);
+
+  function close() {
+    if (!overlay.isConnected) return;
+    document.removeEventListener("keydown", onKey);
+    unsub();
+    overlay.classList.remove("is-open");
+    document.body.classList.remove("sheet-open");
+    setTimeout(() => overlay.remove(), 240);
+  }
+
+  render();
 }
 
 /* ---------------- events ---------------- */
@@ -246,7 +368,7 @@ function goToToday() {
   state.set({ viewYear: t.jy, viewMonth: t.jm });
   state.setUi({ selectedDateKey: todayKey });
   requestAnimationFrame(() => {
-    const cell = container.querySelector(".cal-cell.is-today, .cal-row.is-today");
+    const cell = container.querySelector(".cal-cell.is-today, tr.is-today");
     if (!cell) return;
     if (typeof cell.scrollIntoView === "function") {
       cell.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -267,7 +389,12 @@ function wireEvents(s) {
     todayFab.addEventListener("click", () => goToToday());
   }
 
-  container.querySelectorAll('[data-filter]').forEach((btn) => {
+  const fullscreenBtn = container.querySelector('[data-action="fullscreen"]');
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener("click", openTableFullscreen);
+  }
+
+  container.querySelectorAll("[data-filter]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const g = btn.dataset.filter;
       // Keep the calendar filter and the personal group in sync.
@@ -279,12 +406,22 @@ function wireEvents(s) {
     });
   });
 
-  container.querySelectorAll('[data-view]').forEach((btn) => {
+  container.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => state.set({ calendarViewType: btn.dataset.view }));
   });
 
-  container.querySelectorAll("[data-datekey]").forEach((cell) => {
-    cell.addEventListener("click", () => openDayDetail(cell.dataset.datekey));
+  container.querySelectorAll("[data-datekey]").forEach((el) => {
+    el.addEventListener("click", () => openDayDetail(el.dataset.datekey));
+  });
+
+  // Keyboard activation for non-button day elements (banner, table rows).
+  container.querySelectorAll('[data-datekey][tabindex="0"]').forEach((el) => {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openDayDetail(el.dataset.datekey);
+      }
+    });
   });
 
   const body = container.querySelector(".cal-body");

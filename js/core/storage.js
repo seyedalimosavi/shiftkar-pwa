@@ -14,13 +14,23 @@ export const DEFAULT_SETTINGS = {
   theme: "blue",
   themeMode: "system", // "light" | "dark" | "system"
   myGroup: "A",
-  filterGroup: "ALL",
-  calendarViewType: "grid",
+  // Calendar filter starts on the personal group so the main screen always
+  // shows the user's own shift ("ALL" remains an explicit choice).
+  filterGroup: "A",
+  calendarViewType: "grid", // "grid" | "table"
   lastScreenRoute: "calendar",
   onboardingCompleted: false,
   viewYear: 1405,
   viewMonth: 5,
 };
+
+/** Old "list" view was replaced by the table view ("table"). */
+function migrate(settings) {
+  if (settings.calendarViewType === "list") {
+    settings.calendarViewType = "table";
+  }
+  return settings;
+}
 
 /* ---------------- LocalStorage settings ---------------- */
 
@@ -29,7 +39,7 @@ export function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    return migrate({ ...DEFAULT_SETTINGS, ...parsed });
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

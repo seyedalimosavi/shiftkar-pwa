@@ -212,22 +212,23 @@
   border: 1px solid transparent;
 }
 
+/* Filled so the shift status is visible at a glance in the ALL view */
 .mini-badge.badge-day {
-  background: var(--shift-day-soft);
-  color: var(--shift-day-ink);
-  border-color: var(--shift-day-border);
+  background: var(--shift-day);
+  color: #ffffff;
+  border-color: transparent;
 }
 
 .mini-badge.badge-night {
-  background: var(--shift-night-soft);
-  color: var(--shift-night-ink);
-  border-color: var(--shift-night-border);
+  background: var(--shift-night);
+  color: #ffffff;
+  border-color: transparent;
 }
 
 .mini-badge.badge-rest {
-  background: var(--shift-rest-soft);
-  color: var(--shift-rest-ink);
-  border-color: var(--shift-rest-border);
+  background: var(--shift-rest);
+  color: #ffffff;
+  border-color: transparent;
 }
 
 /* Note indicator dot */
@@ -471,6 +472,200 @@
 
 .about-text strong {
   font-size: var(--fs-md);
+}
+
+/* ---------- contact list ---------- */
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: start;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+  transition: border-color var(--motion-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.contact-row:hover {
+  border-color: var(--color-primary-border);
+}
+
+.contact-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.contact-icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.contact-icon-telegram {
+  background: #229ed9;
+}
+
+.contact-icon-whatsapp {
+  background: #25d366;
+}
+
+.contact-icon-whatsapp-pv {
+  background: #1faa56;
+}
+
+.contact-icon-phone {
+  background: var(--color-primary);
+}
+
+.contact-icon-eitaa {
+  background: #7c3aed;
+}
+
+.contact-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contact-kind {
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  color: var(--color-text-faint);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.contact-value {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+.contact-copy {
+  color: var(--color-text-faint);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.contact-copy .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.contact-note {
+  margin-top: 10px;
+}
+
+/* ---------- systems grid ---------- */
+.systems-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.system-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px 14px;
+  text-align: start;
+  position: relative;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.system-card:hover {
+  border-color: var(--color-primary-border);
+  transform: translateY(-1px);
+}
+
+.system-card:active {
+  transform: scale(0.98);
+}
+
+.system-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.system-icon .icon {
+  width: 21px;
+  height: 21px;
+}
+
+.system-name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  line-height: 1.5;
+}
+
+.system-desc {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.system-open {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  color: var(--color-text-faint);
+  display: flex;
+}
+
+.system-open .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.systems-note {
+  margin-top: 14px;
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: var(--fs-xs);
+}
+
+@media (min-width: 640px) {
+  .systems-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* ---------- empty state ---------- */
@@ -1222,6 +1417,69 @@
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   text-align: center;
+}
+
+/* table preview: header + rows with colored shift dots */
+.view-preview-table .vp-table-head {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 0.8fr 1.6fr;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.view-preview-table .vp-table-head span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border-strong);
+}
+
+.vp-table-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 0.8fr 1.6fr;
+  gap: 3px;
+  align-items: center;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+}
+
+.vp-table-row.is-holiday {
+  background: var(--holiday-soft);
+  border-color: var(--holiday-border);
+}
+
+.vp-num {
+  width: 9px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--color-text-faint);
+  justify-self: center;
+}
+
+.vp-table-row .vp-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-border-strong);
+}
+
+.vp-tbar {
+  width: 18px;
+  height: 7px;
+  border-radius: 3px;
+  justify-self: start;
+}
+
+.vp-tbar.is-day {
+  background: var(--shift-day);
+}
+
+.vp-tbar.is-night {
+  background: var(--shift-night);
+}
+
+.vp-tbar.is-rest {
+  background: var(--shift-rest);
 }
 
 /* ---------- onboarding personalization ---------- */

@@ -86,9 +86,11 @@ shiftkar-web/
 - **Themes** — light / dark / follow-system mode (live, follows the OS setting,
   no flash-of-light-theme thanks to a pre-paint boot script) × 6 color palettes,
   all components optimized for dark mode
-- **Calendar** — Jalali month grid/list, today card, group filter (A–D / all),
-  month picker, swipe between months, holiday + note indicators; the group
-  filter and the Settings personal group stay in sync
+- **Calendar** — Jalali تقویم (grid) and جدولی (table) views, compact today
+  banner, group filter (A–D / all) synced with the Settings personal group,
+  month picker, swipe between months, holiday + note indicators, and a
+  shift-status legend. The table view opens full-screen with its own month
+  navigation; the ALL filter uses filled color-coded group chips
 - **«برو به شیفت امروز»** — floating button that appears whenever you're viewing
   a month other than the current one; it jumps back to today's month, selects
   and pulses the today cell, and disappears once you're back in the current month
@@ -105,9 +107,12 @@ shiftkar-web/
   zoom/pan viewer (pinch, drag, double-tap, wheel, reset). If the image is not
   present the page shows a graceful missing-data state.
 - **Systems (سامانهها)** — external-system links from the Android app are not
-  part of this build; the page shows a clear placeholder rather than fake links.
-- **Settings** — personal group, 6 color themes, calendar view (grid/list),
-  help (FA), about, restart onboarding
+  grid of 8 clearly-labeled example systems (replace with real names/URLs when
+  available)
+- **Settings** — personal group (synced with the calendar filter), light/dark/
+  system theme + 6 color themes, calendar view (تقویم/جدولی with previews),
+  contact options (Telegram, WhatsApp group/private, phone, Eitaa —
+  copy-to-clipboard), help (FA), about, restart onboarding
 - **PWA** — manifest (rtl/fa, standalone), offline caching, installable
 
 ---

@@ -45,9 +45,10 @@ export function openDayDetail(dateKey) {
       <div class="day-detail-groups-title">${icon("groups")} شیفت گروه‌ها</div>
       ${GROUPS.map((gr) => {
         const shift = calculateShift({ jy, jm, jd }, gr);
+        const isMine = gr === state.settings.myGroup;
         return `
-          <div class="group-shift-row">
-            <span class="group-shift-name">${GROUP_FA[gr]}</span>
+          <div class="group-shift-row ${isMine ? "is-mine" : ""}">
+            <span class="group-shift-name">${GROUP_FA[gr]}${isMine ? ' <span class="group-shift-mine">شما</span>' : ""}</span>
             ${shiftBadge(shift.type, { group: gr })}
           </div>`;
       }).join("")}
