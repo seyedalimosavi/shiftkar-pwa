@@ -210,7 +210,9 @@ function gridHtml(jy, jm, s, todayKey) {
 
   return `
     <div class="cal-weekdays" aria-hidden="true">
-      ${WEEKDAYS.map((w) => `<span class="cal-weekday" data-short="${w[0]}">${w}</span>`).join("")}
+      ${WEEKDAYS.map(
+        (w) => `<span class="cal-weekday" title="${w}"><span class="wd-full">${w}</span><span class="wd-short">${w[0]}</span></span>`,
+      ).join("")}
     </div>
     <div class="cal-grid">${cells.join("")}</div>`;
 }

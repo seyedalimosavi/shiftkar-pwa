@@ -291,16 +291,20 @@
   color: var(--holiday);
 }
 
-/* Narrow screens: weekday headers collapse to a single letter (ش، ی، د…) */
+/* Weekday header labels: full names on wide screens, a single clean letter
+   (ش، ی، د، س، چ، پ، ج) on narrow screens. Both are real DOM text — toggled
+   with display only, so they can never fail to render. */
+.cal-weekday .wd-short {
+  display: none;
+}
+
 @media (max-width: 430px) {
-  .cal-weekday {
-    font-size: 0;
+  .cal-weekday .wd-full {
+    display: none;
   }
 
-  .cal-weekday::before {
-    content: attr(data-short);
-    font-size: 12px;
-    font-weight: var(--fw-black);
+  .cal-weekday .wd-short {
+    display: inline;
   }
 }
 
