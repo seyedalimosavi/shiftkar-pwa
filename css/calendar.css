@@ -954,6 +954,44 @@ body.sheet-open {
   gap: 8px;
 }
 
+/* Floating «برو به امروز» for the fullscreen table — a small circle on the
+   right edge, vertically centered, so it never touches the header or the
+   layout above. Icon-only and always minimized. */
+.tf-today-fab {
+  position: absolute;
+  inset-inline-end: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  z-index: 2;
+  animation: fab-in 300ms var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    filter var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.tf-today-fab .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.tf-today-fab:hover {
+  filter: brightness(1.06);
+}
+
+.tf-today-fab:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
 /* The fullscreen table scrolls inside the card: .tf-body is a plain flex
    container (overflow hidden) and the inner .shift-table-scroll is the one
    and only scroller in both axes — the classic flex-grow pattern, reliable

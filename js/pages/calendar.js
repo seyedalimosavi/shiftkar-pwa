@@ -35,12 +35,15 @@ let lastLoadedNotesVersion = -1;
 let windowListenerAttached = false;
 let keyHandler = null;
 
-/* «برو به امروز» chip auto-collapse: expanded for a moment, then it shrinks
-   to a small circular icon so it never hogs the row. The counter makes the
-   FIRST departure hold the label longest; later departures (after coming
-   back to the current month) collapse faster. Never reset — the effect only
-   needs to be "slower the first time", every departure after that is quick. */
+/* «برو به امروز» chip auto-collapse. The chip collapses ONCE per
+   away-session: leave the current month → it shows the «امروز» label for a
+   moment, then shrinks to a small circular icon and STAYS minimized while
+   browsing other months. Returning to the current month removes it and
+   resets the session, so the next departure plays the same show-then-
+   collapse (faster the second time onward). The counter is never reset so
+   the very first departure holds the label longest. */
 let todayChipTimer = null;
+let todayChipSessionCollapsed = false;
 let offCurrentMonthCount = 0;
 
 export function renderCalendar(el) {
@@ -78,6 +81,10 @@ function draw() {
   const isCurrentMonth = jy === today.jy && jm === today.jm;
   const view = currentView();
 
+  // Back on the current month → the «امروز» chip disappears; the next time
+  // the user leaves it gets to show its label once again before collapsing.
+  if (isCurrentMonth) todayChipSessionCollapsed = false;
+
   container.innerHTML = `
     <div class="cal-wrap">
       ${todayBannerHtml(s, today, todayKey)}
@@ -112,7 +119,7 @@ function draw() {
           ).join("")}
         </div>
         ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
-        ${isCurrentMonth ? "" : todayChipHtml()}
+        ${isCurrentMonth ? "" : todayChipHtml({ collapsed: view === "table" || todayChipSessionCollapsed })}
       </div>
 
       ${view === "grid" && s.filterGroup === "ALL" ? legendHtml() : ""}
@@ -124,29 +131,35 @@ function draw() {
 
   wireEvents(s);
   loadNotes(jy, jm);
-  armTodayChip(container);
+  // Table view keeps the chip permanently minimized so it never disturbs
+  // the rows; the grid view follows the once-per-session collapse.
+  armTodayChip(container, { alwaysCollapsed: view === "table" });
 }
 
 /* ---------------- "go to today" inline chip ---------------- */
 /* Sits in the actions row (next to the fullscreen toggle) so it never
    covers calendar content. Only rendered off the current month — on the
    current month there is nowhere to go, so it disappears. */
-function todayChipHtml() {
+function todayChipHtml({ collapsed = false } = {}) {
   return `
-    <button type="button" class="today-chip" data-action="today" title="برو به امروز" aria-label="رفتن به امروز">
+    <button type="button" class="today-chip ${collapsed ? "is-collapsed" : ""}" data-action="today" title="برو به امروز" aria-label="رفتن به امروز">
       ${icon("calendar")}<span class="today-chip-label">امروز</span>
     </button>`;
 }
 
 /**
- * The «برو به امروز» chip mounts EXPANDED (icon + «امروز» label) so the
- * user sees what it does, then smoothly collapses to a small circular icon
- * (padding/gap/label-width transitions in CSS) — it stays collapsed while
- * viewing a month other than the current one. Hovering re-expands it on
- * desktop; leaving re-collapses it. Each draw clears the previous timer so
- * rapid month-switching can never stack animations.
+ * The «برو به امروز» chip collapses ONCE per away-session: when the user
+ * first leaves the current month it mounts EXPANDED (icon + «امروز» label),
+ * then smoothly collapses to a small circular icon (padding/gap/label-width
+ * transitions in CSS) and STAYS collapsed while browsing other months.
+ * Returning to the current month removes it and resets the session, so the
+ * next departure shows the label once again — and collapses faster (the
+ * first-ever departure holds it longest). In the table view it is always
+ * minimized so it never disturbs the rows. Hovering re-expands it on
+ * desktop (grid view only). Each draw clears the previous timer so rapid
+ * month-switching can never stack animations.
  */
-function armTodayChip(root, { firstHold = 2400, repeatHold = 900 } = {}) {
+function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapsed = false } = {}) {
   if (todayChipTimer) {
     clearTimeout(todayChipTimer);
     todayChipTimer = null;
@@ -154,22 +167,37 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900 } = {}) {
   const chip = root.querySelector(".today-chip");
   if (!chip) return;
 
-  offCurrentMonthCount += 1;
   const collapse = () => chip.classList.add("is-collapsed");
+
+  // Table view: permanently minimized, no re-expansion.
+  if (alwaysCollapsed) {
+    chip.classList.add("is-collapsed");
+    return;
+  }
+
+  // Already shown + collapsed in this away-session → start minimized.
+  if (todayChipSessionCollapsed) {
+    chip.classList.add("is-collapsed");
+    // Desktop: hovering still lets the user peek at the label.
+    chip.addEventListener("pointerenter", () => {
+      chip.classList.remove("is-collapsed");
+      if (todayChipTimer) clearTimeout(todayChipTimer);
+      todayChipTimer = setTimeout(collapse, 1400);
+    });
+    chip.addEventListener("pointerleave", () => {
+      if (!chip.classList.contains("is-collapsed")) {
+        if (todayChipTimer) clearTimeout(todayChipTimer);
+        todayChipTimer = setTimeout(collapse, 600);
+      }
+    });
+    return;
+  }
+
+  // First render of this away-session — show the label, then minimize.
+  todayChipSessionCollapsed = true;
+  offCurrentMonthCount += 1;
   const holdMs = offCurrentMonthCount <= 1 ? firstHold : repeatHold;
   todayChipTimer = setTimeout(collapse, holdMs);
-
-  chip.addEventListener("pointerenter", () => {
-    chip.classList.remove("is-collapsed");
-    if (todayChipTimer) clearTimeout(todayChipTimer);
-    todayChipTimer = setTimeout(collapse, 1400);
-  });
-  chip.addEventListener("pointerleave", () => {
-    if (!chip.classList.contains("is-collapsed")) {
-      if (todayChipTimer) clearTimeout(todayChipTimer);
-      todayChipTimer = setTimeout(collapse, 600);
-    }
-  });
 }
 
 /* ---------------- compact today banner ---------------- */
@@ -375,8 +403,9 @@ function openTableFullscreen() {
 
     // The month nav in the header already shows the month, so the table has
     // no title of its own; a slim legend appears only when همه is selected.
-    // The «امروز» chip sits inline in the header actions (never over the
-    // rows) and only shows while viewing a month other than the current one.
+    // «برو به امروز» is a small floating circle on the right edge (never in
+    // the header) and only shows while viewing a month other than the
+    // current one.
     overlay.innerHTML = `
       <div class="tf-header">
         <div class="tf-nav">
@@ -388,14 +417,14 @@ function openTableFullscreen() {
           <button type="button" class="icon-btn" data-tf="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
         <div class="tf-actions">
-          ${isCurrentMonth ? "" : `<button type="button" class="today-chip" data-tf="today" title="برو به امروز" aria-label="رفتن به امروز">${icon("calendar")}<span class="today-chip-label">امروز</span></button>`}
           <button type="button" class="icon-btn tf-collapse" data-tf="close" aria-label="بازگشت به نمای تقویم">${icon("collapse")}</button>
         </div>
       </div>
       ${s.filterGroup === "ALL" ? `<div class="tf-legend">${legendHtml()}</div>` : ""}
       <div class="tf-body">
         ${tableHtml(jy, jm, s, todayKey, { hideHead: true })}
-      </div>`;
+      </div>
+      ${isCurrentMonth ? "" : `<button type="button" class="tf-today-fab" data-tf="today" title="برو به امروز" aria-label="رفتن به امروز">${icon("calendar")}</button>`}`;
 
     overlay.querySelector('[data-tf="prev"]').addEventListener("click", () => shiftMonth(-1));
     overlay.querySelector('[data-tf="next"]').addEventListener("click", () => shiftMonth(1));
@@ -417,8 +446,6 @@ function openTableFullscreen() {
         }
       });
     });
-    // The header is cramped — collapse the chip faster than on the page.
-    armTodayChip(overlay, { firstHold: 1400, repeatHold: 600 });
   }
 
   /** Jump to the current month and scroll today's row into view. */
