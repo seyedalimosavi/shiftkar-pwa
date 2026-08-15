@@ -1,4 +1,4 @@
-# شیفتکار | ShiftKar Web
+# شیفت کار | ShiftKar Web
 
 Persian RTL shift-management and calendar application — a rebuild of the original
 Android (Kotlin) app as a **modern Vanilla HTML + CSS + JavaScript Progressive Web App (PWA)**.
