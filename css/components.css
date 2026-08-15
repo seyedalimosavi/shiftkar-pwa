@@ -1108,6 +1108,142 @@
   min-height: 40px;
 }
 
+/* Empty state: a single «افزودن یادداشت» button (no delete, no form) */
+.note-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  border: 1px dashed var(--color-primary-border);
+  color: var(--color-primary-strong);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  transition: all var(--motion-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.note-add-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.note-add-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* View mode: the note on a mild-yellow card */
+.note-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--note-bg);
+  border: 1px solid var(--note-border);
+  color: var(--note-ink);
+}
+
+.note-view-text {
+  font-size: var(--fs-sm);
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.note-more-btn {
+  align-self: flex-start;
+  color: var(--color-primary-strong);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  padding: 2px 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.note-more-btn:hover {
+  text-decoration: underline;
+}
+
+.note-view-meta {
+  font-size: var(--fs-xs);
+  opacity: 0.85;
+}
+
+/* Flash ring when arriving at the note from the all-notes list */
+.note-editor.note-flash {
+  animation: note-flash 1.4s var(--ease-out);
+}
+
+@keyframes note-flash {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+
+.note-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- all-notes search ---------- */
+.notes-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notes-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: 44px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+  transition: border-color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.notes-search .icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.notes-search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.notes-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+}
+
+.notes-search-input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.notes-filter-empty {
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: var(--fs-sm);
+  padding: var(--space-4) 0;
+}
+
 /* ---------- splash ---------- */
 .splash {
   position: fixed;

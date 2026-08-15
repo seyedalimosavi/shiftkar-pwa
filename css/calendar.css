@@ -44,11 +44,12 @@
   display: none;
 }
 
-/* Month title as a hover capsule */
+/* Month title as a hover capsule — the caret sits at the far end of the
+   capsule (separate from the title text) so the pill feels connected. */
 .cal-title-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
   flex: 1;
   min-width: 0;
@@ -74,6 +75,8 @@
 
 .cal-title {
   white-space: nowrap; /* full month names (اردیبهشت …) always visible */
+  flex: 1;
+  text-align: center;
 }
 
 .cal-title-caret {
@@ -288,6 +291,19 @@
   color: var(--holiday);
 }
 
+/* Narrow screens: weekday headers collapse to a single letter (ش، ی، د…) */
+@media (max-width: 430px) {
+  .cal-weekday {
+    font-size: 0;
+  }
+
+  .cal-weekday::before {
+    content: attr(data-short);
+    font-size: 12px;
+    font-weight: var(--fw-black);
+  }
+}
+
 /* ---------- grid ---------- */
 .cal-grid {
   display: grid;
@@ -400,14 +416,15 @@
 .shift-table-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 10px;
-  padding: 14px 16px 10px;
+  padding: 10px 16px 4px;
 }
 
-.shift-table-title {
-  font-size: var(--fs-md);
-  font-weight: var(--fw-black);
+/* The head carries the shift-status legend when همه is selected — compact,
+   no bottom padding inside the card. */
+.shift-table-head .cal-legend {
+  padding: 0;
 }
 
 .shift-table-hint {
@@ -430,6 +447,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .shift-table-grid {
@@ -821,7 +839,7 @@ body.sheet-open {
 .tf-title {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
   flex: 1;
   min-width: 0;
@@ -842,6 +860,11 @@ body.sheet-open {
 .tf-title:hover {
   background: var(--color-primary-soft);
   border-color: var(--color-primary-border);
+}
+
+.tf-title > span:first-child {
+  flex: 1;
+  text-align: center;
 }
 
 .tf-caret {
@@ -882,16 +905,42 @@ body.sheet-open {
   height: 15px;
 }
 
+/* The fullscreen table scrolls inside the card: .tf-body is a plain flex
+   container (overflow hidden) and the inner .shift-table-scroll is the one
+   and only scroller in both axes — the classic flex-grow pattern, reliable
+   on every browser (no nested-scroller swallowing of vertical drags). */
 .tf-body {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   height: auto;
   padding: 0 12px calc(18px + var(--safe-bottom));
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+}
+
+.tf-body .shift-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tf-body .shift-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+}
+
+/* Slim legend bar under the fullscreen header when همه is selected */
+.tf-legend {
+  display: flex;
+  justify-content: center;
+  padding: 2px 18px 10px;
+  flex-shrink: 0;
+}
+
+.tf-legend .cal-legend {
+  padding: 0;
 }
 
 /* A nested backdrop-filter inside a scroll container can break touch

@@ -5,6 +5,7 @@
  * The viewer supports zoom, pan, drag, pinch, double-tap and reset.
  */
 import { icon } from "../components/icons.js";
+import { lockBodyScroll, unlockBodyScroll } from "../components/bottom-sheet.js";
 
 const ROSTER_SRC = "./assets/roster-1405.png";
 
@@ -71,7 +72,7 @@ function openRosterViewer(src) {
 
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add("is-open"));
-  document.body.classList.add("sheet-open");
+  lockBodyScroll();
 
   const stage = overlay.querySelector(".viewer-stage");
   const img = overlay.querySelector(".viewer-img");
@@ -209,7 +210,7 @@ function openRosterViewer(src) {
   const close = () => {
     if (!overlay.isConnected) return;
     overlay.classList.remove("is-open");
-    document.body.classList.remove("sheet-open");
+    unlockBodyScroll();
     setTimeout(() => overlay.remove(), 240);
     document.removeEventListener("keydown", onKey);
   };

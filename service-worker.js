@@ -1,5 +1,5 @@
 /* ShiftKar service worker — offline-first caching. */
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 const ASSETS = [
@@ -39,6 +39,7 @@ const ASSETS = [
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png",
   "./assets/icons/apple-touch-icon.png",
+  "./assets/roster-1405.png",
 ];
 
 self.addEventListener("install", (event) => {

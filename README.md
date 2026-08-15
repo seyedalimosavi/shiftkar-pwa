@@ -32,8 +32,8 @@ shiftkar-web/
 ├── service-worker.js        # offline-first caching
 │
 ├── assets/
-│   ├── logo.png             # app logo (generated, see scripts/)
-│   ├── roster-1405.png      # <optional> roster board photo — drop yours here
+│   ├── logo.png             # app logo (brand mark from the uploaded icon)
+│   ├── roster-1405.png      # roster board photo (uploaded by the owner)
 │   └── icons/               # PWA icons (192, 512, maskable, apple-touch)
 │
 ├── css/
@@ -102,10 +102,12 @@ shiftkar-web/
 - **Day detail** — Persian/Gregorian dates, weekday, holiday, all four groups'
   shifts, per-day notes
 - **Notes** — stored in IndexedDB (offline), note dot on calendar days,
-  "all notes" list with edit/delete/jump-to-date
-- **Roster (تابلو)** — displays `assets/roster-1405.png` with a full-screen
-  zoom/pan viewer (pinch, drag, double-tap, wheel, reset). If the image is not
-  present the page shows a graceful missing-data state.
+  yellow note card with نمایش بیشتر/کمتر for long notes, and an "all notes"
+  sheet with search; tapping a note opens that day scrolled straight to the
+  note (ویرایش jumps directly into the editor)
+- **Roster (تابلو)** — displays `assets/roster-1405.png` (the real roster
+  board photo, already in the repo) with a full-screen zoom/pan viewer
+  (pinch, drag, double-tap, wheel, reset).
 - **Systems (سامانهها)** — a responsive grid of 8 clearly-labeled example
   systems (حقوق، حضور و غیاب، مرخصی، پورتال، …) that open test URLs in a new
   window (replace with real names/URLs when available)
@@ -150,7 +152,8 @@ bun run dev            # start the Vite dev server
 bun tsc -b --noEmit    # typecheck (config covers the JS sources)
 node scripts/test-engine.mjs    # Jalali + shift-engine unit tests (86 checks)
 node scripts/smoke-import.mjs   # imports every module with DOM shims
-node scripts/generate-assets.mjs # regenerate logo + PWA icons (pure Node, no deps)
+node scripts/generate-assets.mjs # regenerate the fallback logo + PWA icons
+node scripts/apply-assets.mjs    # resize the uploaded brand icon + copy the roster
 ```
 
 The dev server registers the service worker only in production builds
@@ -169,8 +172,13 @@ through normal web deployment.
 
 ---
 
-## Adding your roster image
+## Brand assets
 
-Put your real roster board photo at `assets/roster-1405.png` — the Roster page
-picks it up automatically (no code change needed) and it is cached for offline
-use on first view.
+- The app icon comes from the owner's uploaded mark (`public/assets/icon.png`,
+  1024×1024). `node scripts/apply-assets.mjs` decodes it and writes the resized
+  PWA icons (192/512/maskable/apple-touch) plus `assets/logo.png` used in the
+  splash and About.
+- The roster board photo lives at `assets/roster-1405.png` (uploaded JPEG). To
+  swap it, replace that file (or `public/assets/roster-1405.png` and re-run
+  `apply-assets`); the Roster page picks it up automatically and the service
+  worker precaches it for offline use.

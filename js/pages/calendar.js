@@ -21,9 +21,10 @@ import { GROUPS, GROUP_FILTERS, SHIFT_TYPES } from "../domain/models.js";
 import { getNotesForMonth } from "../core/storage.js";
 import { openDayDetail } from "../components/day-detail.js";
 import { openMonthPicker } from "../components/month-picker.js";
-import { openAllNotes, noteDotMarkup } from "../components/notes.js";
+import { openAllNotes, noteDotMarkup, escapeHtml, NOTE_TABLE_CLAMP } from "../components/notes.js";
 import { shiftBadge, shiftCodeBadge, miniGroupBadge } from "../components/shift-badge.js";
 import { icon } from "../components/icons.js";
+import { registerBackHandler, consumeBackEntry, lockBodyScroll, unlockBodyScroll } from "../components/bottom-sheet.js";
 
 let container = null;
 let unsubscribe = null;
@@ -43,7 +44,7 @@ export function renderCalendar(el) {
   if (!windowListenerAttached) {
     windowListenerAttached = true;
     window.addEventListener("shiftkar:open-day", (e) => {
-      if (e.detail && e.detail.dateKey) openDayDetail(e.detail.dateKey);
+      if (e.detail && e.detail.dateKey) openDayDetail(e.detail.dateKey, e.detail.opts || {});
     });
   }
   draw();
@@ -209,14 +210,14 @@ function gridHtml(jy, jm, s, todayKey) {
 
   return `
     <div class="cal-weekdays" aria-hidden="true">
-      ${WEEKDAYS.map((w) => `<span class="cal-weekday">${w}</span>`).join("")}
+      ${WEEKDAYS.map((w) => `<span class="cal-weekday" data-short="${w[0]}">${w}</span>`).join("")}
     </div>
     <div class="cal-grid">${cells.join("")}</div>`;
 }
 
 /* ---------------- table view (جدولی) ---------------- */
 
-function tableHtml(jy, jm, s, todayKey) {
+function tableHtml(jy, jm, s, todayKey, { hideHead = false } = {}) {
   const days = jalaaliMonthLength(jy, jm);
   const rows = [];
   const all = s.filterGroup === "ALL";
@@ -236,7 +237,12 @@ function tableHtml(jy, jm, s, todayKey) {
     }
 
     const occasion = holiday ? `<span class="table-occasion">${holiday.name}</span>` : "";
-    const noteHtml = note ? `<span class="table-note">${icon("note")} ${note.noteText}</span>` : "";
+    const noteText = note
+      ? note.noteText.length > NOTE_TABLE_CLAMP
+        ? `${note.noteText.slice(0, NOTE_TABLE_CLAMP).trimEnd()}…`
+        : note.noteText
+      : "";
+    const noteHtml = note ? `<span class="table-note" title="${escapeHtml(note.noteText)}">${icon("note")} ${escapeHtml(noteText)}</span>` : "";
 
     rows.push(`
       <tr class="${holiday ? "is-holiday" : ""} ${isFriday ? "is-friday" : ""} ${isToday ? "is-today" : ""}"
@@ -249,12 +255,18 @@ function tableHtml(jy, jm, s, todayKey) {
       </tr>`);
   }
 
+  // The month is already shown in the page header, so the table head is
+  // slim: a shift-status legend when همه is selected, a small hint otherwise.
+  const headHtml = hideHead
+    ? ""
+    : `
+      <div class="shift-table-head">
+        ${s.filterGroup === "ALL" ? legendHtml() : `<span class="shift-table-hint">${icon("info")} برای جزئیات، روی هر روز ضربه بزنید</span>`}
+      </div>`;
+
   return `
     <div class="shift-table glass-card">
-      <div class="shift-table-head">
-        <span class="shift-table-title">جدول شیفت‌کاری ${JALALI_MONTHS[jm - 1]}</span>
-        <span class="shift-table-hint">${icon("info")} برای جزئیات، روی هر روز ضربه بزنید</span>
-      </div>
+      ${headHtml}
       <div class="shift-table-scroll">
         <table class="shift-table-grid">
           <thead>
@@ -275,22 +287,19 @@ function openTableFullscreen() {
   overlay.setAttribute("aria-modal", "true");
   overlay.setAttribute("aria-label", "جدول شیفت‌کاری تمام‌صفحه");
   document.body.appendChild(overlay);
-  document.body.classList.add("sheet-open");
+  lockBodyScroll();
   requestAnimationFrame(() => overlay.classList.add("is-open"));
 
   // The hardware/system back button closes the fullscreen table instead of
-  // leaving the app. pushState keeps the URL identical so nothing navigates.
-  let backConsumed = false;
-  const onPop = () => {
-    backConsumed = true;
-    close();
-  };
-  window.addEventListener("popstate", onPop);
+  // leaving the app (shared back-stack with the bottom sheets).
+  let historyPushed = false;
   try {
     history.pushState({ tfFullscreen: true }, "");
+    historyPushed = true;
   } catch (err) {
-    /* sandboxed environments may block history — back button just won't close */
+    /* sandboxed environments may block history — back just won't close */
   }
+  const unregisterBack = registerBackHandler(() => close(true));
 
   // Keep in sync with the calendar page state (month, filter, notes).
   const unsub = state.subscribe(() => {
@@ -303,8 +312,10 @@ function openTableFullscreen() {
     let jm = Number(s.viewMonth) || 5;
     const today = todayJalaali();
     const todayKey = makeDateKey(today.jy, today.jm, today.jd);
-    const isCurrentMonth = jy === today.jy && jm === today.jm;
 
+    // The month nav in the header already shows the month, so the table has
+    // no title of its own; برو به امروز fills the header's free space and a
+    // slim legend appears only when همه is selected.
     overlay.innerHTML = `
       <div class="tf-header">
         <div class="tf-nav">
@@ -316,20 +327,20 @@ function openTableFullscreen() {
           <button type="button" class="icon-btn" data-tf="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
         <div class="tf-actions">
-          ${isCurrentMonth ? "" : `<button type="button" class="tf-today" data-tf="today">${icon("calendar")} برو به امروز</button>`}
+          <button type="button" class="tf-today" data-tf="today">${icon("calendar")} برو به امروز</button>
           <button type="button" class="icon-btn tf-collapse" data-tf="close" aria-label="بازگشت به نمای تقویم">${icon("collapse")}</button>
         </div>
       </div>
+      ${s.filterGroup === "ALL" ? `<div class="tf-legend">${legendHtml()}</div>` : ""}
       <div class="tf-body">
-        ${tableHtml(jy, jm, s, todayKey)}
+        ${tableHtml(jy, jm, s, todayKey, { hideHead: true })}
       </div>`;
 
     overlay.querySelector('[data-tf="prev"]').addEventListener("click", () => shiftMonth(-1));
     overlay.querySelector('[data-tf="next"]').addEventListener("click", () => shiftMonth(1));
     overlay.querySelector('[data-tf="picker"]').addEventListener("click", openMonthPicker);
-    const todayBtn = overlay.querySelector('[data-tf="today"]');
-    if (todayBtn) todayBtn.addEventListener("click", () => goToToday());
-    overlay.querySelector('[data-tf="close"]').addEventListener("click", close);
+    overlay.querySelector('[data-tf="today"]').addEventListener("click", goToTodayFullscreen);
+    overlay.querySelector('[data-tf="close"]').addEventListener("click", () => close());
     overlay.querySelectorAll("tr[data-datekey]").forEach((tr) => {
       tr.addEventListener("click", () => openDayDetail(tr.dataset.datekey));
       tr.addEventListener("keydown", (e) => {
@@ -339,41 +350,44 @@ function openTableFullscreen() {
         }
       });
     });
-    sizeTableBody();
   }
 
-  /** Bound the scroll area to the space below the header — a hard cap that
-      works even where flexbox min-height handling misbehaves (old Safari). */
-  function sizeTableBody() {
-    const header = overlay.querySelector(".tf-header");
-    const body = overlay.querySelector(".tf-body");
-    if (!header || !body) return;
-    body.style.maxHeight = `calc(100dvh - ${header.offsetHeight}px)`;
+  /** Jump to the current month and scroll today's row into view. */
+  function goToTodayFullscreen() {
+    const t = todayJalaali();
+    const todayKey = makeDateKey(t.jy, t.jm, t.jd);
+    state.set({ viewYear: t.jy, viewMonth: t.jm });
+    state.setUi({ selectedDateKey: todayKey });
+    requestAnimationFrame(() => {
+      const tr = overlay.querySelector("tr.is-today");
+      if (!tr) return;
+      const scroller = overlay.querySelector(".tf-body .shift-table-scroll");
+      if (scroller) {
+        const rect = tr.getBoundingClientRect();
+        const cont = scroller.getBoundingClientRect();
+        scroller.scrollTo({
+          top: scroller.scrollTop + rect.top - cont.top - 12,
+          behavior: "smooth",
+        });
+      }
+      tr.classList.add("is-pulsing");
+      setTimeout(() => tr.classList.remove("is-pulsing"), 1000);
+    });
   }
-  window.addEventListener("resize", sizeTableBody);
 
   const onKey = (e) => {
     if (e.key === "Escape") close();
   };
   document.addEventListener("keydown", onKey);
 
-  function close() {
+  function close(popClosed = false) {
     if (!overlay.isConnected) return;
-    window.removeEventListener("popstate", onPop);
+    unregisterBack();
     document.removeEventListener("keydown", onKey);
-    window.removeEventListener("resize", sizeTableBody);
-    if (!backConsumed) {
-      // The overlay was closed with its own button/Escape — consume the
-      // history entry we pushed so back doesn't leave the app afterwards.
-      try {
-        history.back();
-      } catch (err) {
-        /* ignore */
-      }
-    }
+    if (historyPushed && !popClosed) consumeBackEntry();
     unsub();
     overlay.classList.remove("is-open");
-    document.body.classList.remove("sheet-open");
+    unlockBodyScroll();
     setTimeout(() => overlay.remove(), 240);
   }
 

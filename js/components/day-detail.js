@@ -19,7 +19,7 @@ import { shiftBadge } from "./shift-badge.js";
 import { createNoteEditor } from "./notes.js";
 import { icon } from "./icons.js";
 
-export function openDayDetail(dateKey) {
+export function openDayDetail(dateKey, opts = {}) {
   const { jy, jm, jd } = parseDateKey(dateKey);
   const g = toGregorian(jy, jm, jd);
   const today = todayJalaali();
@@ -56,13 +56,25 @@ export function openDayDetail(dateKey) {
       }).join("")}
     </div>`;
 
-  content.appendChild(createNoteEditor(dateKey));
+  content.appendChild(createNoteEditor(dateKey, { startInEdit: opts.editNote === true }));
 
   state.setUi({ selectedDateKey: dateKey });
 
-  openSheet({
+  const api = openSheet({
     title: "جزئیات روز",
     content,
     onClose: () => state.setUi({ selectedDateKey: null }),
   });
+
+  // Coming from the all-notes list: bring the note section into view and
+  // flash it so the user lands exactly where the note is.
+  if (opts.focusNote || opts.editNote) {
+    setTimeout(() => {
+      const editor = api.body.querySelector(".note-editor");
+      if (!editor) return;
+      editor.scrollIntoView({ behavior: "smooth", block: "center" });
+      editor.classList.add("note-flash");
+      setTimeout(() => editor.classList.remove("note-flash"), 1500);
+    }, 420);
+  }
 }

@@ -1,6 +1,6 @@
 /**
- * Notes UI: per-day note editor, all-notes list, date navigation.
- * Data lives in IndexedDB via core/storage.js.
+ * Notes UI: per-day note editor (empty / view / edit modes), all-notes list
+ * with search, date navigation. Data lives in IndexedDB via core/storage.js.
  */
 import { getAllNotes, getNote, putNote, deleteNote } from "../core/storage.js";
 import { state } from "../core/state.js";
@@ -9,10 +9,33 @@ import { openSheet } from "./bottom-sheet.js";
 import { confirmDialog, toast } from "./dialogs.js";
 import { icon } from "./icons.js";
 
-function escapeHtml(text) {
+export function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+/** Hard limit for a note's text. */
+export const NOTE_MAX_LENGTH = 500;
+
+/** Day-detail card shows this many chars before «نمایش بیشتر». */
+export const NOTE_VIEW_CLAMP = 140;
+
+/** Table view truncates notes extremely hard so rows stay tidy. */
+export const NOTE_TABLE_CLAMP = 22;
+
+function clampText(text, max) {
+  return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
+}
+
+/** Normalizes Persian/Arabic digits + ZWNJ for search matching. */
+function normalizeSearch(s) {
+  return s
+    .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/\u200c/g, "")
+    .trim()
+    .toLowerCase();
 }
 
 /** Subtle dot shown on calendar days that have a note. */
@@ -28,56 +51,98 @@ export function formatUpdatedAt(iso) {
 }
 
 /**
- * Builds a note editor for a date and wires Save / Delete.
- * Saving an empty text removes the note (per spec).
+ * Builds the note block for a date:
+ *  - empty: a single «افزودن یادداشت» button (no delete button, no form)
+ *  - view:  the note on a mild-yellow card with «ویرایش» / «حذف» and
+ *           نمایش بیشتر/کمتر for long notes
+ *  - edit:  the textarea + ذخیره/انصراف (only while actually editing)
  */
-export function createNoteEditor(dateKey, { onSaved = null } = {}) {
+export function createNoteEditor(dateKey, { onSaved = null, startInEdit = false } = {}) {
   const wrap = document.createElement("div");
   wrap.className = "note-editor";
   const inputId = `note-input-${dateKey}`;
-  wrap.innerHTML = `
-    <label class="note-editor-label" for="${inputId}">یادداشت</label>
-    <textarea id="${inputId}" class="note-textarea" rows="3" maxlength="2000"
-      placeholder="یادداشت خود را بنویسید…"></textarea>
-    <div class="note-editor-meta"></div>
-    <div class="note-editor-actions">
-      <button type="button" class="btn btn-ghost note-delete">حذف</button>
-      <button type="button" class="btn btn-primary note-save">ذخیره</button>
-    </div>`;
 
-  const textarea = wrap.querySelector(".note-textarea");
-  const meta = wrap.querySelector(".note-editor-meta");
-  const saveBtn = wrap.querySelector(".note-save");
-  const deleteBtn = wrap.querySelector(".note-delete");
+  let note = null;
+  let mode = "loading"; // loading | empty | view | edit
 
-  getNote(dateKey).then((note) => {
-    if (note) {
-      textarea.value = note.noteText;
-      wrap.classList.add("has-note");
-      meta.textContent = `آخرین ویرایش: ${formatUpdatedAt(note.updatedAt)}`;
+  const render = () => {
+    if (mode === "empty") {
+      wrap.innerHTML = `
+        <label class="note-editor-label">یادداشت</label>
+        <button type="button" class="note-add-btn" id="${inputId}">${icon("note")} افزودن یادداشت</button>`;
+      wrap.querySelector(".note-add-btn").addEventListener("click", () => {
+        mode = "edit";
+        render();
+      });
+    } else if (mode === "view") {
+      const long = note.noteText.length > NOTE_VIEW_CLAMP;
+      wrap.innerHTML = `
+        <div class="note-view">
+          <div class="note-view-text" dir="auto">${escapeHtml(clampText(note.noteText, NOTE_VIEW_CLAMP))}</div>
+          ${long ? `<button type="button" class="note-more-btn" data-more>نمایش بیشتر</button>` : ""}
+          <div class="note-view-meta">آخرین ویرایش: ${formatUpdatedAt(note.updatedAt)}</div>
+        </div>
+        <div class="note-editor-actions">
+          <button type="button" class="btn btn-danger-ghost note-delete">حذف</button>
+          <button type="button" class="btn btn-primary note-edit-btn">ویرایش</button>
+        </div>`;
+      const moreBtn = wrap.querySelector("[data-more]");
+      if (moreBtn) {
+        moreBtn.addEventListener("click", () => {
+          const textEl = wrap.querySelector(".note-view-text");
+          const expanded = textEl.classList.toggle("is-expanded");
+          textEl.textContent = expanded ? note.noteText : clampText(note.noteText, NOTE_VIEW_CLAMP);
+          moreBtn.textContent = expanded ? "نمایش کمتر" : "نمایش بیشتر";
+        });
+      }
+      wrap.querySelector(".note-edit-btn").addEventListener("click", () => {
+        mode = "edit";
+        render();
+      });
+      wrap.querySelector(".note-delete").addEventListener("click", remove);
+    } else if (mode === "edit") {
+      const value = note ? note.noteText : "";
+      wrap.innerHTML = `
+        <label class="note-editor-label" for="${inputId}">یادداشت</label>
+        <textarea id="${inputId}" class="note-textarea" rows="4" maxlength="${NOTE_MAX_LENGTH}"
+          placeholder="یادداشت خود را بنویسید…">${escapeHtml(value)}</textarea>
+        <div class="note-editor-meta"><span class="note-count">${toPersianDigits(value.length)} / ${toPersianDigits(NOTE_MAX_LENGTH)}</span></div>
+        <div class="note-editor-actions">
+          <button type="button" class="btn btn-ghost note-cancel">انصراف</button>
+          <button type="button" class="btn btn-primary note-save">ذخیره</button>
+        </div>`;
+      const textarea = wrap.querySelector(".note-textarea");
+      const count = wrap.querySelector(".note-count");
+      textarea.addEventListener("input", () => {
+        count.textContent = `${toPersianDigits(textarea.value.length)} / ${toPersianDigits(NOTE_MAX_LENGTH)}`;
+      });
+      wrap.querySelector(".note-cancel").addEventListener("click", () => {
+        mode = note ? "view" : "empty";
+        render();
+      });
+      wrap.querySelector(".note-save").addEventListener("click", save);
+      textarea.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          save();
+        }
+      });
+      requestAnimationFrame(() => textarea.focus());
     }
-  });
+  };
 
   const save = async () => {
+    const textarea = wrap.querySelector(".note-textarea");
     const text = textarea.value.trim();
     if (!text) {
-      const ok = await confirmDialog({
-        title: "حذف یادداشت",
-        message: "متن خالی است. یادداشت این روز حذف شود؟",
-        confirmText: "حذف",
-        danger: true,
-      });
-      if (!ok) return;
-      await deleteNote(dateKey);
-      wrap.classList.remove("has-note");
-      meta.textContent = "";
-      toast("یادداشت حذف شد");
-    } else {
-      const record = await putNote(dateKey, text);
-      wrap.classList.add("has-note");
-      meta.textContent = `آخرین ویرایش: ${formatUpdatedAt(record.updatedAt)}`;
-      toast("یادداشت ذخیره شد");
+      toast("متن یادداشت خالی است");
+      return;
     }
+    const record = await putNote(dateKey, text);
+    note = record;
+    mode = "view";
+    render();
+    toast("یادداشت ذخیره شد");
     state.bumpNotes();
     if (onSaved) onSaved();
   };
@@ -91,63 +156,83 @@ export function createNoteEditor(dateKey, { onSaved = null } = {}) {
     });
     if (!ok) return;
     await deleteNote(dateKey);
-    textarea.value = "";
-    wrap.classList.remove("has-note");
-    meta.textContent = "";
+    note = null;
+    mode = "empty";
+    render();
     toast("یادداشت حذف شد");
     state.bumpNotes();
     if (onSaved) onSaved();
   };
 
-  saveBtn.addEventListener("click", save);
-  deleteBtn.addEventListener("click", remove);
-  textarea.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      save();
-    }
+  /** Programmatic entry into the editor (all-notes «ویرایش» button). */
+  wrap.startEdit = () => {
+    mode = "edit";
+    render();
+  };
+
+  getNote(dateKey).then((n) => {
+    note = n || null;
+    mode = note ? "view" : "empty";
+    if (startInEdit) mode = "edit";
+    render();
   });
 
   return wrap;
 }
 
 /** Navigate to a date: switch the calendar month, highlight, open details. */
-export function gotoDate(dateKey) {
+export function gotoDate(dateKey, opts = {}) {
   const { jy, jm } = parseDateKey(dateKey);
   state.set({ viewYear: jy, viewMonth: jm });
-  window.dispatchEvent(new CustomEvent("shiftkar:open-day", { detail: { dateKey } }));
+  window.dispatchEvent(new CustomEvent("shiftkar:open-day", { detail: { dateKey, opts } }));
 }
 
-/** "All notes" sheet: edit / delete / jump to each note's date. */
+/** Shared empty-state markup for the all-notes sheet. */
+function emptyStateMarkup() {
+  return `
+    <div class="empty-state empty-state-compact">
+      <div class="empty-icon">${icon("note")}</div>
+      <h3>هنوز یادداشتی ندارید</h3>
+      <p>روی هر روز در تقویم ضربه بزنید تا یادداشت اضافه کنید.</p>
+    </div>`;
+}
+
+/** «All notes» sheet: search + jump to each note's date (scrolled to it). */
 export async function openAllNotes() {
   const notes = await getAllNotes();
 
   if (!notes.length) {
     openSheet({
       title: "یادداشت‌های من",
-      content: `
-        <div class="empty-state empty-state-compact">
-          <div class="empty-icon">${icon("note")}</div>
-          <h3>هنوز یادداشتی ندارید</h3>
-          <p>روی هر روز در تقویم ضربه بزنید تا یادداشت اضافه کنید.</p>
-        </div>`,
+      content: emptyStateMarkup(),
     });
     return;
   }
 
-  const list = document.createElement("div");
-  list.className = "notes-list";
-  list.setAttribute("role", "list");
+  const container = document.createElement("div");
+  container.className = "notes-manager";
+  container.innerHTML = `
+    <div class="notes-search">
+      ${icon("search")}
+      <input type="search" class="notes-search-input" placeholder="جستجو در یادداشت‌ها…" aria-label="جستجو در یادداشت‌ها" autocomplete="off" />
+    </div>
+    <div class="notes-list" role="list"></div>
+    <div class="notes-filter-empty" hidden>یادداشتی با این عبارت پیدا نشد</div>`;
 
-  for (const note of notes) {
+  const listEl = container.querySelector(".notes-list");
+  const input = container.querySelector(".notes-search-input");
+  const filterEmpty = container.querySelector(".notes-filter-empty");
+
+  const rows = notes.map((note) => {
     const { jy, jm, jd } = parseDateKey(note.dateKey);
     const row = document.createElement("div");
     row.className = "note-list-item";
     row.setAttribute("role", "listitem");
+    row.dataset.searchText = normalizeSearch(`${formatJalali(jy, jm, jd)} ${formatWeekday(jy, jm, jd)} ${note.noteText}`);
     row.innerHTML = `
       <button type="button" class="note-list-main" aria-label="باز کردن ${escapeHtml(formatJalali(jy, jm, jd))}">
         <span class="note-list-date">${formatJalali(jy, jm, jd)} <span class="note-list-weekday">${formatWeekday(jy, jm, jd)}</span></span>
-        <span class="note-list-text">${escapeHtml(note.noteText)}</span>
+        <span class="note-list-text">${escapeHtml(clampText(note.noteText, 60))}</span>
       </button>
       <div class="note-list-actions">
         <button type="button" class="icon-btn note-edit" aria-label="ویرایش یادداشت">${icon("pencil")}</button>
@@ -156,11 +241,11 @@ export async function openAllNotes() {
 
     row.querySelector(".note-list-main").addEventListener("click", () => {
       sheet.close();
-      gotoDate(note.dateKey);
+      gotoDate(note.dateKey, { focusNote: true });
     });
     row.querySelector(".note-edit").addEventListener("click", () => {
       sheet.close();
-      gotoDate(note.dateKey);
+      gotoDate(note.dateKey, { focusNote: true, editNote: true });
     });
     row.querySelector(".note-del").addEventListener("click", async () => {
       const ok = await confirmDialog({
@@ -173,12 +258,27 @@ export async function openAllNotes() {
       await deleteNote(note.dateKey);
       state.bumpNotes();
       toast("یادداشت حذف شد");
-      sheet.close();
-      openAllNotes();
+      rows.splice(rows.indexOf(row), 1);
+      row.remove();
+      if (!rows.length) {
+        container.innerHTML = emptyStateMarkup();
+      }
     });
 
-    list.appendChild(row);
-  }
+    listEl.appendChild(row);
+    return row;
+  });
 
-  const sheet = openSheet({ title: "یادداشت‌های من", content: list });
+  input.addEventListener("input", () => {
+    const q = normalizeSearch(input.value);
+    let visible = 0;
+    rows.forEach((r) => {
+      const match = !q || r.dataset.searchText.includes(q);
+      r.hidden = !match;
+      if (match) visible += 1;
+    });
+    filterEmpty.hidden = visible !== 0;
+  });
+
+  const sheet = openSheet({ title: "یادداشت‌های من", content: container });
 }

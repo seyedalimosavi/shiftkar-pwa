@@ -81,6 +81,11 @@
   --holiday-soft: #ffe9ee;
   --holiday-border: #f7c1cd;
 
+  /* Note card (mild yellow paper) */
+  --note-bg: #fff6dd;
+  --note-border: #f0dcac;
+  --note-ink: #6d5310;
+
   /* Light glass base */
   --color-background: #eef3fb;
   --color-surface: rgba(255, 255, 255, 0.6);
@@ -198,4 +203,8 @@
 
   --holiday-soft: color-mix(in srgb, var(--holiday) 20%, transparent);
   --holiday-border: color-mix(in srgb, var(--holiday) 48%, transparent);
+
+  --note-bg: color-mix(in srgb, #ffd95e 13%, transparent);
+  --note-border: color-mix(in srgb, #ffd95e 34%, transparent);
+  --note-ink: #ffe9a8;
 }
