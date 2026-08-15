@@ -5,6 +5,7 @@
  * look perfectly coherent side by side.
  */
 import { state } from "../core/state.js";
+import { icon } from "./icons.js";
 
 function gridPreview() {
   const rows = [
@@ -46,17 +47,23 @@ function tablePreview() {
 }
 
 /** Markup for the picker; highlights the current setting. */
+function checkBadge() {
+  return `<span class="view-check" aria-hidden="true">${icon("check")}</span>`;
+}
+
 export function viewPickerMarkup() {
   const current = state.settings.calendarViewType || "grid";
   return `
     <div class="view-picker" role="radiogroup" aria-label="حالت نمایش تقویم">
       <button type="button" role="radio" aria-checked="${current === "grid"}"
         class="view-option ${current === "grid" ? "is-active" : ""}" data-view="grid">
+        ${current === "grid" ? checkBadge() : ""}
         ${gridPreview()}
         <span class="view-label">تقویم</span>
       </button>
       <button type="button" role="radio" aria-checked="${current === "table"}"
         class="view-option ${current === "table" ? "is-active" : ""}" data-view="table">
+        ${current === "table" ? checkBadge() : ""}
         ${tablePreview()}
         <span class="view-label">جدولی</span>
       </button>
@@ -72,6 +79,9 @@ export function wireViewPicker(root) {
         const on = b === btn;
         b.classList.toggle("is-active", on);
         b.setAttribute("aria-checked", String(on));
+        const badge = b.querySelector(".view-check");
+        if (on && !badge) b.insertAdjacentHTML("afterbegin", checkBadge());
+        if (!on && badge) badge.remove();
       });
     });
   });

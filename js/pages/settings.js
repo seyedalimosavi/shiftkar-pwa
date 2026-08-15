@@ -25,11 +25,11 @@ export function renderSettings(el) {
 
 // Test links — replace with real contact values when available.
 const CONTACTS = [
-  { id: "telegram", fa: "تلگرام", icon: "telegram", value: "@shiftkar_test", kind: "آیدی", href: "https://t.me/shiftkar_test" },
-  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", value: "گروه شیفتکار", kind: "گروه", href: "https://chat.whatsapp.com/Sh1ftk4rTestGroup" },
-  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", value: "+98 912 345 6789", kind: "شماره", href: "https://wa.me/989123456789" },
-  { id: "phone", fa: "شماره تلفن", icon: "phone", value: "+98 21 1234 5678", kind: "تماس", href: "tel:+982112345678" },
-  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", value: "@shiftkar_test", kind: "گروه", href: "https://eitaa.com/shiftkar_test" },
+  { id: "telegram", fa: "تلگرام", icon: "telegram", href: "https://t.me/shiftkar_test" },
+  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", href: "https://chat.whatsapp.com/Sh1ftk4rTestGroup" },
+  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", href: "https://wa.me/989123456789" },
+  { id: "phone", fa: "تماس تلفنی", icon: "phone", href: "tel:+982112345678" },
+  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", href: "https://eitaa.com/shiftkar_test" },
 ];
 
 const HELP_ITEMS = [
@@ -43,7 +43,7 @@ const HELP_ITEMS = [
   },
   {
     title: "انواع شیفت",
-    body: "سه وضعیت نمایشی وجود دارد:\n• روز — شیفت روزانه\n• شب — شیفت شبانه\n• استراحت — روزهای استراحت\nهر وضعیت با رنگ و نشان اختصاصی در تقویم نمایش داده می‌شود.",
+    body: "سه وضعیت نمایشی وجود دارد:\n• روزکار — شیفت روزانه\n• شبکار — شیفت شبانه\n• استراحت — روزهای استراحت\nهر وضعیت با رنگ و نشان اختصاصی در تقویم نمایش داده می‌شود.",
   },
   {
     title: "تقویم",
@@ -140,22 +140,19 @@ function draw() {
     </section>
 
     <section class="settings-card glass-card">
-      <h2 class="settings-title">${icon("whatsapp")} تماس</h2>
-      <p class="settings-desc">راه‌های ارتباط با ما — روی هر مورد بزنید تا در برنامهٔ مربوطه باز شود.</p>
+      <h2 class="settings-title">${icon("eitaa")} تماس با ما</h2>
+      <p class="settings-desc">روی هر گزینه بزنید تا در همان برنامه باز شود.</p>
       <div class="contact-list" role="list">
         ${CONTACTS.map(
           (c) => `
           <a class="contact-row" href="${c.href}" target="_blank" rel="noopener noreferrer" role="listitem" aria-label="${c.fa}">
             <span class="contact-icon contact-icon-${c.id}">${icon(c.icon)}</span>
-            <span class="contact-info">
-              <span class="contact-name">${c.fa} <span class="contact-kind">${c.kind}</span></span>
-              <span class="contact-value">${c.value}</span>
-            </span>
-            <span class="contact-copy">${icon("external")}</span>
+            <span class="contact-name">${c.fa}</span>
+            <span class="contact-arrow">${icon("external")}</span>
           </a>`,
         ).join("")}
       </div>
-      <p class="settings-muted contact-note">لینک‌های بالا آزمایشی هستند و پس از تعیین اطلاعات واقعی جایگزین می‌شوند.</p>
+      <p class="settings-muted contact-note">لینک‌ها آزمایشی‌اند و پس از تعیین اطلاعات واقعی جایگزین می‌شوند.</p>
     </section>
 
     <section class="settings-card glass-card">

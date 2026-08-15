@@ -10,6 +10,24 @@
   margin-bottom: 10px;
 }
 
+/* «همه» chip lives in the free area at the start of the month row */
+.chip-all {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: var(--fs-xs);
+}
+
+/* The تقویم/جدولی toggle sits in the free area at the end of the month row */
+.view-toggle-nav {
+  flex-shrink: 0;
+}
+
+.view-toggle.view-toggle-nav button {
+  width: 34px;
+  height: 34px;
+}
+
 .cal-title-btn {
   display: inline-flex;
   align-items: center;
@@ -84,10 +102,11 @@
   color: var(--color-primary);
 }
 
+/* Active view gets the same filled "choose" effect as the group chips */
 .view-toggle button.is-active {
-  background: var(--color-surface-solid);
-  color: var(--color-primary);
-  box-shadow: 0 2px 8px -3px rgba(23, 40, 80, 0.2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* ---------- compact today banner ---------- */
@@ -730,6 +749,12 @@ tr.is-pulsing {
   background: var(--color-background);
   opacity: 0;
   transition: opacity var(--motion) var(--ease-out);
+  touch-action: pan-y;
+}
+
+/* Lock the page behind the overlay so the scroll gesture goes to the table */
+body.sheet-open {
+  overflow: hidden;
 }
 
 .table-fullscreen.is-open {
@@ -812,18 +837,27 @@ tr.is-pulsing {
 }
 
 .tf-body {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  height: 0; /* force the flex item to a bounded height so it can scroll */
+  height: auto;
   padding: 0 12px calc(18px + var(--safe-bottom));
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
 
+/* A nested backdrop-filter inside a scroll container can break touch
+   scrolling on iOS/Android Chrome — drop it for the fullscreen table. */
+.table-fullscreen .glass-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .tf-body .shift-table-scroll {
   max-height: none;
+  overflow-x: visible;
 }
 
 .tf-body .shift-table-grid {

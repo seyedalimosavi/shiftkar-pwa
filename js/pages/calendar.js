@@ -17,7 +17,7 @@ import {
 } from "../domain/jalali.js";
 import { calculateShift } from "../domain/shift-calculator.js";
 import { getHoliday } from "../domain/holidays.js";
-import { GROUPS, GROUP_FILTERS, SHIFT_TYPES } from "../domain/models.js";
+import { GROUPS, SHIFT_TYPES } from "../domain/models.js";
 import { getNotesForMonth } from "../core/storage.js";
 import { openDayDetail } from "../components/day-detail.js";
 import { openMonthPicker } from "../components/month-picker.js";
@@ -71,30 +71,29 @@ function draw() {
       ${todayBannerHtml(s, today, todayKey)}
 
       <div class="cal-nav-row">
+        <button type="button" class="chip chip-all ${s.filterGroup === "ALL" ? "is-active" : ""}" data-filter="ALL" aria-label="نمایش همه گروه‌ها">همه</button>
         <button type="button" class="icon-btn cal-nav-btn" data-action="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
         <button type="button" class="cal-title-btn" data-action="picker" aria-label="انتخاب ماه و سال">
           <span class="cal-title">${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}</span>
           <span class="cal-title-caret">${icon("chevronDown")}</span>
         </button>
         <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
+        <div class="view-toggle view-toggle-nav" role="group" aria-label="نمای تقویم">
+          <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
+          <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
+        </div>
       </div>
 
       <div class="cal-actions">
+        <div class="group-filter" role="group" aria-label="فیلتر گروه">
+          ${GROUPS.map(
+            (g) => `
+            <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">${g}</button>`,
+          ).join("")}
+        </div>
         <div class="cal-tools">
-          <div class="view-toggle" role="group" aria-label="نمای تقویم">
-            <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
-            <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
-          </div>
           ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
           <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
-        </div>
-        <div class="group-filter" role="group" aria-label="فیلتر گروه">
-          ${GROUP_FILTERS.map(
-            (g) => `
-            <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">
-              ${g === "ALL" ? "همه" : g}
-            </button>`,
-          ).join("")}
         </div>
       </div>
 
@@ -129,7 +128,7 @@ function todayBannerHtml(s, today, todayKey) {
     shiftHtml = `
       <div class="today-banner-all" title="${GROUPS.map((g) => {
         const sh = calculateShift(today, g);
-        return `گروه ${g}: ${sh.type === "DAY" ? "روز" : sh.type === "NIGHT" ? "شب" : "استراحت"}`;
+        return `گروه ${g}: ${SHIFT_TYPES[sh.type].fa}`;
       }).join("， ")}">
         ${GROUPS.map((g) => miniGroupBadge(g, calculateShift(today, g).type)).join("")}
       </div>`;
@@ -155,8 +154,8 @@ function todayBannerHtml(s, today, todayKey) {
 function legendHtml() {
   return `
     <div class="cal-legend" aria-label="راهنمای شیفت‌ها">
-      <span class="legend-item"><span class="legend-dot is-day"></span>روز</span>
-      <span class="legend-item"><span class="legend-dot is-night"></span>شب</span>
+      <span class="legend-item"><span class="legend-dot is-day"></span>روزکار</span>
+      <span class="legend-item"><span class="legend-dot is-night"></span>شبکار</span>
       <span class="legend-item"><span class="legend-dot is-rest"></span>استراحت</span>
     </div>`;
 }
@@ -228,7 +227,7 @@ function tableHtml(jy, jm, s, todayKey) {
     if (all) {
       shiftHtml = GROUPS.map((g) => miniGroupBadge(g, calculateShift({ jy, jm, jd: d }, g).type)).join("");
     } else {
-      shiftHtml = shiftCodeBadge(calculateShift({ jy, jm, jd: d }, s.filterGroup).code, { group: s.filterGroup });
+      shiftHtml = shiftCodeBadge(calculateShift({ jy, jm, jd: d }, s.filterGroup).code);
     }
 
     const occasion = holiday ? `<span class="table-occasion">${holiday.name}</span>` : "";

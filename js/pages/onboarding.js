@@ -109,7 +109,9 @@ export function renderOnboarding(container) {
   function update(animate = true) {
     const width = track.getBoundingClientRect().width || container.clientWidth;
     track.style.transition = animate ? "transform 320ms cubic-bezier(0.16, 1, 0.3, 1)" : "none";
-    track.style.transform = `translateX(${index * width}px)`;
+    // Slides stack left-to-right inside the track; advancing moves the track
+    // LEFT, so the incoming slide travels in the same direction as the swipe.
+    track.style.transform = `translateX(-${index * width}px)`;
     dots.forEach((d, i) => d.classList.toggle("is-active", i === index));
     prevBtn.disabled = index === 0;
     nextBtn.textContent = index === TOTAL_SLIDES - 1 ? "شروع کنید" : "بعدی";

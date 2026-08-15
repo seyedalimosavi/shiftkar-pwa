@@ -212,21 +212,28 @@
   border: 1px solid transparent;
 }
 
-/* Filled so the shift status is visible at a glance in the ALL view */
+/* Letter badges (A/B/C/D in the ALL view) — every appearance uses the exact
+   same gradient treatment as the app's main badges: light→color vertical
+   gradient + top highlight. Identical in calendar cells, table rows, the
+   today banner and anywhere else a group letter is shown. */
+.mini-badge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
 .mini-badge.badge-day {
-  background: var(--shift-day);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--shift-day) 82%, white), var(--shift-day));
   color: #ffffff;
   border-color: transparent;
 }
 
 .mini-badge.badge-night {
-  background: var(--shift-night);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--shift-night) 82%, white), var(--shift-night));
   color: #ffffff;
   border-color: transparent;
 }
 
 .mini-badge.badge-rest {
-  background: var(--shift-rest);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--shift-rest) 82%, white), var(--shift-rest));
   color: #ffffff;
   border-color: transparent;
 }
@@ -475,6 +482,8 @@
 }
 
 /* ---------- contact list ---------- */
+/* Clean rows: brand-colored icon + name + forward arrow. No آیدی/شماره
+   captions and no raw URLs — tapping opens the app directly. */
 .contact-list {
   display: flex;
   flex-direction: column;
@@ -487,102 +496,93 @@
   gap: 12px;
   width: 100%;
   text-align: start;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: var(--radius-md);
   background: var(--color-surface-strong);
   border: 1px solid var(--color-border-strong);
   color: inherit;
   text-decoration: none;
-  transition: border-color var(--motion-fast) var(--ease-out);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
 .contact-row:hover {
   border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+}
+
+.contact-row:active {
+  transform: scale(0.98);
 }
 
 .contact-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .contact-icon .icon {
-  width: 20px;
-  height: 20px;
+  width: 21px;
+  height: 21px;
 }
 
 .contact-icon-telegram {
-  background: #229ed9;
+  background: linear-gradient(180deg, #4db8e8, #229ed9);
 }
 
 .contact-icon-whatsapp {
-  background: #25d366;
+  background: linear-gradient(180deg, #4ade80, #25d366);
 }
 
 .contact-icon-whatsapp-pv {
-  background: #1faa56;
+  background: linear-gradient(180deg, #3fcb71, #1faa56);
 }
 
 .contact-icon-phone {
-  background: var(--color-primary);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 82%, white), var(--color-primary));
 }
 
 .contact-icon-eitaa {
-  background: #7c3aed;
-}
-
-.contact-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+  background: linear-gradient(180deg, #9d6cf8, #7c3aed);
 }
 
 .contact-name {
+  flex: 1;
+  min-width: 0;
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
-.contact-kind {
-  font-size: 10px;
-  font-weight: var(--fw-bold);
-  color: var(--color-text-faint);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  padding: 1px 7px;
-  border-radius: var(--radius-pill);
-}
-
-.contact-value {
-  font-size: var(--fs-xs);
-  color: var(--color-text-muted);
-  direction: ltr;
-  text-align: start;
-  unicode-bidi: plaintext;
-}
-
-.contact-copy {
-  color: var(--color-text-faint);
+.contact-arrow {
   display: flex;
   flex-shrink: 0;
+  color: var(--color-text-faint);
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
-.contact-copy .icon {
-  width: 18px;
-  height: 18px;
+.contact-arrow .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.contact-row:hover .contact-arrow {
+  color: var(--color-primary);
+  transform: translateX(-2px); /* forward in RTL */
 }
 
 .contact-note {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 /* ---------- systems grid ---------- */
@@ -1213,6 +1213,9 @@
 .onboarding-track {
   display: flex;
   width: 100%;
+  /* Slides stack left-to-right so advancing translates the track to the
+     LEFT — the incoming slide follows the direction of the swipe. */
+  direction: ltr;
 }
 
 .onboarding-slide {
@@ -1225,6 +1228,8 @@
   text-align: center;
   padding: 0 10px;
   gap: var(--space-4);
+  /* Restore RTL for the slide's own content */
+  direction: rtl;
 }
 
 .onboarding-art {
@@ -1319,6 +1324,32 @@
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
   box-shadow: var(--shadow-primary);
+}
+
+/* Selected card gets an unmistakable check badge, like other pickers */
+.view-option {
+  position: relative;
+}
+
+.view-check {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  z-index: 1;
+}
+
+.view-check .icon {
+  width: 13px;
+  height: 13px;
 }
 
 /* Both previews share the same outer box, head strip and fill height,
@@ -1510,10 +1541,6 @@
 [data-theme-mode="dark"] .onboarding-art {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
   border-color: var(--color-border);
-}
-
-[data-theme-mode="dark"] .view-toggle button.is-active {
-  background: var(--color-surface-solid);
 }
 
 [data-theme-mode="dark"] .note-editor-actions .btn-ghost,

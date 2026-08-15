@@ -3,16 +3,16 @@
  */
 
 export const SHIFT_TYPES = {
-  DAY: { id: "DAY", fa: "روز", badgeClass: "badge-day", icon: "sun" },
-  NIGHT: { id: "NIGHT", fa: "شب", badgeClass: "badge-night", icon: "moon" },
+  DAY: { id: "DAY", fa: "روزکار", badgeClass: "badge-day", icon: "sun" },
+  NIGHT: { id: "NIGHT", fa: "شبکار", badgeClass: "badge-night", icon: "moon" },
   REST: { id: "REST", fa: "استراحت", badgeClass: "badge-rest", icon: "rest" },
 };
 
 export const SHIFT_CODE_LABELS = {
-  M1: "روز",
-  M2: "روز",
-  N1: "شب",
-  N2: "شب",
+  M1: "روزکار",
+  M2: "روزکار",
+  N1: "شبکار",
+  N2: "شبکار",
   R1: "استراحت",
   R2: "استراحت",
   R3: "استراحت",

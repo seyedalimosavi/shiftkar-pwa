@@ -111,4 +111,24 @@
     height: 15px;
     font-size: 8px;
   }
+
+  /* Keep the month row from getting cramped with the همه chip + view toggle */
+  .cal-nav-row {
+    gap: 4px;
+  }
+
+  .cal-nav-row .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .chip-all {
+    min-height: 32px;
+    padding: 0 11px;
+  }
+
+  .cal-title-btn {
+    font-size: var(--fs-base);
+    padding: 6px 4px;
+  }
 }
