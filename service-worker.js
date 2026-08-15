@@ -1,5 +1,5 @@
 /* ShiftKar service worker — offline-first caching. */
-const VERSION = "1.4.0";
+const VERSION = "1.5.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 const ASSETS = [
@@ -34,6 +34,8 @@ const ASSETS = [
   "./js/components/shift-badge.js",
   "./js/components/notes.js",
   "./js/components/dialogs.js",
+  "./js/components/view-picker.js",
+  "./js/components/install-prompt.js",
   "./assets/logo.png",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",

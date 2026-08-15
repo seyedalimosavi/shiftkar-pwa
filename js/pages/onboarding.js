@@ -6,8 +6,10 @@
 import { state } from "../core/state.js";
 import { navigate } from "../core/router.js";
 import { icon } from "../components/icons.js";
+import { toast } from "../components/dialogs.js";
 import { GROUP_FILTERS, THEME_MODES } from "../domain/models.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
+import { getInstallState, promptInstall, iosInstructionsHtml } from "../components/install-prompt.js";
 
 const SLIDES = [
   {
@@ -32,7 +34,26 @@ const SLIDES = [
   },
 ];
 
-const TOTAL_SLIDES = SLIDES.length + 1; // + personalization slide
+const TOTAL_SLIDES = SLIDES.length + 2; // + personalization + install slides
+
+function installSlideHtml() {
+  const installed = getInstallState().installed;
+  return `
+    <section class="onboarding-slide onboarding-install" role="tabpanel">
+      <div class="onboarding-art">${icon("download", "onboarding-icon")}</div>
+      <h2 class="onboarding-title">نصب برنامه</h2>
+      <p class="onboarding-desc">شیفت‌کار را مثل یک اپلیکیشن واقعی روی دستگاه خود نصب کنید؛ سریع‌تر باز می‌شود و بدون اینترنت هم کار می‌کند.</p>
+      <div class="install-slide-body" id="install-slide-body">
+        ${installed ? `<div class="install-state install-state-done">${icon("check")} شیفت‌کار روی دستگاه شما نصب است.</div>` : `
+        <div class="install-slide-action">
+          <button type="button" class="btn btn-primary btn-block" id="install-slide-action">
+            ${icon("download")} نصب برنامه
+          </button>
+          <p class="install-hint">دسترسی سریع‌تر و کار کردن آفلاین — بدون نیاز به اینترنت.</p>
+        </div>`}
+      </div>
+    </section>`;
+}
 
 function personalizeSlideHtml() {
   const s = state.settings;
@@ -72,6 +93,8 @@ function personalizeSlideHtml() {
     </section>`;
 }
 
+let installStateHandler = null;
+
 export function renderOnboarding(container) {
   let index = 0;
 
@@ -89,6 +112,7 @@ export function renderOnboarding(container) {
             </section>`,
           ).join("")}
           ${personalizeSlideHtml()}
+          ${installSlideHtml()}
         </div>
       </div>
       <div class="onboarding-dots" role="tablist" aria-label="مراحل راهنما">
@@ -178,6 +202,37 @@ export function renderOnboarding(container) {
   });
 
   wireViewPicker(container.querySelector("#onboarding-view-picker"));
+
+  /* ---------------- install slide ---------------- */
+
+  const installBody = container.querySelector("#install-slide-body");
+  const installAction = container.querySelector("#install-slide-action");
+  if (installAction && installBody) {
+    installAction.addEventListener("click", async () => {
+      const res = await promptInstall();
+      if (res === "installed") {
+        installBody.innerHTML = `<div class="install-state install-state-done">${icon("check")} شیفت‌کار روی دستگاه شما نصب است.</div>`;
+      } else if (res === "instructions") {
+        installBody.innerHTML = iosInstructionsHtml();
+      } else if (res === "dismissed") {
+        toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
+      } else {
+        toast("مرورگر شما نصب برنامه را پشتیبانی نمی‌کند");
+      }
+    });
+  }
+
+  // If the native install becomes available (or completes) while onboarding
+  // is open, refresh the slide so it reflects the new state.
+  if (installStateHandler) window.removeEventListener("shiftkar:install-state", installStateHandler);
+  installStateHandler = () => {
+    const bodyEl = container.querySelector("#install-slide-body");
+    if (!bodyEl) return;
+    if (getInstallState().installed) {
+      bodyEl.innerHTML = `<div class="install-state install-state-done">${icon("check")} شیفت‌کار روی دستگاه شما نصب است.</div>`;
+    }
+  };
+  window.addEventListener("shiftkar:install-state", installStateHandler);
 
   /* ---------------- swipe ---------------- */
   let startX = null;

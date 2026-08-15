@@ -25,6 +25,7 @@ import { openAllNotes, noteDotMarkup, escapeHtml, NOTE_TABLE_CLAMP } from "../co
 import { shiftBadge, shiftCodeBadge, miniGroupBadge } from "../components/shift-badge.js";
 import { icon } from "../components/icons.js";
 import { registerBackHandler, consumeBackEntry, lockBodyScroll, unlockBodyScroll } from "../components/bottom-sheet.js";
+import { maybeAutoPromptInstall } from "../components/install-prompt.js";
 
 let container = null;
 let unsubscribe = null;
@@ -48,6 +49,9 @@ export function renderCalendar(el) {
     });
   }
   draw();
+  // One-time install ask — fires when the calendar is first reached, which
+  // is after onboarding OR on any later visit. Internal flag makes it once-ever.
+  maybeAutoPromptInstall();
 }
 
 function currentView() {
@@ -119,7 +123,7 @@ function draw() {
 function todayFabHtml() {
   return `
     <button type="button" class="today-fab" data-action="today" aria-label="رفتن به شیفت امروز">
-      ${icon("calendar")} برو به شیفت امروز
+      ${icon("calendar")}<span class="fab-label">برو به شیفت امروز</span>
     </button>`;
 }
 
@@ -329,7 +333,7 @@ function openTableFullscreen() {
     // برو به امروز floats at the bottom (like the calendar page) and only
     // shows when you are viewing a month other than the current one.
     overlay.innerHTML = `
-      ${isCurrentMonth ? "" : `<button type="button" class="tf-fab" data-tf="today">${icon("calendar")} برو به امروز</button>`}
+      ${isCurrentMonth ? "" : `<button type="button" class="tf-fab" data-tf="today" aria-label="رفتن به امروز">${icon("calendar")}<span class="fab-label">برو به امروز</span></button>`}
       <div class="tf-header">
         <div class="tf-nav">
           <button type="button" class="icon-btn" data-tf="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
@@ -357,7 +361,10 @@ function openTableFullscreen() {
     const tfHeader = overlay.querySelector(".tf-header");
     if (tfHeader) wireSwipeMonthNav(tfHeader);
     const tfToday = overlay.querySelector('[data-tf="today"]');
-    if (tfToday) tfToday.addEventListener("click", goToTodayFullscreen);
+    if (tfToday) {
+      tfToday.addEventListener("click", goToTodayFullscreen);
+      wireCollapsingFab(tfToday);
+    }
     overlay.querySelector('[data-tf="close"]').addEventListener("click", () => close());
     overlay.querySelectorAll("tr[data-datekey]").forEach((tr) => {
       tr.addEventListener("click", () => openDayDetail(tr.dataset.datekey));
@@ -455,6 +462,7 @@ function wireEvents(s) {
   const todayFab = container.querySelector('[data-action="today"]');
   if (todayFab) {
     todayFab.addEventListener("click", () => goToToday());
+    wireCollapsingFab(todayFab);
   }
 
   const fullscreenBtn = container.querySelector('[data-action="fullscreen"]');
@@ -495,9 +503,9 @@ function wireEvents(s) {
     });
   });
 
-  // Swipe between months — direction: swipe LEFT → next month, swipe
-  // RIGHT → previous month (also works with a mouse drag, and with a
-  // horizontal wheel/trackpad scroll on desktop).
+  // Swipe between months — same logic as the onboarding screen, direction:
+  // swipe LEFT → next month, swipe RIGHT → previous month (a horizontal
+  // wheel/trackpad scroll also works on desktop).
   //  - grid view: anywhere in the calendar body
   //  - table view: ONLY on the slim table header (the hint/legend strip) —
   //    the table body keeps its native scroll and never changes the month.
@@ -519,6 +527,19 @@ function wireEvents(s) {
   container.addEventListener("keydown", keyHandler);
 }
 
+/* ---------------- "go to today" collapsible FAB ---------------- */
+
+/** Collapse a "go to today" floating button to a small icon after a short
+ *  delay so it never keeps covering the calendar text. The tap target and
+ *  its click handler are unaffected; on hover-capable devices the button
+ *  expands again while hovered (all transitions handled in CSS). */
+function wireCollapsingFab(btn) {
+  const timer = setTimeout(() => btn.classList.add("is-compact"), 2600);
+  btn.addEventListener("mouseenter", () => btn.classList.remove("is-compact"));
+  btn.addEventListener("mouseleave", () => btn.classList.add("is-compact"));
+  btn.addEventListener("click", () => clearTimeout(timer));
+}
+
 /* ---------------- month swipe navigation ---------------- */
 
 /** Block the browser click that follows a completed swipe so it can't open
@@ -534,58 +555,48 @@ function blockNextClick() {
 }
 
 /**
- * Horizontal swipe navigation for a month grid or table header.
+ * Horizontal swipe navigation for a month grid or table header — the same
+ * simple logic as the onboarding screen: record the touch start, then decide
+ * on touch end from the travelled distance. No touchmove interception and no
+ * preventDefault — the swipe area only carries `touch-action: pan-y` in CSS
+ * so horizontal drags are never claimed as page scrolls (which is what made
+ * the earlier interception-based handlers silently never fire).
  *
- *  - Pointer drag (touch, mouse, pen): moving LEFT → next month, RIGHT →
- *    previous month. Only clearly-horizontal gestures count, so vertical
- *    scrolling is never disturbed.
+ *  - Touch swipe: LEFT → next month, RIGHT → previous month.
  *  - Horizontal wheel / trackpad: scroll LEFT → next month, scroll RIGHT →
- *    previous month. Debounced so a long single scroll moves the month once.
+ *    previous month (debounced so a long single scroll moves one month).
  *
- * The swipe area must carry `touch-action: pan-y` in CSS so horizontal touch
- * drags reach the pointer events instead of being claimed by the browser as
- * a page scroll (which made the old touch-only handler silently never fire).
+ * A completed swipe also suppresses the click that would otherwise open the
+ * day that happened to be under the finger when the gesture ended.
  */
 function wireSwipeMonthNav(area) {
-  let pointerId = null;
-  let startX = 0;
-  let startY = 0;
-  let swiped = false;
+  let startX = null;
+  let startY = null;
 
-  const onPointerDown = (e) => {
-    if (pointerId !== null) return; // already tracking a pointer
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    pointerId = e.pointerId;
-    startX = e.clientX;
-    startY = e.clientY;
-    swiped = false;
-    try {
-      area.setPointerCapture(e.pointerId);
-    } catch {
-      /* sandboxed environments may not allow pointer capture */
-    }
-  };
+  area.addEventListener(
+    "touchstart",
+    (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    },
+    { passive: true },
+  );
 
-  const onPointerMove = (e) => {
-    if (e.pointerId !== pointerId || swiped) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-      swiped = true;
-      shiftMonth(dx < 0 ? 1 : -1);
-      blockNextClick();
-    }
-  };
-
-  const endPointer = (e) => {
-    if (e.pointerId !== pointerId) return;
-    pointerId = null;
-  };
-
-  area.addEventListener("pointerdown", onPointerDown, { passive: true });
-  area.addEventListener("pointermove", onPointerMove, { passive: true });
-  area.addEventListener("pointerup", endPointer, { passive: true });
-  area.addEventListener("pointercancel", endPointer, { passive: true });
+  area.addEventListener(
+    "touchend",
+    (e) => {
+      if (startX == null) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        shiftMonth(dx < 0 ? 1 : -1);
+        blockNextClick();
+      }
+      startX = null;
+      startY = null;
+    },
+    { passive: true },
+  );
 
   // Horizontal wheel / trackpad gesture: scrolling left goes forward.
   let wheelLockUntil = 0;

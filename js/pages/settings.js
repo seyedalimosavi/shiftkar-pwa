@@ -9,9 +9,11 @@ import { GROUP_FILTERS, THEMES, THEME_MODES, APP_INFO } from "../domain/models.j
 import { icon } from "../components/icons.js";
 import { confirmDialog, toast } from "../components/dialogs.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
+import { getInstallState, showInstallSheet } from "../components/install-prompt.js";
 
 let container = null;
 let unsubscribe = null;
+let installStateHandler = null;
 
 export function renderSettings(el) {
   container = el;
@@ -116,6 +118,12 @@ function draw() {
     </section>
 
     <section class="settings-card glass-card">
+      <h2 class="settings-title">${icon("download")} نصب برنامه</h2>
+      <p class="settings-desc">شیفت‌کار را روی دستگاه خود نصب کنید تا سریع‌تر باز شود و بدون اینترنت هم کار کند.</p>
+      <button type="button" class="btn btn-primary" id="install-app-btn">${getInstallState().installed ? "نصب شده" : "نصب برنامه"}</button>
+    </section>
+
+    <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("help")} راهنما</h2>
       ${HELP_ITEMS.map(
         (h, i) => `
@@ -196,6 +204,24 @@ function wireEvents() {
   });
 
   wireViewPicker(container);
+
+  // Install CTA — keep the label in sync if the install state changes while
+  // the settings page is open (e.g. after completing the install).
+  if (installStateHandler) window.removeEventListener("shiftkar:install-state", installStateHandler);
+  installStateHandler = () => {
+    const btn = container.querySelector("#install-app-btn");
+    if (!btn) return;
+    btn.textContent = getInstallState().installed ? "نصب شده" : "نصب برنامه";
+  };
+  window.addEventListener("shiftkar:install-state", installStateHandler);
+
+  container.querySelector("#install-app-btn").addEventListener("click", () => {
+    if (getInstallState().installed) {
+      toast("شیفت‌کار روی دستگاه شما نصب است");
+      return;
+    }
+    showInstallSheet();
+  });
 
   container.querySelector("#restart-onboarding").addEventListener("click", async () => {
     const ok = await confirmDialog({

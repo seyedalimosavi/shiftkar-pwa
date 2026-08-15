@@ -958,25 +958,100 @@
   justify-content: flex-end;
 }
 
-/* ---------- offline banner ---------- */
-.offline-bar {
-  position: fixed;
-  top: 0;
-  inset-inline: 0;
-  z-index: var(--z-toast);
-  text-align: center;
-  padding: 10px 16px calc(10px + var(--safe-top));
-  background: linear-gradient(180deg, #4b5563, #374151);
-  color: #ffffff;
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-bold);
-  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.35);
-  transform: translateY(-100%);
-  transition: transform var(--motion) var(--ease-out);
+/* ---------- install prompt ---------- */
+.btn-block {
+  display: flex;
+  width: 100%;
+  justify-content: center;
 }
 
-.offline-bar.is-visible {
-  transform: translateY(0);
+.install-desc {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  line-height: 1.8;
+  margin-bottom: var(--space-3);
+}
+
+.install-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.install-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  line-height: 1.7;
+}
+
+.install-state .icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.install-state-done {
+  background: color-mix(in srgb, var(--shift-day) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--shift-day) 35%, transparent);
+  color: var(--shift-day);
+}
+
+.install-state-ios {
+  flex-direction: column;
+  align-items: flex-start;
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.install-steps {
+  margin: 0;
+  padding-inline-start: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: var(--fw-regular);
+}
+
+.install-steps li::marker {
+  color: var(--color-primary);
+  font-weight: var(--fw-black);
+}
+
+/* ---------- onboarding install slide ---------- */
+.onboarding-install {
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding-top: 8px;
+}
+
+.onboarding-install .onboarding-title {
+  font-size: var(--fs-lg);
+}
+
+.install-slide-body {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.install-slide-action {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.install-hint {
+  font-size: var(--fs-xs);
+  color: var(--color-text-faint);
+  text-align: center;
 }
 
 /* ---------- toast ---------- */
