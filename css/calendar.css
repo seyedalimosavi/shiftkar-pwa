@@ -1012,3 +1012,22 @@ body.sheet-open {
 .tf-body .shift-table-grid {
   min-width: 0;
 }
+
+/* ---------- month swipe navigation ---------- */
+/* The calendar body, the table header strip and the fullscreen table header
+   are the only places a horizontal drag changes the month (swipe LEFT → next
+   month, RIGHT → previous month). `touch-action: pan-y` keeps vertical
+   scrolling native while letting horizontal drags reach the pointer-based
+   swipe handler instead of being swallowed as a page scroll. The table body
+   itself intentionally has no swipe: it only scrolls. */
+.cal-body {
+  touch-action: pan-y;
+}
+
+.shift-table-head {
+  touch-action: pan-y;
+}
+
+.tf-header {
+  touch-action: pan-y;
+}

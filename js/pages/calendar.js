@@ -351,6 +351,11 @@ function openTableFullscreen() {
     overlay.querySelector('[data-tf="prev"]').addEventListener("click", () => shiftMonth(-1));
     overlay.querySelector('[data-tf="next"]').addEventListener("click", () => shiftMonth(1));
     overlay.querySelector('[data-tf="picker"]').addEventListener("click", openMonthPicker);
+    // Same swipe gesture as the calendar page: swipe LEFT on the fullscreen
+    // header → next month, RIGHT → previous month. The table body below only
+    // scrolls and never changes the month.
+    const tfHeader = overlay.querySelector(".tf-header");
+    if (tfHeader) wireSwipeMonthNav(tfHeader);
     const tfToday = overlay.querySelector('[data-tf="today"]');
     if (tfToday) tfToday.addEventListener("click", goToTodayFullscreen);
     overlay.querySelector('[data-tf="close"]').addEventListener("click", () => close());
@@ -491,66 +496,15 @@ function wireEvents(s) {
   });
 
   // Swipe between months — direction: swipe LEFT → next month, swipe
-  // RIGHT → previous month.
+  // RIGHT → previous month (also works with a mouse drag, and with a
+  // horizontal wheel/trackpad scroll on desktop).
   //  - grid view: anywhere in the calendar body
   //  - table view: ONLY on the slim table header (the hint/legend strip) —
   //    the table body keeps its native scroll and never changes the month.
   const body = container.querySelector(".cal-body");
   const swipeArea =
     currentView() === "grid" ? body : container.querySelector(".shift-table-head");
-  if (swipeArea) {
-    let startX = null;
-    let startY = null;
-    let swiping = false;
-    swipeArea.addEventListener(
-      "touchstart",
-      (e) => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        swiping = false;
-      },
-      { passive: true },
-    );
-    swipeArea.addEventListener(
-      "touchmove",
-      (e) => {
-        if (startX == null) return;
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        // Claim clearly-horizontal drags so the browser can't swallow the
-        // gesture (which previously made the swipe not fire at all).
-        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-          swiping = true;
-          try {
-            e.preventDefault();
-          } catch {
-            /* ignore */
-          }
-        }
-      },
-      { passive: false },
-    );
-    const endSwipe = (e) => {
-      if (startX == null) return;
-      if (swiping) {
-        const dx = e.changedTouches ? e.changedTouches[0].clientX - startX : 0;
-        shiftMonth(dx > 0 ? -1 : 1);
-      }
-      startX = null;
-      startY = null;
-      swiping = false;
-    };
-    swipeArea.addEventListener("touchend", endSwipe, { passive: true });
-    swipeArea.addEventListener(
-      "touchcancel",
-      () => {
-        startX = null;
-        startY = null;
-        swiping = false;
-      },
-      { passive: true },
-    );
-  }
+  if (swipeArea) wireSwipeMonthNav(swipeArea);
 
   if (keyHandler) container.removeEventListener("keydown", keyHandler);
   keyHandler = (e) => {
@@ -563,6 +517,95 @@ function wireEvents(s) {
     }
   };
   container.addEventListener("keydown", keyHandler);
+}
+
+/* ---------------- month swipe navigation ---------------- */
+
+/** Block the browser click that follows a completed swipe so it can't open
+ *  the day that happened to be under the finger when the gesture ended. */
+function blockNextClick() {
+  const onCapture = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.removeEventListener("click", onCapture, true);
+  };
+  document.addEventListener("click", onCapture, true);
+  setTimeout(() => document.removeEventListener("click", onCapture, true), 600);
+}
+
+/**
+ * Horizontal swipe navigation for a month grid or table header.
+ *
+ *  - Pointer drag (touch, mouse, pen): moving LEFT → next month, RIGHT →
+ *    previous month. Only clearly-horizontal gestures count, so vertical
+ *    scrolling is never disturbed.
+ *  - Horizontal wheel / trackpad: scroll LEFT → next month, scroll RIGHT →
+ *    previous month. Debounced so a long single scroll moves the month once.
+ *
+ * The swipe area must carry `touch-action: pan-y` in CSS so horizontal touch
+ * drags reach the pointer events instead of being claimed by the browser as
+ * a page scroll (which made the old touch-only handler silently never fire).
+ */
+function wireSwipeMonthNav(area) {
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let swiped = false;
+
+  const onPointerDown = (e) => {
+    if (pointerId !== null) return; // already tracking a pointer
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    swiped = false;
+    try {
+      area.setPointerCapture(e.pointerId);
+    } catch {
+      /* sandboxed environments may not allow pointer capture */
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (e.pointerId !== pointerId || swiped) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      swiped = true;
+      shiftMonth(dx < 0 ? 1 : -1);
+      blockNextClick();
+    }
+  };
+
+  const endPointer = (e) => {
+    if (e.pointerId !== pointerId) return;
+    pointerId = null;
+  };
+
+  area.addEventListener("pointerdown", onPointerDown, { passive: true });
+  area.addEventListener("pointermove", onPointerMove, { passive: true });
+  area.addEventListener("pointerup", endPointer, { passive: true });
+  area.addEventListener("pointercancel", endPointer, { passive: true });
+
+  // Horizontal wheel / trackpad gesture: scrolling left goes forward.
+  let wheelLockUntil = 0;
+  area.addEventListener(
+    "wheel",
+    (e) => {
+      const dx = e.deltaX;
+      const dy = e.deltaY;
+      if (Math.abs(dx) < 24 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const now = Date.now();
+      if (now < wheelLockUntil) {
+        e.preventDefault();
+        return;
+      }
+      wheelLockUntil = now + 350;
+      shiftMonth(dx < 0 ? 1 : -1);
+      e.preventDefault();
+    },
+    { passive: false },
+  );
 }
 
 /* ---------------- notes ---------------- */
