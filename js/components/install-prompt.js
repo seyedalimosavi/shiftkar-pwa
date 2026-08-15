@@ -227,24 +227,26 @@ export function showInstallSheet() {
   const api = openSheet({
     title: "نصب برنامه",
     content: body,
-    onMount: () => {
-      const btn = api.body.querySelector("#install-sheet-action");
-      if (!btn) return;
-      btn.addEventListener("click", async () => {
-        const res = await promptInstall();
-        if (res === "installed") {
-          api.close();
-          toast("شیفت‌کار نصب شد");
-        } else if (res === "instructions") {
-          api.body.innerHTML = tutorialHtml();
-        } else if (res === "dismissed") {
-          toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
-        } else {
-          toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
-        }
-      });
-    },
   });
+
+  // Wire the CTA after openSheet returns — openSheet calls onMount
+  // synchronously, so referencing `api` inside onMount would hit the TDZ.
+  const installBtn = api.body.querySelector("#install-sheet-action");
+  if (installBtn) {
+    installBtn.addEventListener("click", async () => {
+      const res = await promptInstall();
+      if (res === "installed") {
+        api.close();
+        toast("شیفت‌کار نصب شد");
+      } else if (res === "instructions") {
+        api.body.innerHTML = tutorialHtml();
+      } else if (res === "dismissed") {
+        toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
+      } else {
+        toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
+      }
+    });
+  }
 }
 
 /**
