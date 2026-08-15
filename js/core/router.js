@@ -52,16 +52,13 @@ function render() {
   if (!appEl) return;
   let route = getRoute();
 
-  if (!route) route = state.settings.lastScreenRoute || "calendar";
+  // A fresh load (or a bare hash) always lands on the calendar — the app
+  // does not restore the last visited tab after a refresh.
+  if (!route) route = "calendar";
 
   // Onboarding guard: until completed, everything routes to onboarding.
   if (!state.settings.onboardingCompleted && route !== "onboarding") {
     route = "onboarding";
-  }
-
-  // Persist the last shell route (never onboarding/splash).
-  if (SHELL_ROUTES.includes(route) && state.settings.lastScreenRoute !== route) {
-    state.set({ lastScreenRoute: route });
   }
 
   const isShell = SHELL_ROUTES.includes(route);

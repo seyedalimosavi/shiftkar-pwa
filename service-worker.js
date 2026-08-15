@@ -1,5 +1,5 @@
 /* ShiftKar service worker — offline-first caching. */
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 const ASSETS = [
@@ -60,23 +60,58 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/* Runtime strategy — stale-while-revalidate:
+   - serve the cached copy instantly (fast, works offline)
+   - fetch a fresh copy in the background and update the cache
+   - navigations that miss the cache fall back to the app shell
+   Everything same-origin is cached; external requests (contact links etc.)
+   are left to the browser. */
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
-  if (!req.url.startsWith(self.location.origin)) return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(req, { ignoreSearch: true }).then((cached) => {
-      if (cached) return cached;
-      return fetch(req)
-        .then((res) => {
+    (async () => {
+      const cached = await caches.match(req, { ignoreSearch: true });
+
+      const refresh = async () => {
+        try {
+          const res = await fetch(req);
           if (res && res.ok) {
             const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(req, copy);
           }
           return res;
-        })
-        .catch(() => cached);
-    }),
+        } catch (err) {
+          return null;
+        }
+      };
+
+      if (req.mode === "navigate") {
+        // Pages: cached shell first, fresh copy in the background, and the
+        // app shell as a fallback for any offline deep link / refresh.
+        if (cached) {
+          refresh().catch(() => {});
+          return cached;
+        }
+        return (
+          (await refresh()) ||
+          (await caches.match("./index.html", { ignoreSearch: true }))
+        );
+      }
+
+      // Assets: stale-while-revalidate.
+      if (cached) {
+        refresh().catch(() => {});
+        return cached;
+      }
+      return (
+        (await refresh()) ||
+        (await caches.match("./index.html", { ignoreSearch: true }))
+      );
+    })(),
   );
 });

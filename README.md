@@ -115,7 +115,12 @@ shiftkar-web/
   system theme + 6 color themes, calendar view (تقویم/جدولی with previews),
   contact options (Telegram, WhatsApp group/private, phone, Eitaa) that open
   the relevant app via test links, help (FA), about, restart onboarding
-- **PWA** — manifest (rtl/fa, standalone), offline caching, installable
+- **PWA** — manifest (rtl/fa, standalone) + apple-touch/status-bar meta for iOS
+  and desktop install; service worker precaches the whole app shell, the roster
+  and the icons, then serves everything stale-while-revalidate with an app-shell
+  fallback for offline deep links. Settings (LocalStorage) and notes (IndexedDB)
+  live on-device, so the app is fully usable with no connection — an «آفلاین»
+  banner appears when the network drops.
 
 ---
 

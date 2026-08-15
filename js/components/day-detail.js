@@ -51,7 +51,10 @@ export function openDayDetail(dateKey, opts = {}) {
         return `
           <div class="group-shift-row ${isMine ? "is-mine" : ""}">
             <span class="group-shift-name">${GROUP_FA[gr]}${isMine ? ' <span class="group-shift-mine">شما</span>' : ""}</span>
-            ${shiftBadge(shift.type)}
+            <span class="group-shift-value">
+              <span class="group-shift-code">${shift.code}</span>
+              ${shiftBadge(shift.type)}
+            </span>
           </div>`;
       }).join("")}
     </div>`;
