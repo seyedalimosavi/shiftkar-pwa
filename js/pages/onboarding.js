@@ -121,6 +121,13 @@ export function renderOnboarding(container) {
 
   function complete() {
     state.set({ onboardingCompleted: true });
+    // Don't leave onboarding in the back stack: swap it for the calendar
+    // entry so a back press after finishing never re-opens the intro.
+    try {
+      history.replaceState(null, "", "#/calendar");
+    } catch (err) {
+      /* ignore */
+    }
     navigate("calendar");
   }
 

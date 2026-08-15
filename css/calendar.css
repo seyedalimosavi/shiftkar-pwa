@@ -3,8 +3,9 @@
    ============================================================ */
 
 /* ---------- header (month nav row + actions row) ---------- */
-/* Arrows sit at the far edges; همه chip, notes and the view toggle fill
-   the free space on each side of the month capsule. */
+/* Arrows sit at the far edges; notes on the right of the month capsule and
+   the view toggle on the left fill the free space. همه sits with the group
+   chips in the filter row below. */
 .cal-nav-row {
   display: flex;
   align-items: center;
@@ -20,7 +21,7 @@
   flex-shrink: 0;
 }
 
-/* «همه» chip */
+/* «همه» chip (sits in the group filter row with the letter chips) */
 .chip-all {
   flex-shrink: 0;
   min-height: 38px;
@@ -36,6 +37,11 @@
 .view-toggle.view-toggle-nav button {
   width: 34px;
   height: 34px;
+}
+
+/* Single-button fallback for the view toggle on narrow screens */
+.view-single-toggle {
+  display: none;
 }
 
 /* Month title as a hover capsule */
@@ -897,7 +903,10 @@ body.sheet-open {
 
 .tf-body .shift-table-scroll {
   max-height: none;
-  overflow-x: visible;
+  /* The base rule sets overscroll-behavior: contain here, which swallowed
+     vertical gestures and blocked scrolling to the rows below — allow
+     vertical chaining up to .tf-body so the table scrolls in both axes. */
+  overscroll-behavior: auto;
 }
 
 .tf-body .shift-table-grid {

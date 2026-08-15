@@ -31,9 +31,19 @@ export function navigate(route) {
   const target = `#/${route}`;
   if (window.location.hash === target) {
     render();
-  } else {
-    window.location.hash = target;
+    return;
   }
+  // For shell tabs other than تقویم, keep the history entry below them
+  // pointed at the calendar — a single back press returns to تقویم from
+  // any tab instead of stepping through every tab in between.
+  if (SHELL_ROUTES.includes(route) && route !== "calendar" && getRoute() !== "calendar") {
+    try {
+      history.replaceState(null, "", "#/calendar");
+    } catch (err) {
+      /* sandboxed environments may block replaceState — back just goes naturally */
+    }
+  }
+  window.location.hash = target;
 }
 
 let appEl = null;

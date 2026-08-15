@@ -17,7 +17,7 @@ import {
 } from "../domain/jalali.js";
 import { calculateShift } from "../domain/shift-calculator.js";
 import { getHoliday } from "../domain/holidays.js";
-import { GROUPS, SHIFT_TYPES } from "../domain/models.js";
+import { GROUPS, GROUP_FILTERS, SHIFT_TYPES } from "../domain/models.js";
 import { getNotesForMonth } from "../core/storage.js";
 import { openDayDetail } from "../components/day-detail.js";
 import { openMonthPicker } from "../components/month-picker.js";
@@ -73,7 +73,6 @@ function draw() {
       <div class="cal-nav-row">
         <div class="cal-nav-start">
           <button type="button" class="icon-btn cal-nav-btn" data-action="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
-          <button type="button" class="chip chip-all ${s.filterGroup === "ALL" ? "is-active" : ""}" data-filter="ALL" aria-label="نمایش همه گروه‌ها">همه</button>
           <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
         </div>
         <button type="button" class="cal-title-btn" data-action="picker" aria-label="انتخاب ماه و سال">
@@ -85,15 +84,19 @@ function draw() {
             <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
             <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
           </div>
+          <button type="button" class="icon-btn view-single-toggle" data-toggle-view
+            aria-label="${view === "grid" ? "تغییر به نمای جدولی" : "تغییر به نمای تقویم"}">
+            ${icon(view === "grid" ? "list" : "grid")}
+          </button>
           <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
       </div>
 
       <div class="cal-actions">
         <div class="group-filter" role="group" aria-label="فیلتر گروه">
-          ${GROUPS.map(
+          ${GROUP_FILTERS.map(
             (g) => `
-            <button type="button" class="chip chip-letter ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}" aria-label="گروه ${g}">${g}</button>`,
+            <button type="button" class="chip ${g === "ALL" ? "chip-all" : "chip-letter"} ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}" aria-label="${g === "ALL" ? "نمایش همه گروه‌ها" : `گروه ${g}`}">${g === "ALL" ? "همه" : g}</button>`,
           ).join("")}
         </div>
         ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
@@ -275,6 +278,20 @@ function openTableFullscreen() {
   document.body.classList.add("sheet-open");
   requestAnimationFrame(() => overlay.classList.add("is-open"));
 
+  // The hardware/system back button closes the fullscreen table instead of
+  // leaving the app. pushState keeps the URL identical so nothing navigates.
+  let backConsumed = false;
+  const onPop = () => {
+    backConsumed = true;
+    close();
+  };
+  window.addEventListener("popstate", onPop);
+  try {
+    history.pushState({ tfFullscreen: true }, "");
+  } catch (err) {
+    /* sandboxed environments may block history — back button just won't close */
+  }
+
   // Keep in sync with the calendar page state (month, filter, notes).
   const unsub = state.subscribe(() => {
     if (overlay.isConnected) render();
@@ -342,8 +359,18 @@ function openTableFullscreen() {
 
   function close() {
     if (!overlay.isConnected) return;
+    window.removeEventListener("popstate", onPop);
     document.removeEventListener("keydown", onKey);
     window.removeEventListener("resize", sizeTableBody);
+    if (!backConsumed) {
+      // The overlay was closed with its own button/Escape — consume the
+      // history entry we pushed so back doesn't leave the app afterwards.
+      try {
+        history.back();
+      } catch (err) {
+        /* ignore */
+      }
+    }
     unsub();
     overlay.classList.remove("is-open");
     document.body.classList.remove("sheet-open");
@@ -403,6 +430,13 @@ function wireEvents(s) {
     fullscreenBtn.addEventListener("click", openTableFullscreen);
   }
 
+  const singleToggle = container.querySelector("[data-toggle-view]");
+  if (singleToggle) {
+    singleToggle.addEventListener("click", () => {
+      state.set({ calendarViewType: currentView() === "grid" ? "table" : "grid" });
+    });
+  }
+
   container.querySelectorAll("[data-filter]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const g = btn.dataset.filter;
@@ -429,8 +463,10 @@ function wireEvents(s) {
     });
   });
 
+  // Swipe between months only in the grid view — the table view needs
+  // horizontal drags for its own scrolling, so month swipes are disabled there.
   const body = container.querySelector(".cal-body");
-  if (body) {
+  if (body && currentView() === "grid") {
     let startX = null;
     let startY = null;
     body.addEventListener(
