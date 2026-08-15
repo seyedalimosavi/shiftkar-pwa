@@ -135,7 +135,7 @@ function todayBannerHtml(s, today, todayKey) {
       <div class="today-banner-all" title="${GROUPS.map((g) => {
         const sh = calculateShift(today, g);
         return `گروه ${g}: ${SHIFT_TYPES[sh.type].fa}`;
-      }).join("， ")}">
+      }).join("، ")}">
         ${GROUPS.map((g) => miniGroupBadge(g, calculateShift(today, g).type)).join("")}
       </div>`;
   } else {
@@ -490,41 +490,63 @@ function wireEvents(s) {
     });
   });
 
-  // Swipe between months in BOTH views: swipe LEFT → next month, swipe
-  // RIGHT → previous month. In the table view a horizontal drag only changes
-  // the month when the table itself has no horizontal overflow to scroll
-  // (then the native scroll wins).
+  // Swipe between months — direction: swipe LEFT → next month, swipe
+  // RIGHT → previous month.
+  //  - grid view: anywhere in the calendar body
+  //  - table view: ONLY on the slim table header (the hint/legend strip) —
+  //    the table body keeps its native scroll and never changes the month.
   const body = container.querySelector(".cal-body");
-  if (body) {
+  const swipeArea =
+    currentView() === "grid" ? body : container.querySelector(".shift-table-head");
+  if (swipeArea) {
     let startX = null;
     let startY = null;
-    body.addEventListener(
+    let swiping = false;
+    swipeArea.addEventListener(
       "touchstart",
       (e) => {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
+        swiping = false;
       },
       { passive: true },
     );
-    body.addEventListener(
-      "touchend",
+    swipeArea.addEventListener(
+      "touchmove",
       (e) => {
         if (startX == null) return;
-        const dx = e.changedTouches[0].clientX - startX;
-        const dy = e.changedTouches[0].clientY - startY;
-        if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-          // If the drag started over a horizontally-scrollable table, let
-          // the native scroll handle it instead of changing the month.
-          const target = e.target;
-          const scroller =
-            target && typeof target.closest === "function"
-              ? target.closest(".shift-table-scroll")
-              : null;
-          if (scroller && scroller.scrollWidth > scroller.clientWidth) return;
-          shiftMonth(dx > 0 ? -1 : 1);
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        // Claim clearly-horizontal drags so the browser can't swallow the
+        // gesture (which previously made the swipe not fire at all).
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+          swiping = true;
+          try {
+            e.preventDefault();
+          } catch {
+            /* ignore */
+          }
         }
+      },
+      { passive: false },
+    );
+    const endSwipe = (e) => {
+      if (startX == null) return;
+      if (swiping) {
+        const dx = e.changedTouches ? e.changedTouches[0].clientX - startX : 0;
+        shiftMonth(dx > 0 ? -1 : 1);
+      }
+      startX = null;
+      startY = null;
+      swiping = false;
+    };
+    swipeArea.addEventListener("touchend", endSwipe, { passive: true });
+    swipeArea.addEventListener(
+      "touchcancel",
+      () => {
         startX = null;
         startY = null;
+        swiping = false;
       },
       { passive: true },
     );

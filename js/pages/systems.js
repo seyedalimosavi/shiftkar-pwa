@@ -9,11 +9,11 @@ const SYSTEMS = [
   { icon: "file", fa: "خلاصه پرونده", desc: "مشاهده خلاصه پرونده", href: "https://portal.nioc.ir" },
   { icon: "briefcase", fa: "پرتال", desc: "پرتال پتروشیمی بندر امام", href: "https://bipc.ir/fa/" },
   { icon: "clipboard", fa: "درخواست پرواز", desc: "سامانه درخواست پرواز", href: "https://travelrequest.bipc.ir/Guest/LoginPage.aspx" },
-  { icon: "plane", fa: "برنامه پروازها", desc: "مشاهده برنامه پروازها", href: "https://www.posc.ir/fa/publicservices/mosaferat" },
+  { icon: "plane", fa: "برنامه پرواز ها", desc: "مشاهده برنامه پرواز ها", href: "https://www.posc.ir/fa/publicservices/mosaferat" },
   { icon: "food", fa: "رزرو غذا", desc: "سامانه رزرو غذا", href: "https://pooneh.bipc.ir/" },
   { icon: "chart", fa: "سهام", desc: "سامانه سهام", href: "https://sahamfasl.bipc.ir/" },
-  { icon: "globe", fa: "نرم‌افزار شیفت‌کار (تحت وب)", desc: "نسخه تحت وب نرم‌افزار شیفت‌کار", href: "https://alimosavi-code.github.io" },
-  { icon: "download", fa: "نرم‌افزار موبایل شیفت‌کار", desc: "دانلود نسخه موبایل نرم‌افزار شیفت‌کار", href: "https://alimosavi-code.github.io/download" },
+  { icon: "globe", fa: "نرم افزار شیفت‌کار (تحت وب)", desc: "نسخه تحت وب نرم افزار شیفت‌کار", href: "https://alimosavi-code.github.io" },
+  { icon: "download", fa: "نرم افزار موبایل شیفت‌کار", desc: "دانلود نسخه موبایل نرم افزار شیفت‌کار", href: "https://alimosavi-code.github.io/download" },
 ];
 
 export function renderSystems(container) {
