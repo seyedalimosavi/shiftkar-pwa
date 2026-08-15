@@ -490,10 +490,12 @@ function wireEvents(s) {
     });
   });
 
-  // Swipe between months only in the grid view — the table view needs
-  // horizontal drags for its own scrolling, so month swipes are disabled there.
+  // Swipe between months in BOTH views: swipe LEFT → next month, swipe
+  // RIGHT → previous month. In the table view a horizontal drag only changes
+  // the month when the table itself has no horizontal overflow to scroll
+  // (then the native scroll wins).
   const body = container.querySelector(".cal-body");
-  if (body && currentView() === "grid") {
+  if (body) {
     let startX = null;
     let startY = null;
     body.addEventListener(
@@ -510,7 +512,15 @@ function wireEvents(s) {
         if (startX == null) return;
         const dx = e.changedTouches[0].clientX - startX;
         const dy = e.changedTouches[0].clientY - startY;
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+          // If the drag started over a horizontally-scrollable table, let
+          // the native scroll handle it instead of changing the month.
+          const target = e.target;
+          const scroller =
+            target && typeof target.closest === "function"
+              ? target.closest(".shift-table-scroll")
+              : null;
+          if (scroller && scroller.scrollWidth > scroller.clientWidth) return;
           shiftMonth(dx > 0 ? -1 : 1);
         }
         startX = null;
