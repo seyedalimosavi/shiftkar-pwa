@@ -46,8 +46,9 @@
 
 .cal-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   margin-bottom: 12px;
 }
 
@@ -55,7 +56,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .view-toggle {
@@ -125,28 +126,52 @@
   gap: 4px;
 }
 
-.today-banner .badge-code {
-  font-size: var(--fs-sm);
+/* Icon-only circle for "today" shift (sun / moon / rest) */
+.today-shift-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.today-shift-icon.badge-day {
+  background: var(--shift-day);
+  color: #ffffff;
+}
+
+.today-shift-icon.badge-night {
+  background: var(--shift-night);
+  color: #ffffff;
+}
+
+.today-shift-icon.badge-rest {
+  background: var(--shift-rest);
+  color: #ffffff;
+}
+
+.today-shift-icon .icon {
+  width: 17px;
+  height: 17px;
 }
 
 /* ---------- group filter (inside the actions row) ---------- */
 .group-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.group-filter::-webkit-scrollbar {
-  display: none;
 }
 
 .group-filter .chip {
   flex-shrink: 0;
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: var(--fs-xs);
 }
 
 /* ---------- shift legend ---------- */
@@ -534,6 +559,38 @@
   flex-wrap: wrap;
 }
 
+/* Prominent official-holiday banner in the day-detail sheet */
+.day-detail-holiday {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background: var(--holiday-soft);
+  border: 1px solid var(--holiday-border);
+  color: var(--holiday);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.day-detail-holiday-icon {
+  display: flex;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--holiday);
+  color: #ffffff;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-detail-holiday-icon .icon {
+  width: 18px;
+  height: 18px;
+}
+
 .day-detail-groups {
   display: flex;
   flex-direction: column;
@@ -757,9 +814,12 @@ tr.is-pulsing {
 .tf-body {
   flex: 1;
   min-height: 0;
+  height: 0; /* force the flex item to a bounded height so it can scroll */
   padding: 0 12px calc(18px + var(--safe-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .tf-body .shift-table-scroll {

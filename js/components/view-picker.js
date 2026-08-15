@@ -1,36 +1,45 @@
 /**
  * View picker — calendar display mode (تقویم vs جدولی) with visual previews.
  * Used on onboarding and in Settings. Selection persists immediately.
+ * Both previews share the same outer size and head strip so the two cards
+ * look perfectly coherent side by side.
  */
 import { state } from "../core/state.js";
 
 function gridPreview() {
+  const rows = [
+    ["is-rest", "is-rest", "is-day", "is-day", "is-night", "is-night", "is-rest"],
+    ["is-rest", "is-day", "is-day", "is-night", "is-night", "is-rest", "is-rest"],
+    ["is-day", "is-day", "is-night", "is-night", "is-rest", "is-rest", "is-holiday"],
+  ];
   return `
     <span class="view-preview view-preview-grid" aria-hidden="true">
-      <span class="vp-row-head"></span>
-      <span class="vp-grid-row">
-        <span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-holiday"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-day"></span>
-      </span>
-      <span class="vp-grid-row">
-        <span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span><span class="vp-cell is-day"></span><span class="vp-cell is-rest"></span><span class="vp-cell is-night"></span>
-      </span>
+      <span class="vp-head"></span>
+      ${rows
+        .map(
+          (row) => `
+      <span class="vp-grid-row">${row.map((c) => `<span class="vp-cell ${c}"></span>`).join("")}</span>`,
+        )
+        .join("")}
     </span>`;
 }
 
 function tablePreview() {
   const rows = [
-    ["vp-dot is-rest", "vp-tbar is-rest", ""],
-    ["vp-dot is-night", "vp-tbar is-night", "is-holiday"],
-    ["vp-dot is-day", "vp-tbar is-day", ""],
-    ["vp-dot is-day", "vp-tbar is-day", "is-holiday"],
+    ["vp-num", "vp-bar", "vp-dot is-rest", "vp-bar is-holiday"],
+    ["vp-num", "vp-bar", "vp-dot is-night", "vp-bar"],
+    ["vp-num", "vp-bar", "vp-dot is-day", "vp-bar is-holiday"],
+    ["vp-num", "vp-bar", "vp-dot is-day", "vp-bar"],
   ];
   return `
     <span class="view-preview view-preview-table" aria-hidden="true">
-      <span class="vp-table-head"><span></span><span></span><span></span><span></span></span>
+      <span class="vp-head"></span>
       ${rows
         .map(
-          ([dot, bar, extra]) => `
-      <span class="vp-table-row ${extra}"><span class="vp-num"></span><span class="vp-bar"></span><span class="${dot}"></span><span class="vp-bar"></span></span>`,
+          (row) => `
+      <span class="vp-table-row">${row
+        .map((cls) => `<span class="${cls}"></span>`)
+        .join("")}</span>`,
         )
         .join("")}
     </span>`;

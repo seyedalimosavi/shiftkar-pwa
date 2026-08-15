@@ -106,9 +106,9 @@ shiftkar-web/
 - **Roster (تابلو)** — displays `assets/roster-1405.png` with a full-screen
   zoom/pan viewer (pinch, drag, double-tap, wheel, reset). If the image is not
   present the page shows a graceful missing-data state.
-- **Systems (سامانهها)** — external-system links from the Android app are not
-  grid of 8 clearly-labeled example systems (replace with real names/URLs when
-  available)
+- **Systems (سامانهها)** — a responsive grid of 8 clearly-labeled example
+  systems (حقوق، حضور و غیاب، مرخصی، پورتال، …) that open test URLs in a new
+  window (replace with real names/URLs when available)
 - **Settings** — personal group (synced with the calendar filter), light/dark/
   system theme + 6 color themes, calendar view (تقویم/جدولی with previews),
   contact options (Telegram, WhatsApp group/private, phone, Eitaa) that open
@@ -127,10 +127,18 @@ shiftkar-web/
 
 ## Holidays
 
-The original Android source ships **no holiday dataset**, so `js/domain/holidays.js`
-contains a clearly-labeled **sample (non-official)** set of well-known fixed-date
-Iranian holidays. Treat it as a starting point, not an authoritative calendar —
-extend `SAMPLE_HOLIDAYS` (and/or add per-year lunar dates) as needed.
+`js/domain/holidays.js` ships the **official Iranian holidays** for the years this
+build targets (1404, 1405 — the reference year — and 1406), verified against
+Iranian calendar references:
+
+- **Fixed solar holidays** — Nowruz (1–4 فروردین), روز جمهوری اسلامی، سیزده‌به‌در،
+  رحلت امام خمینی، قیام ۱۵ خرداد، پیروزی انقلاب اسلامی، ملی شدن صنعت نفت.
+- **Lunar (Hijri) holidays per year** — عید فطر، قربان، غدیر، تاسوعا و عاشورا،
+  اربعین، شهادت‌ها و میلادهای ائمه… (they drift ~11 days earlier each solar
+  year, so they are stored year-by-year rather than as fixed dates).
+
+Days are shown red in the calendar/table and the occasion name appears in the
+day-detail sheet. For years outside 1404–1406 only the fixed solar holidays apply.
 
 ---
 

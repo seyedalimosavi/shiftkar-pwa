@@ -29,10 +29,7 @@ export function openDayDetail(dateKey) {
   const content = document.createElement("div");
   content.className = "day-detail";
 
-  const chips = [
-    isToday ? '<span class="chip chip-today">امروز</span>' : "",
-    holiday ? `<span class="chip chip-holiday">تعطیل — ${holiday.name}</span>` : "",
-  ].join("");
+  const chips = [isToday ? '<span class="chip chip-today">امروز</span>' : ""].join("");
 
   content.innerHTML = `
     <div class="day-detail-dates">
@@ -41,6 +38,11 @@ export function openDayDetail(dateKey) {
       <span class="day-detail-gregorian">${formatGregorian(g.gy, g.gm, g.gd)}</span>
     </div>
     ${chips ? `<div class="day-detail-chips">${chips}</div>` : ""}
+    ${holiday ? `
+      <div class="day-detail-holiday" role="note">
+        <span class="day-detail-holiday-icon">${icon("holiday")}</span>
+        <span class="day-detail-holiday-text">${holiday.name}</span>
+      </div>` : ""}
     <div class="day-detail-groups">
       <div class="day-detail-groups-title">${icon("groups")} شیفت گروه‌ها</div>
       ${GROUPS.map((gr) => {
@@ -49,7 +51,7 @@ export function openDayDetail(dateKey) {
         return `
           <div class="group-shift-row ${isMine ? "is-mine" : ""}">
             <span class="group-shift-name">${GROUP_FA[gr]}${isMine ? ' <span class="group-shift-mine">شما</span>' : ""}</span>
-            ${shiftBadge(shift.type, { group: gr })}
+            ${shiftBadge(shift.type)}
           </div>`;
       }).join("")}
     </div>`;

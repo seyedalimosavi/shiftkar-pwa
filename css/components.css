@@ -817,9 +817,10 @@
   max-height: 86dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.93));
-  -webkit-backdrop-filter: blur(26px) saturate(1.4);
-  backdrop-filter: blur(26px) saturate(1.4);
+  /* Near-opaque gradient; no backdrop-filter here — a nested backdrop-filter
+     under a transforming child (e.g. the ذخیره button press) causes visible
+     flicker on Android Chrome. The gradient alone reads cleanly. */
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.97), rgba(247, 250, 255, 0.96));
   border: 1px solid rgba(255, 255, 255, 0.85);
   border-bottom: none;
   border-radius: 26px 26px 0 0;
@@ -827,6 +828,15 @@
   transform: translateY(100%);
   transition: transform var(--motion-slow) var(--ease-out);
   overflow: hidden;
+}
+
+/* No press-scale on sheet buttons: transform + overlay blur = flicker on mobile */
+.sheet .btn:active {
+  transform: none;
+}
+
+.sheet .btn {
+  touch-action: manipulation;
 }
 
 .sheet-overlay.is-open .sheet {
@@ -1282,7 +1292,7 @@
   box-shadow: var(--shadow-primary);
 }
 
-/* ---------- view picker (grid / list previews) ---------- */
+/* ---------- view picker (تقویم / جدولی previews) ---------- */
 .view-picker {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1311,10 +1321,13 @@
   box-shadow: var(--shadow-primary);
 }
 
+/* Both previews share the same outer box, head strip and fill height,
+   so the two cards look exactly the same size side by side. */
 .view-preview {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  height: 94px;
   padding: 8px;
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -1322,23 +1335,13 @@
   direction: ltr;
 }
 
-/* grid preview: weekday strip + 2 rows of cells */
-.view-preview-grid .vp-row-head {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-  margin-bottom: 2px;
-}
-
-.view-preview-grid .vp-row-head::before {
-  content: "";
-  display: block;
-  height: 4px;
-  border-radius: 2px;
+.vp-head {
+  height: 5px;
+  border-radius: 3px;
   background: var(--color-border-strong);
-  grid-column: 1 / -1;
 }
 
+/* grid preview: head + 3 rows of mini cells */
 .vp-grid-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -1346,7 +1349,7 @@
 }
 
 .vp-cell {
-  aspect-ratio: 1;
+  height: 12px;
   border-radius: 3px;
   background: var(--color-border-strong);
 }
@@ -1371,31 +1374,43 @@
   border: 1px solid var(--holiday-border);
 }
 
-/* list preview: label bar + rows */
-.view-preview-list .vp-list-head {
-  width: 40%;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-primary);
-  opacity: 0.85;
-  margin-bottom: 2px;
-}
-
-.vp-list-row {
-  display: flex;
+/* table preview: head + 4 rows (روز | هفته | شیفت | مناسبت) */
+.vp-table-row {
+  display: grid;
+  grid-template-columns: 0.7fr 1.4fr 0.8fr 1.6fr;
+  gap: 3px;
   align-items: center;
-  gap: 6px;
-  padding: 3px 4px;
+  height: 15px;
+  padding: 0 4px;
   border-radius: 4px;
   background: var(--color-surface-strong);
   border: 1px solid var(--color-border-strong);
 }
 
-.vp-dot {
-  width: 7px;
+.vp-num {
+  width: 9px;
   height: 7px;
+  border-radius: 2px;
+  background: var(--color-text-faint);
+  justify-self: center;
+}
+
+.vp-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-border-strong);
+}
+
+.vp-bar.is-holiday {
+  background: var(--holiday);
+  opacity: 0.8;
+}
+
+.vp-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
+  justify-self: start;
 }
 
 .vp-dot.is-day {
@@ -1410,80 +1425,10 @@
   background: var(--shift-rest);
 }
 
-.vp-bar {
-  flex: 1;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-border-strong);
-}
-
 .view-label {
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   text-align: center;
-}
-
-/* table preview: header + rows with colored shift dots */
-.view-preview-table .vp-table-head {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 0.8fr 1.6fr;
-  gap: 3px;
-  margin-bottom: 3px;
-}
-
-.view-preview-table .vp-table-head span {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--color-border-strong);
-}
-
-.vp-table-row {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 0.8fr 1.6fr;
-  gap: 3px;
-  align-items: center;
-  padding: 3px 4px;
-  border-radius: 4px;
-  background: var(--color-surface-strong);
-  border: 1px solid var(--color-border-strong);
-}
-
-.vp-table-row.is-holiday {
-  background: var(--holiday-soft);
-  border-color: var(--holiday-border);
-}
-
-.vp-num {
-  width: 9px;
-  height: 6px;
-  border-radius: 2px;
-  background: var(--color-text-faint);
-  justify-self: center;
-}
-
-.vp-table-row .vp-bar {
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-border-strong);
-}
-
-.vp-tbar {
-  width: 18px;
-  height: 7px;
-  border-radius: 3px;
-  justify-self: start;
-}
-
-.vp-tbar.is-day {
-  background: var(--shift-day);
-}
-
-.vp-tbar.is-night {
-  background: var(--shift-night);
-}
-
-.vp-tbar.is-rest {
-  background: var(--shift-rest);
 }
 
 /* ---------- onboarding personalization ---------- */
@@ -1548,7 +1493,7 @@
 }
 
 [data-theme-mode="dark"] .sheet {
-  background: linear-gradient(165deg, rgba(25, 34, 60, 0.98), rgba(15, 22, 40, 0.97));
+  background: linear-gradient(165deg, rgba(26, 35, 62, 0.99), rgba(16, 23, 42, 0.99));
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 -12px 40px -10px rgba(0, 0, 0, 0.6);
 }

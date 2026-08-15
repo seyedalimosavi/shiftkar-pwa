@@ -17,7 +17,7 @@ import {
 } from "../domain/jalali.js";
 import { calculateShift } from "../domain/shift-calculator.js";
 import { getHoliday } from "../domain/holidays.js";
-import { GROUPS, GROUP_FILTERS } from "../domain/models.js";
+import { GROUPS, GROUP_FILTERS, SHIFT_TYPES } from "../domain/models.js";
 import { getNotesForMonth } from "../core/storage.js";
 import { openDayDetail } from "../components/day-detail.js";
 import { openMonthPicker } from "../components/month-picker.js";
@@ -80,14 +80,6 @@ function draw() {
       </div>
 
       <div class="cal-actions">
-        <div class="group-filter" role="group" aria-label="فیلتر گروه">
-          ${GROUP_FILTERS.map(
-            (g) => `
-            <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">
-              ${g === "ALL" ? "همه" : g}
-            </button>`,
-          ).join("")}
-        </div>
         <div class="cal-tools">
           <div class="view-toggle" role="group" aria-label="نمای تقویم">
             <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
@@ -95,6 +87,14 @@ function draw() {
           </div>
           ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
           <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
+        </div>
+        <div class="group-filter" role="group" aria-label="فیلتر گروه">
+          ${GROUP_FILTERS.map(
+            (g) => `
+            <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">
+              ${g === "ALL" ? "همه" : g}
+            </button>`,
+          ).join("")}
         </div>
       </div>
 
@@ -135,7 +135,11 @@ function todayBannerHtml(s, today, todayKey) {
       </div>`;
   } else {
     const shift = calculateShift(today, filter);
-    shiftHtml = shiftCodeBadge(shift.code, { group: filter });
+    const meta = SHIFT_TYPES[shift.type];
+    shiftHtml = `
+      <span class="today-shift-icon ${meta.badgeClass}" role="img" aria-label="${meta.fa}" title="${meta.fa}">
+        ${icon(meta.icon)}
+      </span>`;
   }
 
   return `
