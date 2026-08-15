@@ -72,17 +72,24 @@ export function viewPickerMarkup() {
 
 /** Wire clicks inside a container that contains the picker markup. */
 export function wireViewPicker(root) {
+  const applyHighlight = (btn) => {
+    root.querySelectorAll("[data-view]").forEach((b) => {
+      const on = b === btn;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-checked", String(on));
+      const badge = b.querySelector(".view-check");
+      if (on && !badge) b.insertAdjacentHTML("afterbegin", checkBadge());
+      if (!on && badge) badge.remove();
+    });
+  };
+
   root.querySelectorAll("[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      // Highlight the clicked card first (instant feedback on the current
+      // DOM), then persist — the state change re-renders the page with the
+      // same selection either way.
+      applyHighlight(btn);
       state.set({ calendarViewType: btn.dataset.view });
-      root.querySelectorAll("[data-view]").forEach((b) => {
-        const on = b === btn;
-        b.classList.toggle("is-active", on);
-        b.setAttribute("aria-checked", String(on));
-        const badge = b.querySelector(".view-check");
-        if (on && !badge) b.insertAdjacentHTML("afterbegin", checkBadge());
-        if (!on && badge) badge.remove();
-      });
     });
   });
 }

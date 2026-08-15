@@ -129,7 +129,7 @@ function draw() {
     <section class="settings-card glass-card about-card">
       <h2 class="settings-title">${icon("info")} درباره ما</h2>
       <div class="about-row">
-        <img class="about-logo" src="./assets/logo.png" alt="لوگوی شیفت‌کار" width="72" height="72" />
+        <img class="about-logo" src="./assets/logo.png?v=2" alt="لوگوی شیفت‌کار" width="72" height="72" />
         <div class="about-text">
           <strong>${APP_INFO.nameFa}</strong>
           <span>${APP_INFO.nameEn} — نسخهٔ ${toPersianDigits(APP_INFO.version)}</span>

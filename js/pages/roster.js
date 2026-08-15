@@ -80,6 +80,7 @@ function openRosterViewer(src) {
   let scale = 1;
   let tx = 0;
   let ty = 0;
+  let fitScale = 1;
   const pointers = new Map();
   let pinchStart = null;
   let lastTapTime = 0;
@@ -90,17 +91,23 @@ function openRosterViewer(src) {
     img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
   };
 
-  // Center the image in the stage (it is absolutely positioned).
-  const center = () => {
-    if (!img.clientWidth) return;
+  // Fit the WHOLE board into the stage, centered — the viewer opens on the
+  // full image, and zooming out is allowed all the way down to this level.
+  const fit = () => {
+    const iw = img.naturalWidth || img.clientWidth;
+    const ih = img.naturalHeight || img.clientHeight;
     const sw = stage.clientWidth;
     const sh = stage.clientHeight;
-    tx = Math.max(0, (sw - img.clientWidth) / 2);
-    ty = Math.max(0, (sh - img.clientHeight) / 2);
+    if (!iw || !ih || !sw || !sh) return;
+    fitScale = Math.min(1, Math.min(sw / iw, sh / ih));
+    scale = fitScale;
+    tx = (sw - iw * fitScale) / 2;
+    ty = (sh - ih * fitScale) / 2;
     apply();
   };
-  img.addEventListener("load", center);
-  requestAnimationFrame(center);
+  img.addEventListener("load", fit);
+  requestAnimationFrame(fit);
+  window.addEventListener("resize", fit);
 
   const clamp = () => {
     const sw = stage.clientWidth;
@@ -119,7 +126,7 @@ function openRosterViewer(src) {
     const cy = py ?? rect.top + rect.height / 2;
     const localX = cx - rect.left;
     const localY = cy - rect.top;
-    const clamped = Math.min(4, Math.max(1, next));
+    const clamped = Math.min(4, Math.max(fitScale, next));
     const ratio = clamped / scale;
     tx = localX - (localX - tx) * ratio;
     ty = localY - (localY - ty) * ratio;
@@ -129,10 +136,7 @@ function openRosterViewer(src) {
   };
 
   const reset = () => {
-    scale = 1;
-    tx = 0;
-    ty = 0;
-    apply();
+    fit();
   };
 
   stage.addEventListener("pointerdown", (e) => {
@@ -209,6 +213,7 @@ function openRosterViewer(src) {
 
   const close = () => {
     if (!overlay.isConnected) return;
+    window.removeEventListener("resize", fit);
     overlay.classList.remove("is-open");
     unlockBodyScroll();
     setTimeout(() => overlay.remove(), 240);

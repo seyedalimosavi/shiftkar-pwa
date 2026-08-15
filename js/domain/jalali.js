@@ -141,7 +141,7 @@ export const JALALI_MONTHS = [
   "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند",
 ];
 
-export const WEEKDAYS = ["شنبه", "یکشنبه", "دوشنبه", "سهشنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+export const WEEKDAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 
 export const GREGORIAN_MONTHS = [
   "ژانویه", "فوریه", "مارس", "آوریل", "مه", "ژوئن",
@@ -187,5 +187,5 @@ export function todayJalaali() {
 
 export function gregorianWeekdayFa(gy, gm, gd) {
   const jsDay = new Date(Date.UTC(gy, gm - 1, gd)).getUTCDay();
-  return ["یکشنبه", "دوشنبه", "سهشنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"][jsDay];
+  return ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"][jsDay];
 }

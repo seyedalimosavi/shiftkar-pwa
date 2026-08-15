@@ -15,8 +15,8 @@ export function escapeHtml(text) {
   return div.innerHTML;
 }
 
-/** Hard limit for a note's text. */
-export const NOTE_MAX_LENGTH = 500;
+/** Hard limit for a note's text (kept short so sheets stay tidy). */
+export const NOTE_MAX_LENGTH = 200;
 
 /** Day-detail card shows this many chars before «نمایش بیشتر». */
 export const NOTE_VIEW_CLAMP = 140;
@@ -79,7 +79,7 @@ export function createNoteEditor(dateKey, { onSaved = null, startInEdit = false 
       wrap.innerHTML = `
         <div class="note-view">
           <div class="note-view-text" dir="auto">${escapeHtml(clampText(note.noteText, NOTE_VIEW_CLAMP))}</div>
-          ${long ? `<button type="button" class="note-more-btn" data-more>نمایش بیشتر</button>` : ""}
+          ${long ? `<button type="button" class="note-more-btn" data-more>مشاهده بیشتر</button>` : ""}
           <div class="note-view-meta">آخرین ویرایش: ${formatUpdatedAt(note.updatedAt)}</div>
         </div>
         <div class="note-editor-actions">
@@ -92,7 +92,7 @@ export function createNoteEditor(dateKey, { onSaved = null, startInEdit = false 
           const textEl = wrap.querySelector(".note-view-text");
           const expanded = textEl.classList.toggle("is-expanded");
           textEl.textContent = expanded ? note.noteText : clampText(note.noteText, NOTE_VIEW_CLAMP);
-          moreBtn.textContent = expanded ? "نمایش کمتر" : "نمایش بیشتر";
+          moreBtn.textContent = expanded ? "مشاهده کمتر" : "مشاهده بیشتر";
         });
       }
       wrap.querySelector(".note-edit-btn").addEventListener("click", () => {
@@ -104,7 +104,7 @@ export function createNoteEditor(dateKey, { onSaved = null, startInEdit = false 
       const value = note ? note.noteText : "";
       wrap.innerHTML = `
         <label class="note-editor-label" for="${inputId}">یادداشت</label>
-        <textarea id="${inputId}" class="note-textarea" rows="4" maxlength="${NOTE_MAX_LENGTH}"
+        <textarea id="${inputId}" class="note-textarea" rows="3" maxlength="${NOTE_MAX_LENGTH}"
           placeholder="یادداشت خود را بنویسید…">${escapeHtml(value)}</textarea>
         <div class="note-editor-meta"><span class="note-count">${toPersianDigits(value.length)} / ${toPersianDigits(NOTE_MAX_LENGTH)}</span></div>
         <div class="note-editor-actions">
@@ -133,7 +133,7 @@ export function createNoteEditor(dateKey, { onSaved = null, startInEdit = false 
 
   const save = async () => {
     const textarea = wrap.querySelector(".note-textarea");
-    const text = textarea.value.trim();
+    const text = textarea.value.trim().slice(0, NOTE_MAX_LENGTH);
     if (!text) {
       toast("متن یادداشت خالی است");
       return;

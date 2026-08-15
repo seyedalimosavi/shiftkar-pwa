@@ -141,9 +141,15 @@ function todayBannerHtml(s, today, todayKey) {
   } else {
     const shift = calculateShift(today, filter);
     const meta = SHIFT_TYPES[shift.type];
+    // «شبکار دوم»، «استراحت اول» — type + cycle ordinal next to the icon.
+    const ordinal = ORDINALS[Number(String(shift.code).slice(1))] || "";
+    const label = ordinal ? `${meta.fa} ${ordinal}` : meta.fa;
     shiftHtml = `
-      <span class="today-shift-icon ${meta.badgeClass}" role="img" aria-label="${meta.fa}" title="${meta.fa}">
-        ${icon(meta.icon)}
+      <span class="today-shift">
+        <span class="today-shift-icon ${meta.badgeClass}" role="img" aria-label="${meta.fa}" title="${meta.fa}">
+          ${icon(meta.icon)}
+        </span>
+        <span class="today-shift-label">${label}</span>
       </span>`;
   }
 
@@ -156,6 +162,8 @@ function todayBannerHtml(s, today, todayKey) {
 }
 
 /* ---------------- legend ---------------- */
+
+const ORDINALS = { 1: "اول", 2: "دوم", 3: "سوم", 4: "چهارم" };
 
 function legendHtml() {
   return `
@@ -314,11 +322,14 @@ function openTableFullscreen() {
     let jm = Number(s.viewMonth) || 5;
     const today = todayJalaali();
     const todayKey = makeDateKey(today.jy, today.jm, today.jd);
+    const isCurrentMonth = jy === today.jy && jm === today.jm;
 
     // The month nav in the header already shows the month, so the table has
-    // no title of its own; برو به امروز fills the header's free space and a
-    // slim legend appears only when همه is selected.
+    // no title of its own; a slim legend appears only when همه is selected.
+    // برو به امروز floats at the bottom (like the calendar page) and only
+    // shows when you are viewing a month other than the current one.
     overlay.innerHTML = `
+      ${isCurrentMonth ? "" : `<button type="button" class="tf-fab" data-tf="today">${icon("calendar")} برو به امروز</button>`}
       <div class="tf-header">
         <div class="tf-nav">
           <button type="button" class="icon-btn" data-tf="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
@@ -329,7 +340,6 @@ function openTableFullscreen() {
           <button type="button" class="icon-btn" data-tf="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
         <div class="tf-actions">
-          <button type="button" class="tf-today" data-tf="today">${icon("calendar")} برو به امروز</button>
           <button type="button" class="icon-btn tf-collapse" data-tf="close" aria-label="بازگشت به نمای تقویم">${icon("collapse")}</button>
         </div>
       </div>
@@ -341,7 +351,8 @@ function openTableFullscreen() {
     overlay.querySelector('[data-tf="prev"]').addEventListener("click", () => shiftMonth(-1));
     overlay.querySelector('[data-tf="next"]').addEventListener("click", () => shiftMonth(1));
     overlay.querySelector('[data-tf="picker"]').addEventListener("click", openMonthPicker);
-    overlay.querySelector('[data-tf="today"]').addEventListener("click", goToTodayFullscreen);
+    const tfToday = overlay.querySelector('[data-tf="today"]');
+    if (tfToday) tfToday.addEventListener("click", goToTodayFullscreen);
     overlay.querySelector('[data-tf="close"]').addEventListener("click", () => close());
     overlay.querySelectorAll("tr[data-datekey]").forEach((tr) => {
       tr.addEventListener("click", () => openDayDetail(tr.dataset.datekey));
