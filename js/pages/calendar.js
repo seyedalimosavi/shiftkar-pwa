@@ -71,7 +71,6 @@ function draw() {
   const view = currentView();
 
   container.innerHTML = `
-    ${isCurrentMonth ? "" : todayFabHtml()}
     <div class="cal-wrap">
       ${todayBannerHtml(s, today, todayKey)}
 
@@ -105,6 +104,7 @@ function draw() {
           ).join("")}
         </div>
         ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
+        ${isCurrentMonth ? "" : todayChipHtml()}
       </div>
 
       ${view === "grid" && s.filterGroup === "ALL" ? legendHtml() : ""}
@@ -118,12 +118,14 @@ function draw() {
   loadNotes(jy, jm);
 }
 
-/* ---------------- "go to today" floating button ---------------- */
-
-function todayFabHtml() {
+/* ---------------- "go to today" inline chip ---------------- */
+/* Sits in the actions row (next to the fullscreen toggle) so it never
+   covers calendar content. Only rendered off the current month — on the
+   current month there is nowhere to go, so it disappears. */
+function todayChipHtml() {
   return `
-    <button type="button" class="today-fab" data-action="today" aria-label="رفتن به شیفت امروز">
-      ${icon("calendar")}<span class="fab-label">برو به شیفت امروز</span>
+    <button type="button" class="today-chip" data-action="today" title="برو به امروز" aria-label="رفتن به امروز">
+      ${icon("calendar")}<span>امروز</span>
     </button>`;
 }
 
@@ -330,10 +332,9 @@ function openTableFullscreen() {
 
     // The month nav in the header already shows the month, so the table has
     // no title of its own; a slim legend appears only when همه is selected.
-    // برو به امروز floats at the bottom (like the calendar page) and only
-    // shows when you are viewing a month other than the current one.
+    // The «امروز» chip sits inline in the header actions (never over the
+    // rows) and only shows while viewing a month other than the current one.
     overlay.innerHTML = `
-      ${isCurrentMonth ? "" : `<button type="button" class="tf-fab" data-tf="today" aria-label="رفتن به امروز">${icon("calendar")}<span class="fab-label">برو به امروز</span></button>`}
       <div class="tf-header">
         <div class="tf-nav">
           <button type="button" class="icon-btn" data-tf="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
@@ -344,6 +345,7 @@ function openTableFullscreen() {
           <button type="button" class="icon-btn" data-tf="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
         <div class="tf-actions">
+          ${isCurrentMonth ? "" : `<button type="button" class="today-chip" data-tf="today" title="برو به امروز" aria-label="رفتن به امروز">${icon("calendar")}<span>امروز</span></button>`}
           <button type="button" class="icon-btn tf-collapse" data-tf="close" aria-label="بازگشت به نمای تقویم">${icon("collapse")}</button>
         </div>
       </div>
@@ -355,16 +357,13 @@ function openTableFullscreen() {
     overlay.querySelector('[data-tf="prev"]').addEventListener("click", () => shiftMonth(-1));
     overlay.querySelector('[data-tf="next"]').addEventListener("click", () => shiftMonth(1));
     overlay.querySelector('[data-tf="picker"]').addEventListener("click", openMonthPicker);
-    // Same swipe gesture as the calendar page: swipe LEFT on the fullscreen
-    // header → next month, RIGHT → previous month. The table body below only
+    // Same swipe gesture as the calendar page: swipe RIGHT on the fullscreen
+    // header → next month, LEFT → previous month. The table body below only
     // scrolls and never changes the month.
     const tfHeader = overlay.querySelector(".tf-header");
     if (tfHeader) wireSwipeMonthNav(tfHeader);
     const tfToday = overlay.querySelector('[data-tf="today"]');
-    if (tfToday) {
-      tfToday.addEventListener("click", goToTodayFullscreen);
-      wireCollapsingFab(tfToday);
-    }
+    if (tfToday) tfToday.addEventListener("click", goToTodayFullscreen);
     overlay.querySelector('[data-tf="close"]').addEventListener("click", () => close());
     overlay.querySelectorAll("tr[data-datekey]").forEach((tr) => {
       tr.addEventListener("click", () => openDayDetail(tr.dataset.datekey));
@@ -459,11 +458,8 @@ function wireEvents(s) {
   container.querySelector('[data-action="picker"]').addEventListener("click", openMonthPicker);
   container.querySelector('[data-action="notes"]').addEventListener("click", openAllNotes);
 
-  const todayFab = container.querySelector('[data-action="today"]');
-  if (todayFab) {
-    todayFab.addEventListener("click", () => goToToday());
-    wireCollapsingFab(todayFab);
-  }
+  const todayChip = container.querySelector('[data-action="today"]');
+  if (todayChip) todayChip.addEventListener("click", () => goToToday());
 
   const fullscreenBtn = container.querySelector('[data-action="fullscreen"]');
   if (fullscreenBtn) {
@@ -504,7 +500,7 @@ function wireEvents(s) {
   });
 
   // Swipe between months — same logic as the onboarding screen, direction:
-  // swipe LEFT → next month, swipe RIGHT → previous month (a horizontal
+  // swipe RIGHT → next month, swipe LEFT → previous month (a horizontal
   // wheel/trackpad scroll also works on desktop).
   //  - grid view: anywhere in the calendar body
   //  - table view: ONLY on the slim table header (the hint/legend strip) —
@@ -516,28 +512,16 @@ function wireEvents(s) {
 
   if (keyHandler) container.removeEventListener("keydown", keyHandler);
   keyHandler = (e) => {
-    if (e.key === "ArrowLeft") {
+    // Matches the swipe direction: right = next month.
+    if (e.key === "ArrowRight") {
       shiftMonth(1);
       e.preventDefault();
-    } else if (e.key === "ArrowRight") {
+    } else if (e.key === "ArrowLeft") {
       shiftMonth(-1);
       e.preventDefault();
     }
   };
   container.addEventListener("keydown", keyHandler);
-}
-
-/* ---------------- "go to today" collapsible FAB ---------------- */
-
-/** Collapse a "go to today" floating button to a small icon after a short
- *  delay so it never keeps covering the calendar text. The tap target and
- *  its click handler are unaffected; on hover-capable devices the button
- *  expands again while hovered (all transitions handled in CSS). */
-function wireCollapsingFab(btn) {
-  const timer = setTimeout(() => btn.classList.add("is-compact"), 2600);
-  btn.addEventListener("mouseenter", () => btn.classList.remove("is-compact"));
-  btn.addEventListener("mouseleave", () => btn.classList.add("is-compact"));
-  btn.addEventListener("click", () => clearTimeout(timer));
 }
 
 /* ---------------- month swipe navigation ---------------- */
@@ -562,8 +546,8 @@ function blockNextClick() {
  * so horizontal drags are never claimed as page scrolls (which is what made
  * the earlier interception-based handlers silently never fire).
  *
- *  - Touch swipe: LEFT → next month, RIGHT → previous month.
- *  - Horizontal wheel / trackpad: scroll LEFT → next month, scroll RIGHT →
+ *  - Touch swipe: RIGHT → next month, LEFT → previous month.
+ *  - Horizontal wheel / trackpad: scroll RIGHT → next month, scroll LEFT →
  *    previous month (debounced so a long single scroll moves one month).
  *
  * A completed swipe also suppresses the click that would otherwise open the
@@ -589,7 +573,9 @@ function wireSwipeMonthNav(area) {
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-        shiftMonth(dx < 0 ? 1 : -1);
+        // RIGHT swipe → next month, LEFT swipe → previous (RTL convention,
+        // identical to the onboarding screen).
+        shiftMonth(dx > 0 ? 1 : -1);
         blockNextClick();
       }
       startX = null;
@@ -598,7 +584,7 @@ function wireSwipeMonthNav(area) {
     { passive: true },
   );
 
-  // Horizontal wheel / trackpad gesture: scrolling left goes forward.
+  // Horizontal wheel / trackpad gesture: scrolling right goes forward.
   let wheelLockUntil = 0;
   area.addEventListener(
     "wheel",
@@ -612,7 +598,7 @@ function wireSwipeMonthNav(area) {
         return;
       }
       wheelLockUntil = now + 350;
-      shiftMonth(dx < 0 ? 1 : -1);
+      shiftMonth(dx > 0 ? 1 : -1);
       e.preventDefault();
     },
     { passive: false },

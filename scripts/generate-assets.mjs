@@ -114,11 +114,18 @@ function lerp(a, b, t) {
 }
 
 /* ---------------- New app icon drawing ----------------
-   Brand mark: a cream tile with a golden-yellow curved arrow over the
-   top and a forest-green curved arrow over the right + bottom, forming a
-   refresh/sync loop. In the middle, a white rounded tile carries a navy
-   clock face (four ticks) whose hands are a checkmark. The mark is drawn
-   at size 512 and scaled down, so it stays crisp at every icon size. */
+   Brand mark: a FULL-BLEED navy frame with a cream medallion inside — the
+   medallion carries a golden-yellow curved arrow over the top and a
+   forest-green curved arrow over the right + bottom, forming a
+   refresh/sync loop; in the middle, a white rounded tile carries a navy
+   clock face (four ticks) whose hands are a checkmark.
+
+   The opaque navy frame (no transparency anywhere) is what makes the icon
+   look right on BOTH light and dark launchers: the cream medallion pops on
+   dark, the navy frame pops on light, and the launcher never has to fill
+   transparent corners with an arbitrary color. The medallion sits inside
+   the maskable safe zone (80 %) so adaptive-icon cropping never cuts it.
+   The mark is drawn at size 512 and scaled down, staying crisp everywhere. */
 
 const BRAND = {
   cream: [247, 245, 238, 255], // #F7F5EE
@@ -150,27 +157,23 @@ function arrowhead(c, px, py, dx, dy, len, width, color) {
   line(c, px, py, bx + uy * width * 0.5, by - ux * width * 0.5, width * 0.42, color);
 }
 
-function drawIcon(size, { rounded = true, maskable = false } = {}) {
+function drawIcon(size) {
   const c = canvas(size);
   const s = size;
   const k = s / 512; // scale from the 512 design grid
 
-  const x0 = rounded ? s * 0.08 : 0;
-  const y0 = rounded ? s * 0.08 : 0;
-  const x1 = s - x0;
-  const y1 = s - y0;
-  const radius = rounded ? s * 0.2 : 0;
-
-  // Cream tile background
-  for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
-    for (let x = Math.floor(x0); x < Math.ceil(x1); x++) {
-      if (!rounded || insideRoundRect(x + 0.5, y + 0.5, x0, y0, x1, y1, radius))
-        blendPixel(c, x, y, BRAND.cream);
-    }
+  // Navy background — opaque, edge to edge, no transparency for launchers
+  // to fill with an arbitrary white/dark circle.
+  for (let y = 0; y < s; y++) {
+    for (let x = 0; x < s; x++) blendPixel(c, x, y, BRAND.navy);
   }
 
   const cx = 256 * k;
   const cy = 256 * k;
+
+  // Cream medallion — fills the maskable safe zone (central 80 %).
+  fillCircle(c, cx, cy, 205 * k, BRAND.cream);
+
   const R = 168 * k; // loop radius
   const W = 40 * k; // stroke width
 
@@ -214,15 +217,15 @@ function drawIcon(size, { rounded = true, maskable = false } = {}) {
 /* ---------------- Output ---------------- */
 
 const files = [
-  { path: "assets/logo.png", size: 512, opts: { rounded: true } },
-  { path: "assets/icons/icon-192.png", size: 192, opts: { rounded: true } },
-  { path: "assets/icons/icon-512.png", size: 512, opts: { rounded: true } },
-  { path: "assets/icons/icon-maskable-512.png", size: 512, opts: { rounded: false, maskable: true } },
-  { path: "assets/icons/apple-touch-icon.png", size: 180, opts: { rounded: false } },
+  { path: "assets/logo.png", size: 512 },
+  { path: "assets/icons/icon-192.png", size: 192 },
+  { path: "assets/icons/icon-512.png", size: 512 },
+  { path: "assets/icons/icon-maskable-512.png", size: 512 },
+  { path: "assets/icons/apple-touch-icon.png", size: 180 },
 ];
 
 for (const f of files) {
-  const c = drawIcon(f.size, f.opts);
+  const c = drawIcon(f.size);
   const out = join(root, f.path);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, encodePng(f.size, c.data));

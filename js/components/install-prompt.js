@@ -2,10 +2,16 @@
  * PWA install prompt — shared by the onboarding install slide, the Settings
  * install card and the one-time automatic prompt after onboarding.
  *
- *  - Chrome/Android/desktop: captures `beforeinstallprompt` and shows the
- *    native install UI when asked.
+ *  - Chrome/Edge/Android/desktop: captures `beforeinstallprompt` and shows
+ *    the native install UI when asked.
  *  - iOS Safari: no install event exists — we show "Add to Home Screen"
  *    instructions instead.
+ *  - Firefox (Android + desktop): `beforeinstallprompt` is not supported,
+ *    so instead of a dead "unsupported" state we detect Firefox and show a
+ *    short step-by-step guide for adding it manually (home screen on
+ *    Android, bookmark/pin on desktop).
+ *  - Any other browser without the install event gets the same treatment:
+ *    a manual "use your browser menu" guide instead of a plain message.
  *  - Already installed (standalone) or after `appinstalled`: reported as
  *    installed and nothing is prompted again.
  */
@@ -49,6 +55,15 @@ function isIOSDevice() {
   return /iPhone|iPad|iPod/.test(ua) || iPadOS13;
 }
 
+/** Firefox never fires `beforeinstallprompt` — detect it for the manual guide. */
+function isFirefox() {
+  return /Firefox\//.test(navigator.userAgent || "");
+}
+
+function isFirefoxAndroid() {
+  return isFirefox() && /Android/.test(navigator.userAgent || "");
+}
+
 /** Let every interested UI (onboarding slide, settings card) refresh. */
 function emitState() {
   window.dispatchEvent(new CustomEvent("shiftkar:install-state"));
@@ -78,6 +93,7 @@ export function getInstallState() {
     installed: isStandalone() || installedFlag,
     canPrompt: !!deferredPrompt,
     isIOS: isIOSDevice(),
+    isFirefox: isFirefox(),
   };
 }
 
@@ -105,8 +121,9 @@ export async function promptInstall() {
       return "unavailable";
     }
   }
-  if (st.isIOS) return "instructions";
-  return "unavailable";
+  // No native prompt available (iOS, Firefox, or an unsupported browser) —
+  // always hand the user a manual guide instead of a dead end.
+  return "instructions";
 }
 
 /* ---------------- shared markup ---------------- */
@@ -132,10 +149,61 @@ export function iosInstructionsHtml() {
     </div>`;
 }
 
+const FIREFOX_ANDROID_STEPS = `
+  <ol class="install-steps">
+    <li>روی دکمهٔ ⋮ (سه‌نقطه، منو) در نوار پایین فایرفاکس بزنید.</li>
+    <li>گزینهٔ «افزودن به صفحهٔ اصلی» (Add to Home screen) را انتخاب کنید.</li>
+    <li>روی «افزودن» بزنید؛ آیکون شیفت‌کار روی صفحهٔ اصلی قرار می‌گیرد.</li>
+  </ol>`;
+
+const FIREFOX_DESKTOP_STEPS = `
+  <ol class="install-steps">
+    <li>فایرفاکس دسکتاپ، نصب اپلیکیشن را پشتیبانی نمی‌کند؛ اما می‌توانید تب را به نوار ابزار سنجاق کنید.</li>
+    <li>روی ⋮ (منو) بروید و «Pin to Taskbar» (ویندوز) یا «سنجاق به نوار ابزار» را انتخاب کنید.</li>
+    <li>می‌توانید شیفت‌کار را هم بوک‌مارک کنید تا با یک کلیک باز شود.</li>
+  </ol>`;
+
+/** Inline instructions for Firefox — detected so the user never sees a dead
+ *  "unsupported" message. */
+export function firefoxInstructionsHtml() {
+  return `
+    <div class="install-state install-state-firefox">
+      <p class="install-desc">فایرفاکس دکمهٔ نصب خودکار ندارد؛ با چند قدم کوتاه، شیفت‌کار را به صفحهٔ اصلی دستگاه اضافه کنید:</p>
+      ${isFirefoxAndroid() ? FIREFOX_ANDROID_STEPS : FIREFOX_DESKTOP_STEPS}
+    </div>`;
+}
+
+const GENERIC_STEPS = `
+  <ol class="install-steps">
+    <li>منوی مرورگر خود را باز کنید (⋮ یا ⋯).</li>
+    <li>دنبال «نصب برنامه» (Install app) یا «افزودن به صفحهٔ اصلی» (Add to Home screen) بگردید.</li>
+    <li>با تأیید، آیکون شیفت‌کار روی صفحهٔ اصلی قرار می‌گیرد.</li>
+  </ol>`;
+
+/** Generic manual guide for browsers without any install support. */
+function genericInstructionsHtml() {
+  return `
+    <div class="install-state install-state-generic">
+      <p class="install-desc">مرورگر شما دکمهٔ نصب خودکار ندارد؛ به‌صورت دستی هم می‌توانید شیفت‌کار را اضافه کنید:</p>
+      ${GENERIC_STEPS}
+    </div>`;
+}
+
+/**
+ * The right instructions for THIS browser — iOS / Firefox / anything else.
+ * Used by the install sheet and the onboarding slide.
+ */
+export function tutorialHtml() {
+  const st = getInstallState();
+  if (st.isIOS) return iosInstructionsHtml();
+  if (st.isFirefox) return firefoxInstructionsHtml();
+  return genericInstructionsHtml();
+}
+
 /**
  * Bottom sheet with the install CTA — the single UI used by Settings and by
  * the one-time automatic prompt. Handles every state: installed / native
- * prompt / iOS instructions / unsupported browser.
+ * prompt / iOS instructions / Firefox instructions / generic manual guide.
  */
 export function showInstallSheet() {
   const st = getInstallState();
@@ -151,13 +219,9 @@ export function showInstallSheet() {
           ${icon("download")} نصب برنامه
         </button>
       </div>`;
-  } else if (st.isIOS) {
-    body = iosInstructionsHtml();
   } else {
-    body = `
-      <div class="install-sheet">
-        <p class="install-desc">از منوی مرورگر خود گزینهٔ «نصب برنامه» (Install app) را انتخاب کنید تا شیفت‌کار روی دستگاه شما نصب شود.</p>
-      </div>`;
+    // No native prompt: show the manual guide for this exact browser.
+    body = tutorialHtml();
   }
 
   const api = openSheet({
@@ -172,11 +236,11 @@ export function showInstallSheet() {
           api.close();
           toast("شیفت‌کار نصب شد");
         } else if (res === "instructions") {
-          api.body.innerHTML = iosInstructionsHtml();
+          api.body.innerHTML = tutorialHtml();
         } else if (res === "dismissed") {
           toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
         } else {
-          toast("مرورگر شما نصب برنامه را پشتیبانی نمی‌کند");
+          toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
         }
       });
     },
@@ -186,7 +250,8 @@ export function showInstallSheet() {
 /**
  * One-time automatic prompt: fires a short while after the app opens, at most
  * once ever (and never for already-installed users). The sheet itself handles
- * native prompts on Android/desktop and instructions on iOS.
+ * native prompts on Android/desktop and shows the right manual guide on
+ * iOS, Firefox and other unsupported browsers.
  */
 export function maybeAutoPromptInstall() {
   if (getInstallState().installed) return;

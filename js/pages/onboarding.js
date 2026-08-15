@@ -9,7 +9,7 @@ import { icon } from "../components/icons.js";
 import { toast } from "../components/dialogs.js";
 import { GROUP_FILTERS, THEME_MODES } from "../domain/models.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
-import { getInstallState, promptInstall, iosInstructionsHtml } from "../components/install-prompt.js";
+import { getInstallState, promptInstall, tutorialHtml } from "../components/install-prompt.js";
 
 const SLIDES = [
   {
@@ -213,7 +213,9 @@ export function renderOnboarding(container) {
       if (res === "installed") {
         installBody.innerHTML = `<div class="install-state install-state-done">${icon("check")} شیفت‌کار روی دستگاه شما نصب است.</div>`;
       } else if (res === "instructions") {
-        installBody.innerHTML = iosInstructionsHtml();
+        // iOS / Firefox / other unsupported browsers — show the manual
+        // install guide that matches this exact browser.
+        installBody.innerHTML = tutorialHtml();
       } else if (res === "dismissed") {
         toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
       } else {

@@ -755,51 +755,43 @@
   margin-inline-start: 6px;
 }
 
-/* ---------- "go to today" floating button ---------- */
-/* Starts as a full pill with text; after a short delay it collapses to a
-   small circular icon so it never keeps covering the calendar. On hover-
-   capable devices it expands again while hovered. All of it is a smooth
-   max-width/opacity transition. */
-.today-fab {
-  position: fixed;
-  bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
-  inset-inline-start: 18px;
-  z-index: var(--z-nav);
+/* ---------- "go to today" inline chip ---------- */
+/* A compact «امروز» pill that lives INSIDE the actions row (next to the
+   fullscreen toggle) instead of floating over the calendar, so it never
+   covers days or table rows. It only renders while viewing a month other
+   than the current one, and disappears as soon as you return to today. */
+.today-chip {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  min-height: 46px;
-  max-width: 260px;
-  padding: 0 18px;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0 14px;
   border-radius: var(--radius-pill);
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
   color: var(--color-on-primary);
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-sm);
+  font-weight: var(--fw-black);
+  font-size: var(--fs-xs);
   box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  overflow: hidden;
   white-space: nowrap;
   transition:
-    max-width var(--motion) var(--ease-out),
-    padding var(--motion) var(--ease-out),
-    border-radius var(--motion) var(--ease-out),
-    gap var(--motion) var(--ease-out);
-  animation: fab-in 340ms var(--ease-out);
+    filter var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+  animation: fab-in 300ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
-.today-fab .icon {
-  width: 18px;
-  height: 18px;
+.today-chip .icon {
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
 }
 
-.today-fab:hover {
+.today-chip:hover {
   filter: brightness(1.06);
 }
 
-.today-fab:active {
+.today-chip:active {
   transform: scale(0.96);
 }
 
@@ -935,94 +927,6 @@ body.sheet-open {
   gap: 8px;
 }
 
-/* Floating «برو به امروز» inside the fullscreen table (kept out of the
-   header so the month nav stays clean). Only shown off the current month. */
-.tf-fab {
-  position: fixed;
-  bottom: calc(var(--safe-bottom) + 18px);
-  inset-inline-start: 18px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  min-height: 46px;
-  max-width: 260px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
-  color: var(--color-on-primary);
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-sm);
-  box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  overflow: hidden;
-  white-space: nowrap;
-  transition:
-    max-width var(--motion) var(--ease-out),
-    padding var(--motion) var(--ease-out),
-    border-radius var(--motion) var(--ease-out),
-    gap var(--motion) var(--ease-out);
-  animation: fab-in 340ms var(--ease-out);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tf-fab .icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.tf-fab:hover {
-  filter: brightness(1.06);
-}
-
-.tf-fab:active {
-  transform: scale(0.96);
-}
-
-/* ---------- collapsible FAB shared states ---------- */
-.fab-label {
-  overflow: hidden;
-  max-width: 200px;
-  opacity: 1;
-  transition:
-    opacity var(--motion-fast) var(--ease-out),
-    max-width var(--motion) var(--ease-out);
-}
-
-.today-fab.is-compact,
-.tf-fab.is-compact {
-  max-width: 46px;
-  padding: 0;
-  justify-content: center;
-  border-radius: 50%;
-  gap: 0;
-}
-
-.today-fab.is-compact .fab-label,
-.tf-fab.is-compact .fab-label {
-  max-width: 0;
-  opacity: 0;
-}
-
-/* Hover-capable devices: expand the compact button back while hovered. */
-@media (hover: hover) and (pointer: fine) {
-  .today-fab.is-compact:hover,
-  .tf-fab.is-compact:hover {
-    max-width: 260px;
-    padding: 0 18px;
-    justify-content: flex-start;
-    border-radius: var(--radius-pill);
-    gap: 8px;
-  }
-
-  .today-fab.is-compact:hover .fab-label,
-  .tf-fab.is-compact:hover .fab-label {
-    max-width: 200px;
-    opacity: 1;
-  }
-}
-
 /* The fullscreen table scrolls inside the card: .tf-body is a plain flex
    container (overflow hidden) and the inner .shift-table-scroll is the one
    and only scroller in both axes — the classic flex-grow pattern, reliable
@@ -1082,11 +986,12 @@ body.sheet-open {
 
 /* ---------- month swipe navigation ---------- */
 /* The calendar body, the table header strip and the fullscreen table header
-   are the only places a horizontal drag changes the month (swipe LEFT → next
-   month, RIGHT → previous month). `touch-action: pan-y` keeps vertical
-   scrolling native while letting horizontal drags reach the pointer-based
-   swipe handler instead of being swallowed as a page scroll. The table body
-   itself intentionally has no swipe: it only scrolls. */
+   are the only places a horizontal drag changes the month (swipe RIGHT →
+   next month, LEFT → previous month — the same RTL convention as the
+   onboarding screen). `touch-action: pan-y` keeps vertical scrolling native
+   while letting horizontal drags reach the swipe handler instead of being
+   swallowed as a page scroll. The table body itself intentionally has no
+   swipe: it only scrolls. */
 .cal-body {
   touch-action: pan-y;
 }
