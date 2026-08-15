@@ -109,9 +109,10 @@ export function renderOnboarding(container) {
   function update(animate = true) {
     const width = track.getBoundingClientRect().width || container.clientWidth;
     track.style.transition = animate ? "transform 320ms cubic-bezier(0.16, 1, 0.3, 1)" : "none";
-    // Slides stack left-to-right inside the track; advancing moves the track
-    // LEFT, so the incoming slide travels in the same direction as the swipe.
-    track.style.transform = `translateX(-${index * width}px)`;
+    // Slides are laid out right-to-left; advancing translates the track to
+    // the RIGHT, so the incoming slide travels with the direction of the
+    // swipe (swipe right = proceed).
+    track.style.transform = `translateX(${index * width}px)`;
     dots.forEach((d, i) => d.classList.toggle("is-active", i === index));
     prevBtn.disabled = index === 0;
     nextBtn.textContent = index === TOTAL_SLIDES - 1 ? "شروع کنید" : "بعدی";
@@ -190,10 +191,10 @@ export function renderOnboarding(container) {
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-        if (dx < 0 && index < TOTAL_SLIDES - 1) {
+        if (dx > 0 && index < TOTAL_SLIDES - 1) {
           index += 1;
           update();
-        } else if (dx > 0 && index > 0) {
+        } else if (dx < 0 && index > 0) {
           index -= 1;
           update();
         }
@@ -204,12 +205,12 @@ export function renderOnboarding(container) {
     { passive: true },
   );
 
-  // Keyboard
+  // Keyboard (matches the swipe: right = proceed)
   const onKey = (e) => {
-    if (e.key === "ArrowLeft" && index < TOTAL_SLIDES - 1) {
+    if (e.key === "ArrowRight" && index < TOTAL_SLIDES - 1) {
       index += 1;
       update();
-    } else if (e.key === "ArrowRight" && index > 0) {
+    } else if (e.key === "ArrowLeft" && index > 0) {
       index -= 1;
       update();
     }

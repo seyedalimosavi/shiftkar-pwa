@@ -123,12 +123,17 @@
   }
 
   .chip-all {
-    min-height: 32px;
+    min-height: 34px;
     padding: 0 11px;
   }
 
   .cal-title-btn {
     font-size: var(--fs-base);
-    padding: 6px 4px;
+    padding: 6px 12px;
+  }
+
+  .group-filter .chip.chip-letter {
+    width: 34px;
+    height: 34px;
   }
 }

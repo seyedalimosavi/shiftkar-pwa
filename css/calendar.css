@@ -3,22 +3,32 @@
    ============================================================ */
 
 /* ---------- header (month nav row + actions row) ---------- */
+/* Arrows sit at the far edges; همه chip, notes and the view toggle fill
+   the free space on each side of the month capsule. */
 .cal-nav-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
-/* «همه» chip lives in the free area at the start of the month row */
+.cal-nav-start,
+.cal-nav-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* «همه» chip */
 .chip-all {
   flex-shrink: 0;
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 14px;
   font-size: var(--fs-xs);
 }
 
-/* The تقویم/جدولی toggle sits in the free area at the end of the month row */
+/* The تقویم/جدولی toggle */
 .view-toggle-nav {
   flex-shrink: 0;
 }
@@ -28,6 +38,7 @@
   height: 34px;
 }
 
+/* Month title as a hover capsule */
 .cal-title-btn {
   display: inline-flex;
   align-items: center;
@@ -35,16 +46,24 @@
   gap: 8px;
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   font-weight: var(--fw-black);
   font-size: var(--fs-md);
-  transition: background var(--motion-fast) var(--ease-out);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
 .cal-title-btn:hover {
   background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+  box-shadow: 0 6px 18px -8px rgba(23, 40, 80, 0.18);
 }
 
 .cal-title {
@@ -177,20 +196,35 @@
   height: 17px;
 }
 
-/* ---------- group filter (inside the actions row) ---------- */
+/* ---------- group filter (its own line below the header) ---------- */
 .group-filter {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.group-filter .chip {
+/* Letter chips become circular badges with the same main-gradient look */
+.group-filter .chip.chip-letter {
   flex-shrink: 0;
-  min-height: 34px;
-  padding: 0 13px;
-  font-size: var(--fs-xs);
+  width: 38px;
+  height: 38px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-black);
+}
+
+.group-filter .chip.chip-letter.is-active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, white), var(--color-primary));
+  color: var(--color-on-primary);
+  border-color: transparent;
+  box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* ---------- shift legend ---------- */
@@ -785,17 +819,23 @@ body.sheet-open {
   gap: 8px;
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   font-weight: var(--fw-black);
   font-size: var(--fs-md);
   white-space: nowrap;
-  transition: background var(--motion-fast) var(--ease-out);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
 .tf-title:hover {
   background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
 }
 
 .tf-caret {

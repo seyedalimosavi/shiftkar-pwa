@@ -23,13 +23,13 @@ export function renderSettings(el) {
   draw();
 }
 
-// Test links — replace with real contact values when available.
+// Official contact channels of the app.
 const CONTACTS = [
-  { id: "telegram", fa: "تلگرام", icon: "telegram", href: "https://t.me/shiftkar_test" },
-  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", href: "https://chat.whatsapp.com/Sh1ftk4rTestGroup" },
-  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", href: "https://wa.me/989123456789" },
-  { id: "phone", fa: "تماس تلفنی", icon: "phone", href: "tel:+982112345678" },
-  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", href: "https://eitaa.com/shiftkar_test" },
+  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", href: "https://wa.me/989163548578" },
+  { id: "phone", fa: "تماس تلفنی", icon: "phone", href: "tel:09163548578" },
+  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", href: "https://chat.whatsapp.com/5HolMMoVnojCdh8GjhSZo2" },
+  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", href: "https://eitaa.com/joinchat/929104214C56d88e3e24" },
+  { id: "telegram", fa: "تلگرام", icon: "telegram", href: "https://t.me/h_mosavi_s" },
 ];
 
 const HELP_ITEMS = [
@@ -127,21 +127,29 @@ function draw() {
     </section>
 
     <section class="settings-card glass-card about-card">
-      <h2 class="settings-title">${icon("info")} درباره</h2>
+      <h2 class="settings-title">${icon("info")} درباره ما</h2>
       <div class="about-row">
         <img class="about-logo" src="./assets/logo.png" alt="لوگوی شیفت‌کار" width="72" height="72" />
         <div class="about-text">
           <strong>${APP_INFO.nameFa}</strong>
           <span>${APP_INFO.nameEn} — نسخهٔ ${toPersianDigits(APP_INFO.version)}</span>
           <span>${APP_INFO.tagline}</span>
-          <span class="settings-muted">نسخهٔ وب (PWA) با HTML5، CSS3 و JavaScript خالص — بدون فریم‌ورک</span>
         </div>
+      </div>
+      <div class="about-body">
+        <p>این نرم‌افزار برای سهولت در برنامه‌ریزی وقت کارکنان شیفت ۱۲ ساعته شاغل در شرکت پتروشیمی بندر امام خمینی (ره) می‌باشد.</p>
+        <p>با تشکر و سپاس از تمامی همکاران و دوستانی که با پیشنهادات مفید خود ما را در پیشرفت برنامه یاری نموده‌اند.</p>
+        <p>لطفاً انتقادات و پیشنهادات خود را از قسمت «تماس با ما» در میان بگذارید.</p>
+      </div>
+      <div class="about-credit">
+        <span>تهیه شده توسط</span>
+        <strong>سید حسین موسوی سعیدی — واحد SBR</strong>
       </div>
     </section>
 
     <section class="settings-card glass-card">
-      <h2 class="settings-title">${icon("eitaa")} تماس با ما</h2>
-      <p class="settings-desc">روی هر گزینه بزنید تا در همان برنامه باز شود.</p>
+      <h2 class="settings-title">${icon("eitaa")} راه‌های ارتباط با ما</h2>
+      <p class="settings-desc">لطفاً انتقادات و پیشنهادات خود را از طریق کانال‌های ارتباطی زیر با ما در میان بگذارید.</p>
       <div class="contact-list" role="list">
         ${CONTACTS.map(
           (c) => `
@@ -152,7 +160,6 @@ function draw() {
           </a>`,
         ).join("")}
       </div>
-      <p class="settings-muted contact-note">لینک‌ها آزمایشی‌اند و پس از تعیین اطلاعات واقعی جایگزین می‌شوند.</p>
     </section>
 
     <section class="settings-card glass-card">

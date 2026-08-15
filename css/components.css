@@ -481,6 +481,38 @@
   font-size: var(--fs-md);
 }
 
+.about-body {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  line-height: 2;
+}
+
+.about-body p {
+  margin: 0;
+}
+
+.about-credit {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border-strong);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: var(--fs-xs);
+}
+
+.about-credit strong {
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+}
+
 /* ---------- contact list ---------- */
 /* Clean rows: brand-colored icon + name + forward arrow. No آیدی/شماره
    captions and no raw URLs — tapping opens the app directly. */
@@ -1213,9 +1245,8 @@
 .onboarding-track {
   display: flex;
   width: 100%;
-  /* Slides stack left-to-right so advancing translates the track to the
-     LEFT — the incoming slide follows the direction of the swipe. */
-  direction: ltr;
+  /* RTL stacking: advancing translates the track right (+X), so the slide
+     moves with the swipe direction (swipe right = proceed). */
 }
 
 .onboarding-slide {
@@ -1228,8 +1259,6 @@
   text-align: center;
   padding: 0 10px;
   gap: var(--space-4);
-  /* Restore RTL for the slide's own content */
-  direction: rtl;
 }
 
 .onboarding-art {

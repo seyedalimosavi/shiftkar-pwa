@@ -71,16 +71,21 @@ function draw() {
       ${todayBannerHtml(s, today, todayKey)}
 
       <div class="cal-nav-row">
-        <button type="button" class="chip chip-all ${s.filterGroup === "ALL" ? "is-active" : ""}" data-filter="ALL" aria-label="نمایش همه گروه‌ها">همه</button>
-        <button type="button" class="icon-btn cal-nav-btn" data-action="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
+        <div class="cal-nav-start">
+          <button type="button" class="icon-btn cal-nav-btn" data-action="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
+          <button type="button" class="chip chip-all ${s.filterGroup === "ALL" ? "is-active" : ""}" data-filter="ALL" aria-label="نمایش همه گروه‌ها">همه</button>
+          <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
+        </div>
         <button type="button" class="cal-title-btn" data-action="picker" aria-label="انتخاب ماه و سال">
           <span class="cal-title">${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}</span>
           <span class="cal-title-caret">${icon("chevronDown")}</span>
         </button>
-        <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
-        <div class="view-toggle view-toggle-nav" role="group" aria-label="نمای تقویم">
-          <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
-          <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
+        <div class="cal-nav-end">
+          <div class="view-toggle view-toggle-nav" role="group" aria-label="نمای تقویم">
+            <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
+            <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
+          </div>
+          <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
       </div>
 
@@ -88,13 +93,10 @@ function draw() {
         <div class="group-filter" role="group" aria-label="فیلتر گروه">
           ${GROUPS.map(
             (g) => `
-            <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">${g}</button>`,
+            <button type="button" class="chip chip-letter ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}" aria-label="گروه ${g}">${g}</button>`,
           ).join("")}
         </div>
-        <div class="cal-tools">
-          ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
-          <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
-        </div>
+        ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
       </div>
 
       ${view === "grid" && s.filterGroup === "ALL" ? legendHtml() : ""}
@@ -320,7 +322,18 @@ function openTableFullscreen() {
         }
       });
     });
+    sizeTableBody();
   }
+
+  /** Bound the scroll area to the space below the header — a hard cap that
+      works even where flexbox min-height handling misbehaves (old Safari). */
+  function sizeTableBody() {
+    const header = overlay.querySelector(".tf-header");
+    const body = overlay.querySelector(".tf-body");
+    if (!header || !body) return;
+    body.style.maxHeight = `calc(100dvh - ${header.offsetHeight}px)`;
+  }
+  window.addEventListener("resize", sizeTableBody);
 
   const onKey = (e) => {
     if (e.key === "Escape") close();
@@ -330,6 +343,7 @@ function openTableFullscreen() {
   function close() {
     if (!overlay.isConnected) return;
     document.removeEventListener("keydown", onKey);
+    window.removeEventListener("resize", sizeTableBody);
     unsub();
     overlay.classList.remove("is-open");
     document.body.classList.remove("sheet-open");

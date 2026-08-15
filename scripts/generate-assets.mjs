@@ -113,11 +113,47 @@ function lerp(a, b, t) {
   return Math.round(a + (b - a) * t);
 }
 
-/* ---------------- Icon drawing ---------------- */
+/* ---------------- New app icon drawing ----------------
+   Brand mark: a cream tile with a golden-yellow curved arrow over the
+   top and a forest-green curved arrow over the right + bottom, forming a
+   refresh/sync loop. In the middle, a white rounded tile carries a navy
+   clock face (four ticks) whose hands are a checkmark. The mark is drawn
+   at size 512 and scaled down, so it stays crisp at every icon size. */
+
+const BRAND = {
+  cream: [247, 245, 238, 255], // #F7F5EE
+  yellow: [244, 180, 26, 255], // #F4B41A
+  green: [18, 144, 72, 255], // #129048
+  navy: [16, 24, 48, 255], // #101830
+  white: [255, 255, 255, 255],
+};
+
+/** Thick arc stroke from angle a0 to a1 (degrees; 0=right, 90=down). */
+function arcStroke(c, cx, cy, radius, width, color, a0, a1) {
+  const span = a1 - a0;
+  const total = span > 0 ? span : span + 360;
+  const steps = Math.max(10, Math.ceil(total / 1.2));
+  for (let i = 0; i <= steps; i++) {
+    const a = ((a0 + (total * i) / steps) * Math.PI) / 180;
+    fillCircle(c, cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, width / 2, color);
+  }
+}
+
+/** V-shaped arrowhead at (px,py) pointing along (dx,dy). */
+function arrowhead(c, px, py, dx, dy, len, width, color) {
+  const L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L;
+  const uy = dy / L;
+  const bx = px - ux * len;
+  const by = py - uy * len;
+  line(c, px, py, bx - uy * width * 0.5, by + ux * width * 0.5, width * 0.42, color);
+  line(c, px, py, bx + uy * width * 0.5, by - ux * width * 0.5, width * 0.42, color);
+}
 
 function drawIcon(size, { rounded = true, maskable = false } = {}) {
   const c = canvas(size);
   const s = size;
+  const k = s / 512; // scale from the 512 design grid
 
   const x0 = rounded ? s * 0.08 : 0;
   const y0 = rounded ? s * 0.08 : 0;
@@ -125,41 +161,52 @@ function drawIcon(size, { rounded = true, maskable = false } = {}) {
   const y1 = s - y0;
   const radius = rounded ? s * 0.2 : 0;
 
-  // Vertical gradient background (day-sky blue -> deep blue)
-  const top = [143, 178, 255];
-  const bottom = [47, 86, 214];
+  // Cream tile background
   for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
-    const t = (y - y0) / Math.max(1, y1 - y0);
-    const col = [lerp(top[0], bottom[0], t), lerp(top[1], bottom[1], t), lerp(top[2], bottom[2], t), 255];
     for (let x = Math.floor(x0); x < Math.ceil(x1); x++) {
       if (!rounded || insideRoundRect(x + 0.5, y + 0.5, x0, y0, x1, y1, radius))
-        blendPixel(c, x, y, col);
+        blendPixel(c, x, y, BRAND.cream);
     }
   }
 
-  // Day/night clock motif (maskable icons keep the motif inside the safe zone)
-  const scale = maskable ? 0.6 : 0.74;
-  const cx = s / 2;
-  const cy = s / 2;
-  const rOuter = s * 0.5 * scale;
-  const rInner = rOuter - s * 0.05 * (maskable ? 1.2 : 1);
+  const cx = 256 * k;
+  const cy = 256 * k;
+  const R = 168 * k; // loop radius
+  const W = 40 * k; // stroke width
 
-  // Inner face: right half amber (day), left half deep indigo (night)
-  for (let y = Math.floor(cy - rInner); y <= Math.ceil(cy + rInner); y++) {
-    for (let x = Math.floor(cx - rInner); x <= Math.ceil(cx + rInner); x++) {
-      const d2 = (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2;
-      if (d2 > rInner * rInner) continue;
-      if (x + 0.5 >= cx) blendPixel(c, x, y, [255, 195, 77, 255]);
-      else blendPixel(c, x, y, [31, 44, 110, 255]);
+  // Golden arrow — top arc, from center-left over the top to the upper-right
+  arcStroke(c, cx, cy, R, W, BRAND.yellow, 200, 330);
+  const yTipX = cx + Math.cos((330 * Math.PI) / 180) * R;
+  const yTipY = cy + Math.sin((330 * Math.PI) / 180) * R;
+  arrowhead(c, yTipX, yTipY, 0.707, -0.707, 56 * k, W, BRAND.yellow);
+
+  // Green arrow — right + bottom arc, from the upper-right to the bottom-left
+  arcStroke(c, cx, cy, R, W, BRAND.green, 330, 150);
+  const gTipX = cx + Math.cos((150 * Math.PI) / 180) * R;
+  const gTipY = cy + Math.sin((150 * Math.PI) / 180) * R;
+  arrowhead(c, gTipX, gTipY, -1, 0, 52 * k, W, BRAND.green);
+
+  // White rounded center tile with the navy clock + checkmark
+  const half = 100 * k;
+  const t0 = 256 - half;
+  const t1 = 256 + half;
+  const tr = 40 * k;
+  for (let y = Math.floor(t0); y <= Math.ceil(t1); y++) {
+    for (let x = Math.floor(t0); x <= Math.ceil(t1); x++) {
+      if (insideRoundRect(x + 0.5, y + 0.5, t0, t0, t1, t1, tr))
+        blendPixel(c, x, y, BRAND.white);
     }
   }
 
-  ring(c, cx, cy, rOuter, rInner, [255, 255, 255, 255]);
+  const tw = 13 * k; // tick thickness
+  line(c, 256 * k, 178 * k, 256 * k, 200 * k, tw, BRAND.navy); // 12
+  line(c, 312 * k, 256 * k, 334 * k, 256 * k, tw, BRAND.navy); // 3
+  line(c, 256 * k, 312 * k, 256 * k, 334 * k, tw, BRAND.navy); // 6
+  line(c, 178 * k, 256 * k, 200 * k, 256 * k, tw, BRAND.navy); // 9
 
-  const hw = s * 0.026;
-  line(c, cx, cy, cx + rInner * 0.42, cy - rInner * 0.55, hw, [255, 255, 255, 255]); // hour hand
-  line(c, cx, cy, cx - rInner * 0.55, cy + rInner * 0.3, hw * 0.82, [255, 255, 255, 255]); // minute hand
-  fillCircle(c, cx, cy, hw * 1.2, [255, 255, 255, 255]);
+  const cw = 15 * k; // checkmark stroke width
+  line(c, 196 * k, 298 * k, 254 * k, 248 * k, cw, BRAND.navy);
+  line(c, 254 * k, 248 * k, 326 * k, 302 * k, cw, BRAND.navy);
 
   return c;
 }
