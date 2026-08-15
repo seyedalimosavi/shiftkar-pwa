@@ -1183,6 +1183,14 @@
   overflow-wrap: break-word;
 }
 
+/* Long notes: capped at 3 lines until «مشاهده بیشتر» is tapped */
+.note-view-text.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .note-more-btn {
   align-self: flex-start;
   color: var(--color-primary-strong);

@@ -8,7 +8,7 @@ import { icon } from "./icons.js";
 const ITEMS = [
   { id: "calendar", fa: "تقویم", icon: "calendar" },
   { id: "systems", fa: "سامانه‌ها", icon: "systems" },
-  { id: "roster", fa: "تابلو", icon: "roster" },
+  { id: "roster", fa: "تصویر لوحه", icon: "roster" },
   { id: "settings", fa: "تنظیمات", icon: "settings" },
 ];
 

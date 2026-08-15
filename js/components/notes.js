@@ -18,9 +18,6 @@ export function escapeHtml(text) {
 /** Hard limit for a note's text (kept short so sheets stay tidy). */
 export const NOTE_MAX_LENGTH = 200;
 
-/** Day-detail card shows this many chars before «نمایش بیشتر». */
-export const NOTE_VIEW_CLAMP = 140;
-
 /** Table view truncates notes extremely hard so rows stay tidy. */
 export const NOTE_TABLE_CLAMP = 22;
 
@@ -75,26 +72,27 @@ export function createNoteEditor(dateKey, { onSaved = null, startInEdit = false 
         render();
       });
     } else if (mode === "view") {
-      const long = note.noteText.length > NOTE_VIEW_CLAMP;
       wrap.innerHTML = `
         <div class="note-view">
-          <div class="note-view-text" dir="auto">${escapeHtml(clampText(note.noteText, NOTE_VIEW_CLAMP))}</div>
-          ${long ? `<button type="button" class="note-more-btn" data-more>مشاهده بیشتر</button>` : ""}
+          <div class="note-view-text is-clamped" dir="auto">${escapeHtml(note.noteText)}</div>
+          <button type="button" class="note-more-btn" data-more hidden>مشاهده بیشتر</button>
           <div class="note-view-meta">آخرین ویرایش: ${formatUpdatedAt(note.updatedAt)}</div>
         </div>
         <div class="note-editor-actions">
           <button type="button" class="btn btn-danger-ghost note-delete">حذف</button>
           <button type="button" class="btn btn-primary note-edit-btn">ویرایش</button>
         </div>`;
+      const textEl = wrap.querySelector(".note-view-text");
       const moreBtn = wrap.querySelector("[data-more]");
-      if (moreBtn) {
-        moreBtn.addEventListener("click", () => {
-          const textEl = wrap.querySelector(".note-view-text");
-          const expanded = textEl.classList.toggle("is-expanded");
-          textEl.textContent = expanded ? note.noteText : clampText(note.noteText, NOTE_VIEW_CLAMP);
-          moreBtn.textContent = expanded ? "مشاهده کمتر" : "مشاهده بیشتر";
-        });
-      }
+      // Only offer the toggle when the text actually overflows the 3-line limit.
+      requestAnimationFrame(() => {
+        if (textEl.scrollHeight > textEl.clientHeight + 2) moreBtn.hidden = false;
+      });
+      moreBtn.addEventListener("click", () => {
+        const expanded = textEl.classList.toggle("is-expanded");
+        textEl.classList.toggle("is-clamped", !expanded);
+        moreBtn.textContent = expanded ? "مشاهده کمتر" : "مشاهده بیشتر";
+      });
       wrap.querySelector(".note-edit-btn").addEventListener("click", () => {
         mode = "edit";
         render();

@@ -40,8 +40,8 @@ export const THEME_MODES = [
 ];
 
 export const APP_INFO = {
-  nameFa: "شیفتکار",
+  nameFa: "شیفت‌کار",
   nameEn: "ShiftKar",
-  version: "1.0.0",
+  version: "5.7.6",
   tagline: "تقویم هوشمند شیفت کاری",
 };

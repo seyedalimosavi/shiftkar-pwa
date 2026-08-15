@@ -149,6 +149,48 @@ day-detail sheet. For years outside 1404–1406 only the fixed solar holidays ap
 
 ---
 
+## Run & Deploy
+
+**Version: 5.7.6** — the app is pure static ES modules; the Vite tooling is only
+for development convenience and the production build.
+
+### Local development
+
+```bash
+bun install          # or npm install
+bun run dev          # http://localhost:5173 (HMR on)
+```
+
+### Production build
+
+```bash
+bun run build        # tsc + vite build → dist/ (self-contained, minified)
+bun run preview      # serve dist/ locally to check it
+```
+
+### Hosting anywhere (no server / no rewrite rules needed)
+
+The app uses **hash-based routing** and **relative asset paths**, so the built
+`dist/` (or even the raw project files) drops onto any static host as-is:
+
+- **GitHub Pages / Netlify / Vercel / Cloudflare Pages** — point the deploy at
+  the project root (`bun run build` first, deploy `dist/`) or use a plain
+  static deploy of the repository files.
+- **nginx / Apache / any web server** — serve the directory with `index.html`
+  as the entry. No SPA fallback / rewrite configuration is required.
+- **Mobile install** — open the site on iOS/Android, „Add to Home Screen“ /
+  „Install app“. The manifest + icons cover iOS, Android and desktop.
+
+### PWA / offline
+
+The service worker registers in **production** mode only (skipped under
+`bun run dev` so the preview always serves fresh files). It precaches the app
+shell, CSS, JS, icons, logo and the roster board, then serves everything
+stale-while-revalidate with an app-shell fallback for offline deep links.
+Settings (LocalStorage) and notes (IndexedDB) live on-device, so after the
+first visit the app works completely offline — an «آفلاین» banner appears
+when the network drops.
+
 ## Commands
 
 ```bash

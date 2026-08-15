@@ -1,5 +1,5 @@
 /* ShiftKar service worker — offline-first caching. */
-const VERSION = "1.3.0";
+const VERSION = "1.4.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 const ASSETS = [
@@ -44,10 +44,15 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting()),
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Cache each asset individually — a single missing file (e.g. after a
+      // bundler renames it) must never break the install or offline support.
+      await Promise.all(
+        ASSETS.map((url) => cache.add(url).catch(() => {})),
+      );
+      await self.skipWaiting();
+    })(),
   );
 });
 
