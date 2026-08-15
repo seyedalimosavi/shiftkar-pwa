@@ -6,7 +6,7 @@
 import { state } from "../core/state.js";
 import { navigate } from "../core/router.js";
 import { icon } from "../components/icons.js";
-import { GROUPS, THEME_MODES } from "../domain/models.js";
+import { GROUP_FILTERS, THEME_MODES } from "../domain/models.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
 
 const SLIDES = [
@@ -45,9 +45,9 @@ function personalizeSlideHtml() {
         <div class="personalize-field">
           <span class="personalize-label">گروه شیفت</span>
           <div class="segmented" role="group" aria-label="گروه شیفت">
-            ${GROUPS.map(
+            ${GROUP_FILTERS.map(
               (g) => `
-              <button type="button" class="segment ${s.myGroup === g ? "is-active" : ""}" data-mygroup="${g}">${g}</button>`,
+              <button type="button" class="segment ${s.myGroup === g ? "is-active" : ""}" data-mygroup="${g}">${g === "ALL" ? "همه" : g}</button>`,
             ).join("")}
           </div>
         </div>

@@ -14,8 +14,6 @@ import {
   formatJalali,
   formatWeekday,
   toPersianDigits,
-  toGregorian,
-  formatGregorian,
 } from "../domain/jalali.js";
 import { calculateShift } from "../domain/shift-calculator.js";
 import { getHoliday } from "../domain/holidays.js";
@@ -81,27 +79,26 @@ function draw() {
         <button type="button" class="icon-btn cal-nav-btn" data-action="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
       </div>
 
-      <div class="cal-toolbar">
-        <div class="view-toggle" role="group" aria-label="نمای تقویم">
-          <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
-          <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
+      <div class="cal-actions">
+        <div class="group-filter" role="group" aria-label="فیلتر گروه">
+          ${GROUP_FILTERS.map(
+            (g) => `
+            <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">
+              ${g === "ALL" ? "همه" : g}
+            </button>`,
+          ).join("")}
         </div>
-        <div class="cal-toolbar-end">
+        <div class="cal-tools">
+          <div class="view-toggle" role="group" aria-label="نمای تقویم">
+            <button type="button" class="${view === "grid" ? "is-active" : ""}" data-view="grid" aria-label="نمای تقویم">${icon("grid")}</button>
+            <button type="button" class="${view === "table" ? "is-active" : ""}" data-view="table" aria-label="نمای جدولی">${icon("list")}</button>
+          </div>
           ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
           <button type="button" class="icon-btn cal-notes-btn" data-action="notes" aria-label="همه یادداشت‌ها">${icon("note")}</button>
         </div>
       </div>
 
-      <div class="group-filter" role="group" aria-label="فیلتر گروه">
-        ${GROUP_FILTERS.map(
-          (g) => `
-          <button type="button" class="chip ${s.filterGroup === g ? "is-active" : ""}" data-filter="${g}">
-            ${g === "ALL" ? "همه" : `گروه ${g}`}
-          </button>`,
-        ).join("")}
-      </div>
-
-      ${view === "grid" ? legendHtml() : ""}
+      ${view === "grid" && s.filterGroup === "ALL" ? legendHtml() : ""}
 
       <section class="cal-body" aria-label="تقویم ${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}">
         ${view === "grid" ? gridHtml(jy, jm, s, todayKey) : tableHtml(jy, jm, s, todayKey)}
@@ -125,7 +122,6 @@ function todayFabHtml() {
 
 function todayBannerHtml(s, today, todayKey) {
   const filter = s.filterGroup;
-  const greg = toGregorian(today.jy, today.jm, today.jd);
   const dateLine = `${formatWeekday(today.jy, today.jm, today.jd)} ${toPersianDigits(today.jd)} ${JALALI_MONTHS[today.jm - 1]}`;
 
   let shiftHtml;
@@ -134,7 +130,7 @@ function todayBannerHtml(s, today, todayKey) {
       <div class="today-banner-all" title="${GROUPS.map((g) => {
         const sh = calculateShift(today, g);
         return `گروه ${g}: ${sh.type === "DAY" ? "روز" : sh.type === "NIGHT" ? "شب" : "استراحت"}`;
-      }).join("، ")}">
+      }).join("， ")}">
         ${GROUPS.map((g) => miniGroupBadge(g, calculateShift(today, g).type)).join("")}
       </div>`;
   } else {
@@ -146,11 +142,7 @@ function todayBannerHtml(s, today, todayKey) {
     <section class="today-banner glass-card" data-datekey="${todayKey}" role="button" tabindex="0"
       aria-label="شیفت امروز — ${dateLine}، باز کردن جزئیات">
       <span class="today-banner-pill">${dateLine}</span>
-      <div class="today-banner-right">
-        <span class="today-banner-label">${icon("calendar")} شیفت امروز</span>
-        ${shiftHtml}
-      </div>
-      <span class="today-banner-gregorian" aria-hidden="true">${formatGregorian(greg.gy, greg.gm, greg.gd)}</span>
+      ${shiftHtml}
     </section>`;
 }
 
@@ -192,7 +184,7 @@ function gridHtml(jy, jm, s, todayKey) {
     const hasNote = notesCache.has(key);
     cells.push(`
       <button type="button"
-        class="cal-cell ${holiday ? "is-holiday" : ""} ${isToday ? "is-today" : ""} ${isSelected ? "is-selected" : ""}"
+        class="cal-cell ${s.filterGroup === "ALL" ? "is-all" : ""} ${holiday ? "is-holiday" : ""} ${isToday ? "is-today" : ""} ${isSelected ? "is-selected" : ""}"
         data-datekey="${key}"
         aria-label="${formatJalali(jy, jm, d)}${holiday ? "، تعطیل" : ""}">
         <span class="cell-top">
@@ -398,11 +390,7 @@ function wireEvents(s) {
     btn.addEventListener("click", () => {
       const g = btn.dataset.filter;
       // Keep the calendar filter and the personal group in sync.
-      if (g === "ALL") {
-        state.set({ filterGroup: g });
-      } else {
-        state.set({ filterGroup: g, myGroup: g });
-      }
+      state.set({ filterGroup: g, myGroup: g });
     });
   });
 

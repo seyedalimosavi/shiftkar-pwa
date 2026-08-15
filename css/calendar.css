@@ -2,7 +2,7 @@
    ShiftKar — calendar page
    ============================================================ */
 
-/* ---------- header (month nav row + toolbar row) ---------- */
+/* ---------- header (month nav row + actions row) ---------- */
 .cal-nav-row {
   display: flex;
   align-items: center;
@@ -44,18 +44,18 @@
   height: 16px;
 }
 
-.cal-toolbar {
+.cal-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-.cal-toolbar-end {
+.cal-tools {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .view-toggle {
@@ -95,8 +95,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  flex-wrap: wrap;
-  padding: 9px 12px;
+  padding: 10px 14px;
   margin-bottom: 12px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -121,51 +120,21 @@
   white-space: nowrap;
 }
 
-.today-banner-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.today-banner-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-black);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-.today-banner-label .icon {
-  width: 14px;
-  height: 14px;
-  color: var(--color-primary);
-}
-
 .today-banner-all {
   display: flex;
   gap: 4px;
 }
 
-.today-banner-gregorian {
-  display: none;
-  color: var(--color-text-faint);
-  font-size: var(--fs-xs);
+.today-banner .badge-code {
+  font-size: var(--fs-sm);
 }
 
-@media (min-width: 480px) {
-  .today-banner-gregorian {
-    display: inline;
-  }
-}
-
-/* ---------- group filter ---------- */
+/* ---------- group filter (inside the actions row) ---------- */
 .group-filter {
   display: flex;
-  gap: 8px;
-  margin-bottom: var(--space-4);
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -176,6 +145,8 @@
 
 .group-filter .chip {
   flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 14px;
 }
 
 /* ---------- shift legend ---------- */
@@ -183,7 +154,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 4px 6px 10px;
+  padding: 2px 6px 10px;
 }
 
 .legend-item {
@@ -246,13 +217,25 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  aspect-ratio: 1 / 1;
+  min-height: 52px;
   padding: 5px 3px;
   border-radius: var(--radius-sm);
   background: var(--color-surface-strong);
   border: 1px solid var(--color-border-strong);
   transition: all var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ALL mode: four group chips in a tidy 2×2 block */
+.cal-cell.is-all .cell-badge {
+  gap: 2px;
+}
+
+.cal-cell.is-all .mini-badge {
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  border-radius: 4px;
 }
 
 .cal-cell:hover {

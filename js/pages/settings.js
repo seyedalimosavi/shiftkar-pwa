@@ -5,7 +5,7 @@
 import { state } from "../core/state.js";
 import { navigate } from "../core/router.js";
 import { toPersianDigits } from "../domain/jalali.js";
-import { GROUPS, GROUP_FA, THEMES, THEME_MODES, APP_INFO } from "../domain/models.js";
+import { GROUP_FILTERS, THEMES, THEME_MODES, APP_INFO } from "../domain/models.js";
 import { icon } from "../components/icons.js";
 import { confirmDialog, toast } from "../components/dialogs.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
@@ -23,34 +23,14 @@ export function renderSettings(el) {
   draw();
 }
 
+// Test links — replace with real contact values when available.
 const CONTACTS = [
-  { id: "telegram", fa: "تلگرام", icon: "telegram", value: "@shiftkar", kind: "id" },
-  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", value: "لینک گروه واتساپ", kind: "link" },
-  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", value: "+98 912 345 6789", kind: "phone" },
-  { id: "phone", fa: "شماره تلفن", icon: "phone", value: "+98 21 1234 5678", kind: "phone" },
-  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", value: "@shiftkar", kind: "id" },
+  { id: "telegram", fa: "تلگرام", icon: "telegram", value: "@shiftkar_test", kind: "آیدی", href: "https://t.me/shiftkar_test" },
+  { id: "whatsapp-group", fa: "گروه واتساپ", icon: "whatsapp", value: "گروه شیفتکار", kind: "گروه", href: "https://chat.whatsapp.com/Sh1ftk4rTestGroup" },
+  { id: "whatsapp-pv", fa: "پیام خصوصی واتساپ", icon: "whatsapp", value: "+98 912 345 6789", kind: "شماره", href: "https://wa.me/989123456789" },
+  { id: "phone", fa: "شماره تلفن", icon: "phone", value: "+98 21 1234 5678", kind: "تماس", href: "tel:+982112345678" },
+  { id: "eitaa", fa: "گروه ایتا", icon: "eitaa", value: "@shiftkar_test", kind: "گروه", href: "https://eitaa.com/shiftkar_test" },
 ];
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
 
 const HELP_ITEMS = [
   {
@@ -93,12 +73,12 @@ function draw() {
     </div>
 
     <section class="settings-card glass-card">
-      <h2 class="settings-title">${icon("groups")} گروه شخصی</h2>
-      <p class="settings-desc">گروه شیفت شما؛ همیشه با فیلتر گروه در تقویم هماهنگ است.</p>
-      <div class="segmented" role="group" aria-label="گروه شخصی">
-        ${GROUPS.map((g) => `
+      <h2 class="settings-title">${icon("groups")} گروه شیفت</h2>
+      <p class="settings-desc">گروه نمایش تقویم را انتخاب کنید؛ «همه» یعنی نمایش هر چهار گروه. همیشه با فیلتر گروه در تقویم هماهنگ است.</p>
+      <div class="segmented" role="group" aria-label="گروه شیفت">
+        ${GROUP_FILTERS.map((g) => `
           <button type="button" class="segment ${s.myGroup === g ? "is-active" : ""}" data-mygroup="${g}">
-            ${GROUP_FA[g]}
+            ${g === "ALL" ? "همه" : g}
           </button>`).join("")}
       </div>
     </section>
@@ -131,7 +111,7 @@ function draw() {
 
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("grid")} نمای تقویم</h2>
-      <p class="settings-desc">حالت نمایش جدولی (شبکه‌ای) یا فهرستی تقویمی را انتخاب کنید.</p>
+      <p class="settings-desc">حالت نمایش تقویم (شبکه‌ای) یا جدولی را انتخاب کنید.</p>
       ${viewPickerMarkup()}
     </section>
 
@@ -161,21 +141,21 @@ function draw() {
 
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("whatsapp")} تماس</h2>
-      <p class="settings-desc">راه‌های ارتباط با ما — روی هر مورد بزنید تا کپی شود.</p>
+      <p class="settings-desc">راه‌های ارتباط با ما — روی هر مورد بزنید تا در برنامهٔ مربوطه باز شود.</p>
       <div class="contact-list" role="list">
         ${CONTACTS.map(
           (c) => `
-          <button type="button" class="contact-row" data-copy="${c.value}" aria-label="کپی ${c.fa}" role="listitem">
+          <a class="contact-row" href="${c.href}" target="_blank" rel="noopener noreferrer" role="listitem" aria-label="${c.fa}">
             <span class="contact-icon contact-icon-${c.id}">${icon(c.icon)}</span>
             <span class="contact-info">
-              <span class="contact-name">${c.fa} <span class="contact-kind">${c.kind === "id" ? "آیدی" : c.kind === "phone" ? "شماره" : "لینک"}</span></span>
+              <span class="contact-name">${c.fa} <span class="contact-kind">${c.kind}</span></span>
               <span class="contact-value">${c.value}</span>
             </span>
-            <span class="contact-copy">${icon("copy")}</span>
-          </button>`,
+            <span class="contact-copy">${icon("external")}</span>
+          </a>`,
         ).join("")}
       </div>
-      <p class="settings-muted contact-note">مقادیر بالا نمونه هستند و پس از تعیین اطلاعات واقعی جایگزین می‌شوند.</p>
+      <p class="settings-muted contact-note">لینک‌های بالا آزمایشی هستند و پس از تعیین اطلاعات واقعی جایگزین می‌شوند.</p>
     </section>
 
     <section class="settings-card glass-card">
@@ -192,9 +172,10 @@ function draw() {
 function wireEvents() {
   container.querySelectorAll("[data-mygroup]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      // Keep the personal group and the calendar group filter in sync.
-      state.set({ myGroup: btn.dataset.mygroup, filterGroup: btn.dataset.mygroup });
-      toast(`گروه شخصی: ${GROUP_FA[btn.dataset.mygroup]}`);
+      const g = btn.dataset.mygroup;
+      // Keep the group and the calendar group filter in sync.
+      state.set({ myGroup: g, filterGroup: g });
+      toast(g === "ALL" ? "نمایش همه گروه‌ها" : `گروه شیفت: ${g}`);
     });
   });
 
@@ -211,13 +192,6 @@ function wireEvents() {
   });
 
   wireViewPicker(container);
-
-  container.querySelectorAll("[data-copy]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const ok = await copyText(btn.dataset.copy);
-      toast(ok ? `کپی شد: ${btn.dataset.copy}` : "کپی ممکن نشد");
-    });
-  });
 
   container.querySelector("#restart-onboarding").addEventListener("click", async () => {
     const ok = await confirmDialog({

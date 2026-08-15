@@ -111,8 +111,8 @@ shiftkar-web/
   available)
 - **Settings** — personal group (synced with the calendar filter), light/dark/
   system theme + 6 color themes, calendar view (تقویم/جدولی with previews),
-  contact options (Telegram, WhatsApp group/private, phone, Eitaa —
-  copy-to-clipboard), help (FA), about, restart onboarding
+  contact options (Telegram, WhatsApp group/private, phone, Eitaa) that open
+  the relevant app via test links, help (FA), about, restart onboarding
 - **PWA** — manifest (rtl/fa, standalone), offline caching, installable
 
 ---
