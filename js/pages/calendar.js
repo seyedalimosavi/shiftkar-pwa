@@ -40,9 +40,14 @@ let keyHandler = null;
    moment, then shrinks to a small circular icon and STAYS minimized while
    browsing other months. Returning to the current month removes it and
    resets the session, so the next departure plays the same show-then-
-   collapse (faster the second time onward). The counter is never reset so
-   the very first departure holds the label longest. */
+   collapse (faster the second time onward).
+
+   Important: `todayChipSessionCollapsed` only flips when the collapse
+   ACTUALLY fires. draw() re-renders often (notes load, filter changes) and
+   if we flagged the session at schedule-time those quick re-renders would
+   mount the chip already-minimized — the label would never really show. */
 let todayChipTimer = null;
+let todayChipSessionStarted = false;
 let todayChipSessionCollapsed = false;
 let offCurrentMonthCount = 0;
 
@@ -83,7 +88,10 @@ function draw() {
 
   // Back on the current month → the «امروز» chip disappears; the next time
   // the user leaves it gets to show its label once again before collapsing.
-  if (isCurrentMonth) todayChipSessionCollapsed = false;
+  if (isCurrentMonth) {
+    todayChipSessionStarted = false;
+    todayChipSessionCollapsed = false;
+  }
 
   container.innerHTML = `
     <div class="cal-wrap">
@@ -167,7 +175,14 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapse
   const chip = root.querySelector(".today-chip");
   if (!chip) return;
 
-  const collapse = () => chip.classList.add("is-collapsed");
+  // Mark the collapse as DONE on the element AND the session. Flipping the
+  // session flag here (not when scheduling) means re-renders that happen
+  // before the timer fires keep the chip expanded instead of killing the
+  // label the moment it appears.
+  const collapse = () => {
+    chip.classList.add("is-collapsed");
+    todayChipSessionCollapsed = true;
+  };
 
   // Table view: permanently minimized, no re-expansion.
   if (alwaysCollapsed) {
@@ -178,6 +193,8 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapse
   // Already shown + collapsed in this away-session → start minimized.
   if (todayChipSessionCollapsed) {
     chip.classList.add("is-collapsed");
+    // Re-render mid-session — don't replay the pop-in animation.
+    chip.style.animation = "none";
     // Desktop: hovering still lets the user peek at the label.
     chip.addEventListener("pointerenter", () => {
       chip.classList.remove("is-collapsed");
@@ -193,9 +210,16 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapse
     return;
   }
 
-  // First render of this away-session — show the label, then minimize.
-  todayChipSessionCollapsed = true;
-  offCurrentMonthCount += 1;
+  // First render of this away-session — keep it expanded and collapse once.
+  // Re-renders (notes load, filter, view switch…) re-schedule instead of
+  // force-collapsing, so the label is genuinely visible before it minimizes.
+  if (!todayChipSessionStarted) {
+    todayChipSessionStarted = true;
+    offCurrentMonthCount += 1;
+  } else {
+    // Re-render mid-session — don't replay the pop-in animation.
+    chip.style.animation = "none";
+  }
   const holdMs = offCurrentMonthCount <= 1 ? firstHold : repeatHold;
   todayChipTimer = setTimeout(collapse, holdMs);
 }
