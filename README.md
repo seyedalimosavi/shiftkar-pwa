@@ -119,8 +119,7 @@ shiftkar-web/
   and desktop install; service worker precaches the whole app shell, the roster
   and the icons, then serves everything stale-while-revalidate with an app-shell
   fallback for offline deep links. Settings (LocalStorage) and notes (IndexedDB)
-  live on-device, so the app is fully usable with no connection — an «آفلاین»
-  banner appears when the network drops.
+  live on-device, so the app is fully usable with no connection.
 
 ---
 
@@ -188,8 +187,7 @@ The service worker registers in **production** mode only (skipped under
 shell, CSS, JS, icons, logo and the roster board, then serves everything
 stale-while-revalidate with an app-shell fallback for offline deep links.
 Settings (LocalStorage) and notes (IndexedDB) live on-device, so after the
-first visit the app works completely offline — an «آفلاین» banner appears
-when the network drops.
+first visit the app works completely offline.
 
 ## Commands
 

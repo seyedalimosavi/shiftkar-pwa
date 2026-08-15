@@ -4,11 +4,22 @@
  * Run: node scripts/generate-assets.mjs
  */
 import { deflateSync } from "node:zlib";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/* The owner's real brand icon takes priority — this generator is only a
+   fallback for when there is no uploaded mark. Refusing to run here keeps
+   the generated fallback from ever clobbering the real icon again. */
+if (existsSync(join(root, "public/assets/icon.png"))) {
+  console.log(
+    "Uploaded brand icon found (public/assets/icon.png). " +
+      "Run `node scripts/apply-assets.mjs` to apply it. Skipping generated icons.",
+  );
+  process.exit(0);
+}
 
 /* ---------------- PNG encoding ---------------- */
 

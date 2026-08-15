@@ -759,7 +759,11 @@
 /* A compact «امروز» pill that lives INSIDE the actions row (next to the
    fullscreen toggle) instead of floating over the calendar, so it never
    covers days or table rows. It only renders while viewing a month other
-   than the current one, and disappears as soon as you return to today. */
+   than the current one, and disappears as soon as you return to today.
+   It mounts expanded (icon + «امروز»), then smoothly collapses to a small
+   circular icon (padding / gap / label-width transitions below) so it never
+   hogs the row — the label stays reachable via title/aria and re-expands
+   on hover (desktop). */
 .today-chip {
   display: inline-flex;
   align-items: center;
@@ -774,11 +778,34 @@
   font-size: var(--fs-xs);
   box-shadow: var(--shadow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   white-space: nowrap;
+  overflow: hidden;
   transition:
+    padding 320ms var(--ease-out),
+    gap 320ms var(--ease-out),
     filter var(--motion-fast) var(--ease-out),
     transform var(--motion-fast) var(--ease-out);
   animation: fab-in 300ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
+}
+
+.today-chip-label {
+  display: inline-block;
+  max-width: 90px;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    max-width 320ms var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+.today-chip.is-collapsed {
+  padding: 0 9px;
+  gap: 0;
+}
+
+.today-chip.is-collapsed .today-chip-label {
+  max-width: 0;
+  opacity: 0;
 }
 
 .today-chip .icon {

@@ -35,6 +35,14 @@ let lastLoadedNotesVersion = -1;
 let windowListenerAttached = false;
 let keyHandler = null;
 
+/* «برو به امروز» chip auto-collapse: expanded for a moment, then it shrinks
+   to a small circular icon so it never hogs the row. The counter makes the
+   FIRST departure hold the label longest; later departures (after coming
+   back to the current month) collapse faster. Never reset — the effect only
+   needs to be "slower the first time", every departure after that is quick. */
+let todayChipTimer = null;
+let offCurrentMonthCount = 0;
+
 export function renderCalendar(el) {
   container = el;
   if (!unsubscribe) {
@@ -116,6 +124,7 @@ function draw() {
 
   wireEvents(s);
   loadNotes(jy, jm);
+  armTodayChip(container);
 }
 
 /* ---------------- "go to today" inline chip ---------------- */
@@ -125,8 +134,42 @@ function draw() {
 function todayChipHtml() {
   return `
     <button type="button" class="today-chip" data-action="today" title="برو به امروز" aria-label="رفتن به امروز">
-      ${icon("calendar")}<span>امروز</span>
+      ${icon("calendar")}<span class="today-chip-label">امروز</span>
     </button>`;
+}
+
+/**
+ * The «برو به امروز» chip mounts EXPANDED (icon + «امروز» label) so the
+ * user sees what it does, then smoothly collapses to a small circular icon
+ * (padding/gap/label-width transitions in CSS) — it stays collapsed while
+ * viewing a month other than the current one. Hovering re-expands it on
+ * desktop; leaving re-collapses it. Each draw clears the previous timer so
+ * rapid month-switching can never stack animations.
+ */
+function armTodayChip(root, { firstHold = 2400, repeatHold = 900 } = {}) {
+  if (todayChipTimer) {
+    clearTimeout(todayChipTimer);
+    todayChipTimer = null;
+  }
+  const chip = root.querySelector(".today-chip");
+  if (!chip) return;
+
+  offCurrentMonthCount += 1;
+  const collapse = () => chip.classList.add("is-collapsed");
+  const holdMs = offCurrentMonthCount <= 1 ? firstHold : repeatHold;
+  todayChipTimer = setTimeout(collapse, holdMs);
+
+  chip.addEventListener("pointerenter", () => {
+    chip.classList.remove("is-collapsed");
+    if (todayChipTimer) clearTimeout(todayChipTimer);
+    todayChipTimer = setTimeout(collapse, 1400);
+  });
+  chip.addEventListener("pointerleave", () => {
+    if (!chip.classList.contains("is-collapsed")) {
+      if (todayChipTimer) clearTimeout(todayChipTimer);
+      todayChipTimer = setTimeout(collapse, 600);
+    }
+  });
 }
 
 /* ---------------- compact today banner ---------------- */
@@ -345,7 +388,7 @@ function openTableFullscreen() {
           <button type="button" class="icon-btn" data-tf="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
         </div>
         <div class="tf-actions">
-          ${isCurrentMonth ? "" : `<button type="button" class="today-chip" data-tf="today" title="برو به امروز" aria-label="رفتن به امروز">${icon("calendar")}<span>امروز</span></button>`}
+          ${isCurrentMonth ? "" : `<button type="button" class="today-chip" data-tf="today" title="برو به امروز" aria-label="رفتن به امروز">${icon("calendar")}<span class="today-chip-label">امروز</span></button>`}
           <button type="button" class="icon-btn tf-collapse" data-tf="close" aria-label="بازگشت به نمای تقویم">${icon("collapse")}</button>
         </div>
       </div>
@@ -374,6 +417,8 @@ function openTableFullscreen() {
         }
       });
     });
+    // The header is cramped — collapse the chip faster than on the page.
+    armTodayChip(overlay, { firstHold: 1400, repeatHold: 600 });
   }
 
   /** Jump to the current month and scroll today's row into view. */
