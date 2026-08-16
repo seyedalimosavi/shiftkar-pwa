@@ -377,19 +377,28 @@
   padding: 12px 8px;
   border-radius: var(--radius-md);
   border: 2px solid var(--color-border-strong);
-  background: var(--color-surface-strong);
   transition: all var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Hover matches the other pickers (shift chips, mode options): a clean
+   primary tint on border/text — never a filled white/light box. */
 .theme-option:hover {
   border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
+}
+
+.theme-option:hover .theme-name {
+  color: var(--color-primary);
+}
+
+.theme-option:hover .theme-swatch {
+  box-shadow:
+    0 0 0 2px var(--color-surface-solid),
+    0 0 0 4px var(--color-primary-border);
 }
 
 .theme-option.is-active {
   border-color: var(--color-primary);
-  background: var(--color-primary-soft);
   box-shadow: var(--shadow-primary);
 }
 

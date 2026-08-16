@@ -14,6 +14,10 @@
  *    a manual "use your browser menu" guide instead of a plain message.
  *  - Already installed (standalone) or after `appinstalled`: reported as
  *    installed and nothing is prompted again.
+ *  - Uninstall detection: browsers have no "app uninstalled" event, but a
+ *    previously-installed PWA that later runs in a normal browser tab
+ *    (display-mode ≠ standalone) means the user removed it — we clear the
+ *    installed state so the install UI can be offered again.
  */
 import { openSheet } from "./bottom-sheet.js";
 import { icon } from "./icons.js";
@@ -71,6 +75,31 @@ function emitState() {
 
 /* ---------------- public API ---------------- */
 
+/**
+ * PWA deletion detection (see module docs). Runs once at boot:
+ *  - while the app runs standalone, stamp the last standalone time;
+ *  - a later browser-tab session with a stale standalone stamp means the
+ *    PWA was deleted, so reset the installed state (install UI returns).
+ */
+function initUninstallDetection() {
+  if (isStandalone()) {
+    installedFlag = true;
+    saveFlag({ lastStandalone: Date.now() });
+    return;
+  }
+  const flag = loadFlag();
+  const lastStandalone = flag.lastStandalone || 0;
+  const installedByChoice = flag.installed === true;
+  if (installedByChoice && lastStandalone > 0 && Date.now() - lastStandalone > 60_000) {
+    // The PWA was installed and used, but we're now in a plain browser tab
+    // with no standalone session in the last minute → it was deleted.
+    // Clear autoShown too so the one-time prompt can fire again.
+    saveFlag({ installed: false, lastStandalone: 0, autoShown: false });
+    installedFlag = false;
+    emitState();
+  }
+}
+
 /** Capture the native install event as early as possible (app boot). */
 export function initInstallPrompt() {
   window.addEventListener("beforeinstallprompt", (e) => {
@@ -82,10 +111,11 @@ export function initInstallPrompt() {
   window.addEventListener("appinstalled", () => {
     installedFlag = true;
     deferredPrompt = null;
-    saveFlag({ installed: true });
+    saveFlag({ installed: true, lastStandalone: Date.now() });
     emitState();
   });
   if (loadFlag().installed) installedFlag = true;
+  initUninstallDetection();
 }
 
 /** Current install situation for any UI to render against. */
