@@ -318,8 +318,18 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  filter: blur(10px) brightness(0.55);
-  z-index: 1;
+  background: var(--color-background);
+  filter: blur(10px) brightness(0.6);
+  z-index: 0;
+}
+
+/* Keep the blurred copy of the app at the same position as the real one. */
+.tour-blur-layer #app {
+  position: relative;
+}
+
+.tour-blur-layer #bottom-nav {
+  position: fixed;
 }
 
 .tour-blur-layer > * {
@@ -349,6 +359,10 @@
   transition: opacity 200ms var(--ease-out);
   animation: tour-bubble-in 220ms var(--ease-out) both;
   z-index: 3;
+}
+
+[data-theme-mode="dark"] .tour-bubble {
+  background: #1b2440;
 }
 
 .tour-arrow {
@@ -446,6 +460,19 @@
 /* Lock user scrolling while the tour is open (the tour scrolls itself). */
 body.tour-lock {
   overflow: hidden;
+}
+
+/* Stacking: the blurred clone (z 0) sits above the real app (z 10) but the
+   dim overlay (z 2) covers both — its clip-path hole reveals the crisp
+   real app through the blur. */
+body.tour-lock #app,
+body.tour-lock #bottom-nav {
+  position: relative;
+  z-index: 10;
+}
+
+body.tour-lock .tour {
+  z-index: 500;
 }
 
 /* ---------- settings guide actions ---------- */

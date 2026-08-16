@@ -105,18 +105,28 @@ function buildRoot() {
   el.querySelector(".tour-skip").addEventListener("click", () => finish(false));
   el.querySelector(".tour-prev").addEventListener("click", () => step(stepIndex - 1));
   el.querySelector(".tour-next").addEventListener("click", () => step(stepIndex + 1));
+  return el;
+}
 
-  // Build the blurred backdrop: a clone of the whole app, blurred. The real
-  // (crisp) app sits above it; the dim overlay's clip-path hole reveals the
-  // showcased element sharp while everything around it shows the blurred
-  // clone underneath.
-  const blurLayer = el.querySelector(".tour-blur-layer");
+/**
+ * Blurred backdrop = a snapshot of the APP ONLY (never the tour itself),
+ * blurred + darkened, positioned where the real app is. The dim overlay's
+ * clip-path hole reveals the crisp real element on top; everything else
+ * shows this blurred copy underneath.
+ */
+function buildBlur() {
+  if (!rootEl || !rootEl.isConnected) return;
+  const blurLayer = rootEl.querySelector(".tour-blur-layer");
+  if (!blurLayer) return;
+  blurLayer.innerHTML = "";
   try {
-    blurLayer.appendChild(document.body.cloneNode(true));
+    const app = document.getElementById("app");
+    const nav = document.getElementById("bottom-nav");
+    if (app) blurLayer.appendChild(app.cloneNode(true));
+    if (nav) blurLayer.appendChild(nav.cloneNode(true));
   } catch {
     /* cloning can fail on exotic nodes — tour still works, just without blur */
   }
-  return el;
 }
 
 /** Dim + blur everything except a crisp hole around the target rect. */
@@ -256,6 +266,10 @@ async function step(index) {
     await waitFor(() => document.querySelector(stepDef.selector));
   }
 
+  // Refresh the blurred backdrop to the current screen (tab switches and
+  // view changes re-render the app while the tour stays put).
+  buildBlur();
+
   showStep(stepDef);
   spotlight(stepDef);
 }
@@ -309,6 +323,7 @@ export async function startTour() {
   prevScrollY = savedScrollY;
 
   rootEl = buildRoot();
+  buildBlur();
 
   // Block user scrolling (the tour scrolls itself) and taps outside the guide.
   document.body.classList.add("tour-lock");
