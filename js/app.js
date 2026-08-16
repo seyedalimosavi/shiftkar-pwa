@@ -6,6 +6,7 @@ import { initState, state } from "./core/state.js";
 import { initRouter, navigate } from "./core/router.js";
 import { renderSplash } from "./pages/splash.js";
 import { initInstallPrompt } from "./components/install-prompt.js";
+import { initUpdateCheck, hasVersionChanged } from "./components/update-check.js";
 
 /* ---------------- silent PWA updates ---------------- */
 
@@ -55,15 +56,17 @@ function watchUpdates(reg) {
     if (!next) return;
     next.addEventListener("statechange", () => {
       if (next.state === "activated") {
-        // The new SW now controls future navigations — reload once so the
-        // user lands on the fresh version (only if they haven't already).
-        if (!updateBannerEl) showUpdateBanner();
+        // The new SW now controls future navigations. Show the banner only
+        // for a REAL version change — a first install must stay silent.
+        if (!updateBannerEl && hasVersionChanged()) showUpdateBanner();
       }
     });
   });
 
   navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "SK_UPDATE_READY") showUpdateBanner();
+    if (event.data && event.data.type === "SK_UPDATE_READY" && hasVersionChanged()) {
+      showUpdateBanner();
+    }
   });
 
   // Periodic check while the tab is open.
@@ -93,6 +96,7 @@ function registerServiceWorker() {
 function boot() {
   initState();
   initInstallPrompt();
+  initUpdateCheck();
   registerServiceWorker();
 
   const app = document.getElementById("app");
