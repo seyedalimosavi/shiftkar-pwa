@@ -1,11 +1,95 @@
 /* ============================================================
+   IRANSansX — self-hosted (fonts/IRANSansX-*.woff2)
+   Only weights the UI actually uses get fetched (font-display: swap
+   keeps text visible while a weight downloads; unused weights are
+   never downloaded).
+   ============================================================ */
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Thin.woff2") format("woff2");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-UltraLight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-DemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-Heavy.woff2") format("woff2");
+  font-weight: 950;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IRANSansX";
+  src: url("./fonts/IRANSansX-ExtraBlack.woff2") format("woff2");
+  font-weight: 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
    ShiftKar — design tokens & themes (light glassmorphism)
    Themes are applied via [data-theme] on <html>.
    ============================================================ */
 
 :root {
   /* Typography */
-  --font-family: "Vazirmatn", "Vazir", "IRANSans", "IRANYekan", "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif;
+  --font-family: "IRANSansX", "Vazirmatn", "Vazir", "IRANSans", "IRANYekan", "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif;
 
   --fs-xs: 11px;
   --fs-sm: 13px;
