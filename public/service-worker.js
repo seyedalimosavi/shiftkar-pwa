@@ -6,7 +6,7 @@
  * same-origin GET at runtime — the first visit downloads the whole app,
  * and the hashed names mean stale files are never served.
  */
-const VERSION = "1.9.0";
+const VERSION = "2.0.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 /* Only the shell — everything else (hashed JS/CSS/assets) is cached on
@@ -29,22 +29,18 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-      .then(async () => {
-        // Tell every open tab that a fresh version is in charge — the page
-        // shows a brief "update ready" banner and reloads once.
-        const clients = await self.clients.matchAll({ type: "window" });
-        clients.forEach((client) => client.postMessage({ type: "SK_UPDATE_READY" }));
-      }),
+      .then(() => self.clients.claim()),
   );
 });
 
-/* Runtime strategy — stale-while-revalidate:
-   - serve the cached copy instantly (fast, works offline)
-   - fetch a fresh copy in the background and update the cache
-   - navigations that miss the cache fall back to the app shell
-   Everything same-origin is cached; external requests (contact links etc.)
-   are left to the browser. */
+/* Runtime strategy:
+   - Navigations: NETWORK-FIRST — the deployed source is served immediately
+     (that's what "receive the change right away" means), with the cached
+     shell as the fallback when offline.
+   - Assets: stale-while-revalidate — cached instantly, refreshed in the
+     background; hashed filenames mean old files are never mixed in.
+   Everything same-origin is cached; external requests (GA, contact links
+   etc.) are left to the browser. */
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -70,16 +66,11 @@ self.addEventListener("fetch", (event) => {
       };
 
       if (req.mode === "navigate") {
-        // Pages: cached shell first, fresh copy in the background, and the
-        // app shell as a fallback for any offline deep link / refresh.
-        if (cached) {
-          refresh().catch(() => {});
-          return cached;
-        }
-        return (
-          (await refresh()) ||
-          (await caches.match("./index.html", { ignoreSearch: true }))
-        );
+        // Pages: network first (fresh source immediately), cached shell as
+        // the fallback for offline deep links / refreshes.
+        const fresh = await refresh();
+        if (fresh) return fresh;
+        return cached || (await caches.match("./index.html", { ignoreSearch: true }));
       }
 
       // Assets (hashed JS/CSS/icons/etc.): stale-while-revalidate.

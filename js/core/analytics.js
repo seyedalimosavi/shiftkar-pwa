@@ -1,19 +1,30 @@
 /**
- * Google Analytics 4 — optional and opt-in by configuration.
+ * Google Analytics 4.
  *
- * The app stays fully offline/lean by default: no tracking script is loaded
- * until the user pastes a GA4 Measurement ID (settings → گوگل آنالیتیکس).
- * The ID is stored in localStorage (device-local, like all other settings).
+ * The app ships with a default Measurement ID (G-1C1B6LT0DT) so visits are
+ * counted for everyone out of the box. The Settings field (تنظیمات → آمار
+ * بازدید) can override it per-device — useful for testing or a different
+ * property; an empty value there disables tracking on that device.
  *
- * Loads gtag dynamically, fires a page_view on every hash route change, and
- * leaves the service worker untouched (external requests are not cached).
+ * gtag loads dynamically, fires a page_view on every hash route change, and
+ * the service worker leaves external requests (GA included) untouched.
  */
 
 const GA_ID_KEY = "shiftkar.gaId.v1";
+const DEFAULT_GA_ID = "G-1C1B6LT0DT";
 
 let loaded = false;
 
 export function getGaId() {
+  try {
+    return localStorage.getItem(GA_ID_KEY) || DEFAULT_GA_ID;
+  } catch {
+    return DEFAULT_GA_ID;
+  }
+}
+
+/** The device-level override only (empty when using the app default). */
+export function getStoredGaId() {
   try {
     return localStorage.getItem(GA_ID_KEY) || "";
   } catch {
@@ -45,6 +56,7 @@ function loadGtag() {
   window.gtag("js", new Date());
   window.gtag("config", id);
 
+  if (typeof document === "undefined" || !document.head) return; // non-browser environments
   const script = document.createElement("script");
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;

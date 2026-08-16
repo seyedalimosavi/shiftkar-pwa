@@ -10,7 +10,7 @@ import { icon } from "../components/icons.js";
 import { confirmDialog, toast } from "../components/dialogs.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
 import { getInstallState, showInstallSheet } from "../components/install-prompt.js";
-import { getGaId, setGaId } from "../core/analytics.js";
+import { getStoredGaId, setGaId } from "../core/analytics.js";
 
 let container = null;
 let unsubscribe = null;
@@ -127,7 +127,7 @@ function draw() {
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("chart")} آمار بازدید (گوگل آنالیتیکس)</h2>
       <p class="settings-desc">اختیاری — برای مشاهدهٔ تعداد بازدیدها، شناسهٔ اندازه‌گیری GA4 (شروع با G-) را وارد کنید. بدون آن هیچ داده‌ای ارسال نمی‌شود.</p>
-      <input type="text" class="text-input" id="ga-id-input" inputmode="text" autocomplete="off" placeholder="G-XXXXXXXXXX" value="${getGaId()}" dir="ltr" />
+      <input type="text" class="text-input" id="ga-id-input" inputmode="text" autocomplete="off" placeholder="G-XXXXXXXXXX" value="${getStoredGaId()}" dir="ltr" />
       <button type="button" class="btn btn-primary btn-block" id="ga-id-save">ذخیره</button>
     </section>
 
@@ -231,7 +231,8 @@ function wireEvents() {
     showInstallSheet();
   });
 
-  // Google Analytics measurement ID — optional; saved on this device only.
+  // Google Analytics measurement ID — per-device override; empty = app
+  // default (G-1C1B6LT0DT) is used.
   const gaInput = container.querySelector("#ga-id-input");
   const gaSave = container.querySelector("#ga-id-save");
   if (gaInput && gaSave) {
@@ -243,7 +244,7 @@ function wireEvents() {
       }
       setGaId(id);
       gaInput.value = id;
-      toast(id ? "آنالیتیکس فعال شد" : "آنالیتیکس غیرفعال شد");
+      toast(id ? "آنالیتیکس روی این دستگاه با شناسهٔ سفارشی فعال شد" : "آنالیتیکس با شناسهٔ پیش‌فرض ادامه می‌یابد");
     });
   }
 

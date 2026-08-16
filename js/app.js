@@ -6,75 +6,13 @@ import { initState, state } from "./core/state.js";
 import { initRouter, navigate } from "./core/router.js";
 import { renderSplash } from "./pages/splash.js";
 import { initInstallPrompt } from "./components/install-prompt.js";
-import { initUpdateCheck, hasVersionChanged } from "./components/update-check.js";
 import { initAnalytics, trackPageView } from "./core/analytics.js";
 
-/* ---------------- silent PWA updates ---------------- */
-
-const UPDATE_CHECK_MS = 60 * 60 * 1000; // check for a new version once an hour
-let updateBannerEl = null;
-
-/**
- * Tell the user a newer version is installed and offer the reload.
- * Stays on screen for a few seconds; dismissing it just closes the banner
- * (the next update check will offer it again).
- */
-function showUpdateBanner() {
-  if (updateBannerEl || !document.body) return;
-  const el = document.createElement("div");
-  el.className = "update-banner";
-  el.setAttribute("role", "status");
-  el.innerHTML = `
-    <span class="update-banner-text">نسخهٔ جدید آماده است</span>
-    <button type="button" class="update-banner-action">به‌روزرسانی</button>`;
-  const btn = el.querySelector(".update-banner-action");
-  btn.addEventListener("click", () => window.location.reload());
-  document.body.appendChild(el);
-  updateBannerEl = el;
-  // Auto-dismiss after a while — the reload stays one tap away.
-  setTimeout(() => dismissUpdateBanner(), 8000);
-}
-
-function dismissUpdateBanner() {
-  if (!updateBannerEl) return;
-  const el = updateBannerEl;
-  updateBannerEl = null;
-  el.classList.add("is-leaving");
-  setTimeout(() => el.remove(), 300);
-}
-
-/**
- * Wire a registration for silent updates:
- *  - `update()` on load and every UPDATE_CHECK_MS while the app is open;
- *  - when a new service worker installs, wait until it is active;
- *  - the new SW posts SK_UPDATE_READY → show the banner.
- */
-function watchUpdates(reg) {
-  // Keep this tab's view fresh: when a new SW finishes installing, wait for
-  // it to activate (skipWaiting is called on install) and reload the page.
-  reg.addEventListener("updatefound", () => {
-    const next = reg.installing;
-    if (!next) return;
-    next.addEventListener("statechange", () => {
-      if (next.state === "activated") {
-        // The new SW now controls future navigations. Show the banner only
-        // for a REAL version change — a first install must stay silent.
-        if (!updateBannerEl && hasVersionChanged()) showUpdateBanner();
-      }
-    });
-  });
-
-  navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "SK_UPDATE_READY" && hasVersionChanged()) {
-      showUpdateBanner();
-    }
-  });
-
-  // Periodic check while the tab is open.
-  setInterval(() => {
-    reg.update().catch(() => {});
-  }, UPDATE_CHECK_MS);
-}
+/* Silent service-worker refresh — no UI, no banner. The service worker
+   serves the network-first on navigations, so deployed changes appear on
+   the next visit; this just keeps the cached copy (and the SW itself) up to
+   date in the background. */
+const SW_REFRESH_MS = 60 * 60 * 1000; // refresh the cached copy once an hour
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -86,9 +24,10 @@ function registerServiceWorker() {
     navigator.serviceWorker
       .register("./service-worker.js")
       .then((reg) => {
-        watchUpdates(reg);
-        // Check right away so a stale cache is refreshed on this visit.
+        // Check for a new version right away, then periodically — new SWs
+        // take over silently (skipWaiting) and refresh the cache.
         reg.update().catch(() => {});
+        setInterval(() => reg.update().catch(() => {}), SW_REFRESH_MS);
       })
       .catch((err) => console.warn("Service worker registration failed:", err));
   });
@@ -97,7 +36,6 @@ function registerServiceWorker() {
 function boot() {
   initState();
   initInstallPrompt();
-  initUpdateCheck();
   initAnalytics();
   registerServiceWorker();
 
