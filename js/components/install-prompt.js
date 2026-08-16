@@ -321,6 +321,10 @@ export function maybeAutoPromptInstall() {
   saveFlag({ autoShown: true });
   // Give Chrome time to finish service-worker setup and decide
   // installability before we ask — `beforeinstallprompt` only fires after
-  // the SW is active, which takes a moment on a cold visit.
-  setTimeout(() => showInstallSheet(), 4000);
+  // the SW is active, which takes a moment on a cold visit. Re-check the
+  // tour: it may have started after this call (tour wins on first run).
+  setTimeout(() => {
+    if (isTourActive()) return;
+    showInstallSheet();
+  }, 4000);
 }

@@ -3,12 +3,44 @@
  *
  * Each step:
  *  - tab:      route to navigate to before looking for the target
- *  - selector: element to spotlight (null → skip targeting, tooltip centered)
+ *  - selector: element(s) to spotlight (null → skip targeting, tooltip centered)
  *  - click:    optional action performed before the tooltip shows, e.g. a
  *              button that reveals the element being explained
  *  - title/text: Persian copy for the tooltip bubble
  */
 export const TOUR_STEPS = [
+  // ---------- bottom navigation ----------
+  {
+    tab: "calendar",
+    selector: "#bottom-nav",
+    title: "نوار پایین برنامه",
+    text: "چهار بخش اصلی برنامه در این نوار قرار دارد: تقویم، سامانه‌ها، تصویر لوحه و تنظیمات. در ادامه هر کدام را می‌بینید.",
+  },
+  {
+    tab: "calendar",
+    selector: '.nav-item[data-route="calendar"]',
+    title: "تقویم",
+    text: "بخش اصلی برنامه: تقویم ماهانهٔ شیفت‌ها با محاسبهٔ خودکار روزکار، شب‌کاری و استراحت.",
+  },
+  {
+    tab: "systems",
+    selector: '.nav-item[data-route="systems"]',
+    title: "سامانه‌ها",
+    text: "دسترسی سریع به سامانه‌های شرکت پتروشیمی بندر امام خمینی (ره).",
+  },
+  {
+    tab: "roster",
+    selector: '.nav-item[data-route="roster"]',
+    title: "تصویر لوحه",
+    text: "لوحهٔ شیفت همان تصویری است که همیشه در محل کار نصب است؛ اینجا همیشه به‌روز در دسترس شماست.",
+  },
+  {
+    tab: "settings",
+    selector: '.nav-item[data-route="settings"]',
+    title: "تنظیمات",
+    text: "شخصی‌سازی برنامه: گروه شیفت، تم، نمای تقویم و نصب برنامه.",
+  },
+
   // ---------- calendar ----------
   {
     tab: "calendar",
@@ -18,9 +50,9 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
-    selector: '.cal-nav-btn[data-action="next"]',
+    selector: ".cal-nav-start, .cal-nav-end",
     title: "جابه‌جایی بین ماه‌ها",
-    text: "با این دکمه‌ها یا کشیدن انگشت روی تقویم، به ماه بعد و قبل بروید.",
+    text: "با این دو دکمه (فلش‌های دو طرف عنوان ماه) به ماه بعد و قبل بروید. روی «بعدی» بزنید تا ببینید.",
     click: "nextMonth",
   },
   {
@@ -38,7 +70,13 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
-    selector: ".view-toggle-nav",
+    selector: ".cal-body",
+    title: "کشیدن انگشت بین ماه‌ها",
+    text: "روی همین تقویم، انگشت خود را به راست یا چپ بکشید تا ماه بعد یا قبل را ببینید.",
+  },
+  {
+    tab: "calendar",
+    selector: ".view-toggle-nav, .view-single-toggle",
     title: "نمای تقویم و جدول",
     text: "بین نمای شبکه‌ای (تقویم) و جدول شیفت‌ها جابه‌جا شوید.",
     click: "toTable",
@@ -47,35 +85,32 @@ export const TOUR_STEPS = [
     tab: "calendar",
     selector: '[data-action="fullscreen"]',
     title: "جدول تمام‌صفحه",
-    text: "با این دکمه جدول شیفت‌ها تمام‌صفحه می‌شود؛ برای دیدن جزئیات هر روز روی آن بزنید.",
+    text: "با این دکمه جدول شیفت‌ها تمام‌صفحه می‌شود؛ با دکمهٔ بستن یا دکمهٔ بازگشت گوشی، تمام‌صفحه بسته می‌شود.",
     click: "toGrid",
   },
+
   // ---------- systems ----------
   {
     tab: "systems",
     selector: ".systems-grid",
     title: "سامانه‌های شرکت",
-    text: "دسترسی سریع به سامانه‌های پتروشیمی بندر امام خمینی (ره) — با یک ضربه در مرورگر باز می‌شوند.",
+    text: "با یک ضربه، هر سامانه در مرورگر باز می‌شود — پورتال، پنل سفر، سهام فصلی و بقیه.",
   },
+
   // ---------- roster ----------
   {
     tab: "roster",
     selector: ".roster-preview",
     title: "تصویر لوحهٔ شیفت",
-    text: "لوحهٔ شیفت همان تصویری است که همیشه در محل کار نصب است؛ با ضربه روی آن، تصویر کامل و بزرگ‌نمایی آن باز می‌شود.",
+    text: "با ضربه روی تصویر، نمای کامل و بزرگ‌نمایی لوحه باز می‌شود.",
   },
+
   // ---------- settings ----------
   {
     tab: "settings",
     selector: '[data-mygroup="A"]',
     title: "گروه شخصی شما",
     text: "گروه شیفت خود را اینجا انتخاب کنید تا تقویم از همان ابتدا بر اساس گروه شما باشد.",
-  },
-  {
-    tab: "settings",
-    selector: ".theme-mode-grid",
-    title: "روشن، تیره یا سیستم",
-    text: "حالت نمایش را انتخاب کنید؛ تغییر بلافاصله در کل برنامه اعمال می‌شود.",
   },
   {
     tab: "settings",

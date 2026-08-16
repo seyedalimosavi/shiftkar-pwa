@@ -1,11 +1,14 @@
 /**
  * Guided tour — a one-time, spotlight-style walkthrough of the whole app.
  *
- * Shows a highlight ring around the element being explained plus an anchored
- * tooltip bubble (next/prev/skip). Steps can switch tabs automatically and
- * trigger small UI actions (switch month, switch view) so the user sees the
- * feature in action. Runs once per device (like onboarding); can be replayed
- * from Settings → راهنمای شروع.
+ * While the tour is open the user can ONLY interact with the guide itself:
+ *  - a full-screen overlay dims and blurs everything except the spotlighted
+ *    element (a crisp "hole" around it);
+ *  - taps, wheel and touch scrolling outside the tooltip are blocked;
+ *  - steps auto-scroll the target into view and can switch tabs and trigger
+ *    small UI actions (switch month, switch view) automatically.
+ *
+ * Runs once per device (like onboarding); replayable from Settings → راهنمای شروع.
  */
 import { TOUR_STEPS } from "./tour-steps.js";
 import { navigate, getRoute } from "../core/router.js";
@@ -17,6 +20,9 @@ let active = false;
 let stepIndex = 0;
 let rootEl = null;
 let savedTab = null;
+let savedView = null;
+let savedScrollY = 0;
+let prevScrollY = 0;
 
 function seen() {
   try {
@@ -81,7 +87,7 @@ function buildRoot() {
   el.setAttribute("role", "dialog");
   el.setAttribute("aria-label", "راهنمای برنامه");
   el.innerHTML = `
-    <div class="tour-ring"></div>
+    <div class="tour-overlay"></div>
     <div class="tour-bubble">
       <div class="tour-arrow"></div>
       <div class="tour-step-label"></div>
@@ -101,19 +107,30 @@ function buildRoot() {
   return el;
 }
 
-function placeRing(rect) {
-  const ring = rootEl.querySelector(".tour-ring");
+/** Dim + blur everything except a crisp hole around the target rect. */
+function applyHole(rect) {
+  const overlay = rootEl.querySelector(".tour-overlay");
   if (!rect) {
-    ring.style.display = "none";
-    return null;
+    overlay.style.clipPath = "none";
+    return;
   }
-  ring.style.display = "block";
-  const pad = 6;
-  ring.style.top = `${rect.top - pad}px`;
-  ring.style.left = `${rect.left - pad}px`;
-  ring.style.width = `${rect.width + pad * 2}px`;
-  ring.style.height = `${rect.height + pad * 2}px`;
-  return rect;
+  const r = 18; // rounded-corner radius of the hole
+  const p = 8; // breathing room around the target
+  const L = Math.max(0, rect.left - p);
+  const T = Math.max(0, rect.top - p);
+  const R = Math.min(window.innerWidth, rect.right + p);
+  const B = Math.min(window.innerHeight, rect.bottom + p);
+  // Clip everything EXCEPT the hole rectangle (viewport corners + rounded hole).
+  overlay.style.clipPath = `polygon(
+    0 0, 100% 0, 100% 100%, 0 100%,
+    0 0,
+    ${L}px ${T}px,
+    ${L + r}px ${T}px, ${R - r}px ${T}px, ${R}px ${T + r}px,
+    ${R}px ${B - r}px, ${R - r}px ${B}px, ${L + r}px ${B}px, ${L}px ${B - r}px,
+    ${L}px ${T + r}px,
+    ${L}px ${T}px,
+    0 0
+  )`;
 }
 
 function placeBubble(rect) {
@@ -122,7 +139,7 @@ function placeBubble(rect) {
   const bubbleH = bubble.offsetHeight;
   const margin = 14;
   let top;
-  let arrowPos = "bottom"; // arrow on the bottom edge → bubble above target
+  let arrowPos = "bottom"; // arrow on bottom edge → bubble above target
   let arrowLeft = "50%";
 
   if (!rect) {
@@ -144,33 +161,63 @@ function placeBubble(rect) {
   bubble.querySelector(".tour-arrow").style.left = arrowLeft;
 }
 
-function showStep(step) {
-  rootEl.querySelector(".tour-title").textContent = step.title;
-  rootEl.querySelector(".tour-text").textContent = step.text;
+/** Union of the bounding rects of every element matching a selector. */
+function targetRect(selector) {
+  const els = selector ? document.querySelectorAll(selector) : [];
+  if (!els.length) return null;
+  let r = null;
+  els.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    if (!r) r = { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    else {
+      r.left = Math.min(r.left, rect.left);
+      r.top = Math.min(r.top, rect.top);
+      r.right = Math.max(r.right, rect.right);
+      r.bottom = Math.max(r.bottom, rect.bottom);
+    }
+  });
+  r.width = r.right - r.left;
+  r.height = r.bottom - r.top;
+  return r;
+}
+
+function spotlight(stepDef) {
+  const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
+  const rect = targetRect(stepDef.selector);
+  const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
+
+  if (needsScroll) {
+    // Hide the bubble while the target scrolls into view, then position it
+    // after the scroll settles (no flash at the stale position).
+    const bubble = rootEl.querySelector(".tour-bubble");
+    bubble.style.opacity = "0";
+    try {
+      els[0].scrollIntoView({ block: "center", behavior: "smooth" });
+    } catch {
+      /* ignore */
+    }
+    setTimeout(() => {
+      if (!active || !rootEl || !rootEl.isConnected) return;
+      const r = targetRect(stepDef.selector);
+      applyHole(r);
+      placeBubble(r);
+      bubble.style.opacity = "";
+    }, 320);
+    return;
+  }
+
+  applyHole(rect);
+  placeBubble(rect);
+}
+
+function showStep(stepDef) {
+  rootEl.querySelector(".tour-title").textContent = stepDef.title;
+  rootEl.querySelector(".tour-text").textContent = stepDef.text;
   rootEl.querySelector(".tour-step-label").textContent = `${toPersian(stepIndex + 1)} از ${toPersian(TOUR_STEPS.length)}`;
   const prevBtn = rootEl.querySelector(".tour-prev");
   prevBtn.style.visibility = stepIndex === 0 ? "hidden" : "visible";
   const nextBtn = rootEl.querySelector(".tour-next");
   nextBtn.textContent = stepIndex === TOUR_STEPS.length - 1 ? "تمام" : "بعدی";
-}
-
-function spotlight(step) {
-  const el = step.selector ? document.querySelector(step.selector) : null;
-  const rect = el ? el.getBoundingClientRect() : null;
-  if (el && rect) {
-    // Only scroll when the element is actually out of view (nearest — no jumps).
-    const vh = window.innerHeight;
-    if (rect.top < 90 || rect.bottom > vh - 100) {
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-    // Measure after the scroll settles.
-    const r2 = el.getBoundingClientRect();
-    placeRing(r2);
-    placeBubble(r2);
-  } else {
-    placeRing(null);
-    placeBubble(null);
-  }
 }
 
 /* ---------------- engine ---------------- */
@@ -206,8 +253,21 @@ async function finish(completed) {
   active = false;
   if (completed) markSeen();
 
-  // Return the user to the tab they started from (the calendar view itself
-  // is restored automatically from state on render).
+  // Unblock scrolling and restore the original scroll position.
+  document.body.classList.remove("tour-lock");
+  if (savedScrollY > 0) {
+    try {
+      window.scrollTo({ top: savedScrollY, behavior: "auto" });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Restore the calendar view the tour switched (grid ↔ table) and return
+  // the user to the tab they started from.
+  if (savedView && state.settings.calendarViewType !== savedView) {
+    state.set({ calendarViewType: savedView });
+  }
   if (savedTab && getRoute() !== savedTab) {
     navigate(savedTab);
   }
@@ -224,10 +284,7 @@ async function finish(completed) {
 
 /* ---------------- public API ---------------- */
 
-/**
- * Start the tour from the current screen. Pass { force: true } to replay
- * from Settings regardless of the seen flag.
- */
+/** Start the tour from the current screen (replay from Settings). */
 export async function startTour() {
   if (active) return;
   if (rootEl) return;
@@ -235,23 +292,42 @@ export async function startTour() {
   stepIndex = 0;
 
   savedTab = getRoute() || "calendar";
+  savedView = state.settings.calendarViewType === "table" ? "table" : "grid";
+  savedScrollY = window.scrollY || 0;
+  prevScrollY = savedScrollY;
 
   rootEl = buildRoot();
 
-  const onResize = () => {
-    if (active && rootEl && rootEl.isConnected) {
-      const stepDef = TOUR_STEPS[stepIndex];
-      spotlight(stepDef);
-    }
+  // Block user scrolling (the tour scrolls itself) and taps outside the guide.
+  document.body.classList.add("tour-lock");
+  const blockWheel = (e) => {
+    if (!active) return;
+    if (rootEl && e.target && rootEl.contains(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
   };
-  window.addEventListener("resize", onResize);
+  const blockTouch = (e) => {
+    if (!active) return;
+    if (rootEl && e.target && rootEl.contains(e.target)) return;
+    e.preventDefault();
+  };
   const onKey = (e) => {
     if (e.key === "Escape") finish(false);
   };
+  const onResize = () => {
+    if (active && rootEl && rootEl.isConnected) spotlight(TOUR_STEPS[stepIndex]);
+  };
+
+  window.addEventListener("wheel", blockWheel, { passive: false, capture: true });
+  window.addEventListener("touchmove", blockTouch, { passive: false, capture: true });
   document.addEventListener("keydown", onKey);
+  window.addEventListener("resize", onResize);
+
   rootEl._cleanup = () => {
-    window.removeEventListener("resize", onResize);
+    window.removeEventListener("wheel", blockWheel, { capture: true });
+    window.removeEventListener("touchmove", blockTouch, { capture: true });
     document.removeEventListener("keydown", onKey);
+    window.removeEventListener("resize", onResize);
   };
 
   await step(0);
@@ -259,7 +335,7 @@ export async function startTour() {
   // Reposition once images/fonts settle (e.g. roster image loads).
   setTimeout(() => {
     if (active && rootEl && rootEl.isConnected) spotlight(TOUR_STEPS[stepIndex]);
-  }, 350);
+  }, 400);
 }
 
 /** One-time auto-start: called after the calendar first renders, only for
