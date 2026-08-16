@@ -2,8 +2,10 @@
  * Guided tour — a one-time, spotlight-style walkthrough of the whole app.
  *
  * While the tour is open the user can ONLY interact with the guide itself:
- *  - everything except the showcased element is dimmed AND blurred (a
- *    blurred clone of the app sits behind a crisp spotlight hole);
+ *  - a full-screen overlay dims + blurs everything EXCEPT the showcased
+ *    element — a radial-gradient mask punches a transparent hole over it,
+ *    so it stays crisp (no DOM cloning, no fragile clip-path);
+ *  - a glowing ring marks the showcased element;
  *  - taps, wheel and touch scrolling outside the tooltip are blocked;
  *  - steps auto-scroll the target into view and can switch tabs and trigger
  *    small UI actions (switch month, switch view) automatically.
@@ -22,7 +24,6 @@ let rootEl = null;
 let savedTab = null;
 let savedView = null;
 let savedScrollY = 0;
-let prevScrollY = 0;
 
 function seen() {
   try {
@@ -88,6 +89,7 @@ function buildRoot() {
   el.setAttribute("aria-label", "راهنمای برنامه");
   el.innerHTML = `
     <div class="tour-overlay"></div>
+    <div class="tour-ring"></div>
     <div class="tour-bubble">
       <div class="tour-arrow"></div>
       <div class="tour-step-label"></div>
@@ -107,32 +109,56 @@ function buildRoot() {
   return el;
 }
 
+/** Union of the bounding rects of every element matching a selector. */
+function targetRect(selector) {
+  const els = selector ? document.querySelectorAll(selector) : [];
+  if (!els.length) return null;
+  let r = null;
+  els.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    if (!r) r = { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    else {
+      r.left = Math.min(r.left, rect.left);
+      r.top = Math.min(r.top, rect.top);
+      r.right = Math.max(r.right, rect.right);
+      r.bottom = Math.max(r.bottom, rect.bottom);
+    }
+  });
+  r.width = r.right - r.left;
+  r.height = r.bottom - r.top;
+  return r;
+}
 
-
-/** Dim + blur everything except a crisp hole around the target rect. */
+/**
+ * Spotlight the target: a radial-gradient mask punches a transparent hole
+ * in the blur/dim overlay around the element, so the crisp real element
+ * shows through while everything else is blurred + dimmed. A glowing ring
+ * marks the showcased element.
+ */
 function applyHole(rect) {
   const overlay = rootEl.querySelector(".tour-overlay");
+  const ring = rootEl.querySelector(".tour-ring");
   if (!rect) {
-    overlay.style.clipPath = "none";
+    overlay.style.maskImage = "none";
+    overlay.style.webkitMaskImage = "none";
+    ring.style.display = "none";
     return;
   }
-  const r = 18; // rounded-corner radius of the hole
-  const p = 8; // breathing room around the target
-  const L = Math.max(0, rect.left - p);
-  const T = Math.max(0, rect.top - p);
-  const R = Math.min(window.innerWidth, rect.right + p);
-  const B = Math.min(window.innerHeight, rect.bottom + p);
-  // Clip everything EXCEPT the hole rectangle (viewport corners + rounded hole).
-  overlay.style.clipPath = `polygon(
-    0 0, 100% 0, 100% 100%, 0 100%,
-    0 0,
-    ${L}px ${T}px,
-    ${L + r}px ${T}px, ${R - r}px ${T}px, ${R}px ${T + r}px,
-    ${R}px ${B - r}px, ${R - r}px ${B}px, ${L + r}px ${B}px, ${L}px ${B - r}px,
-    ${L}px ${T + r}px,
-    ${L}px ${T}px,
-    0 0
-  )`;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const radius = Math.max(rect.width, rect.height) / 2 + 40;
+
+  // Transparent inside the hole → overlay (and its blur) invisible there.
+  const mask = `radial-gradient(circle ${Math.round(radius)}px at ${Math.round(cx)}px ${Math.round(cy)}px, transparent 68%, rgba(0,0,0,1) 100%)`;
+  overlay.style.maskImage = mask;
+  overlay.style.webkitMaskImage = mask;
+
+  // Glowing ring around the showcased element.
+  ring.style.display = "block";
+  ring.style.top = `${rect.top - 5}px`;
+  ring.style.left = `${rect.left - 5}px`;
+  ring.style.width = `${rect.width + 10}px`;
+  ring.style.height = `${rect.height + 10}px`;
 }
 
 function placeBubble(rect) {
@@ -166,34 +192,14 @@ function placeBubble(rect) {
   bubble.querySelector(".tour-arrow").style.left = arrowLeft;
 }
 
-/** Union of the bounding rects of every element matching a selector. */
-function targetRect(selector) {
-  const els = selector ? document.querySelectorAll(selector) : [];
-  if (!els.length) return null;
-  let r = null;
-  els.forEach((el) => {
-    const rect = el.getBoundingClientRect();
-    if (!r) r = { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-    else {
-      r.left = Math.min(r.left, rect.left);
-      r.top = Math.min(r.top, rect.top);
-      r.right = Math.max(r.right, rect.right);
-      r.bottom = Math.max(r.bottom, rect.bottom);
-    }
-  });
-  r.width = r.right - r.left;
-  r.height = r.bottom - r.top;
-  return r;
-}
-
 function spotlight(stepDef) {
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const rect = targetRect(stepDef.selector);
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
 
   if (needsScroll) {
-    // Hide the bubble while the target scrolls into view, then position it
-    // after the scroll settles (no flash at the stale position).
+    // Hide the bubble while the target scrolls into view, then position
+    // everything after the scroll settles.
     const bubble = rootEl.querySelector(".tour-bubble");
     bubble.style.opacity = "0";
     try {
@@ -299,7 +305,6 @@ export async function startTour() {
   savedTab = getRoute() || "calendar";
   savedView = state.settings.calendarViewType === "table" ? "table" : "grid";
   savedScrollY = window.scrollY || 0;
-  prevScrollY = savedScrollY;
 
   rootEl = buildRoot();
 
