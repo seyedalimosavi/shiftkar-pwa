@@ -1,58 +1,24 @@
-/* ShiftKar service worker — offline-first caching. */
-const VERSION = "1.7.0";
+/* ShiftKar service worker — offline-first caching.
+ *
+ * The production build (vite build) emits hashed asset filenames
+ * (dist/assets/index-*.js etc.), so instead of pre-caching a fixed file
+ * list we pre-cache just the shell (./ + index.html) and cache every
+ * same-origin GET at runtime — the first visit downloads the whole app,
+ * and the hashed names mean stale files are never served.
+ */
+const VERSION = "1.8.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./css/variables.css",
-  "./css/base.css",
-  "./css/components.css",
-  "./css/calendar.css",
-  "./css/roster.css",
-  "./css/responsive.css",
-  "./js/app.js",
-  "./js/core/state.js",
-  "./js/core/router.js",
-  "./js/core/storage.js",
-  "./js/domain/jalali.js",
-  "./js/domain/holidays.js",
-  "./js/domain/shift-calculator.js",
-  "./js/domain/models.js",
-  "./js/pages/splash.js",
-  "./js/pages/onboarding.js",
-  "./js/pages/calendar.js",
-  "./js/pages/systems.js",
-  "./js/pages/roster.js",
-  "./js/pages/settings.js",
-  "./js/components/icons.js",
-  "./js/components/bottom-nav.js",
-  "./js/components/bottom-sheet.js",
-  "./js/components/day-detail.js",
-  "./js/components/month-picker.js",
-  "./js/components/shift-badge.js",
-  "./js/components/notes.js",
-  "./js/components/dialogs.js",
-  "./js/components/view-picker.js",
-  "./js/components/install-prompt.js",
-  "./assets/logo.png",
-  "./assets/icons/icon-192.png",
-  "./assets/icons/icon-512.png",
-  "./assets/icons/icon-maskable-512.png",
-  "./assets/icons/apple-touch-icon.png",
-  "./assets/roster-1405.png",
-];
+/* Only the shell — everything else (hashed JS/CSS/assets) is cached on
+   first use by the fetch handler below. */
+const SHELL = ["./", "./index.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      // Cache each asset individually — a single missing file (e.g. after a
-      // bundler renames it) must never break the install or offline support.
-      await Promise.all(
-        ASSETS.map((url) => cache.add(url).catch(() => {})),
-      );
+      // Cache the shell individually — a missing file must never break install.
+      await Promise.all(SHELL.map((url) => cache.add(url).catch(() => {})));
       await self.skipWaiting();
     })(),
   );
@@ -110,7 +76,7 @@ self.addEventListener("fetch", (event) => {
         );
       }
 
-      // Assets: stale-while-revalidate.
+      // Assets (hashed JS/CSS/icons/etc.): stale-while-revalidate.
       if (cached) {
         refresh().catch(() => {});
         return cached;

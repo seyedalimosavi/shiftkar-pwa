@@ -1,7 +1,7 @@
 /**
  * Applies the user-uploaded brand assets:
  *  - public/assets/icon.png  (1024×1024 RGB PNG)  → all PWA icon slots + logo
- *  - public/assets/roster-1405.png (JPEG data)    → assets/roster-1405.png
+ *  - public/assets/roster-1405.png (JPEG data)    → public/assets/roster-1405.png
  *
  * Pure Node (zlib + manual PNG encode/decode) — no dependencies.
  * Run: node scripts/apply-assets.mjs
@@ -176,10 +176,10 @@ const { rgb, width } = decodeRgbPng(readFileSync(join(root, "public/assets/icon.
 console.log(`decoded icon: ${width}×${width}`);
 
 const files = [
-  { path: "assets/logo.png", size: 512 },
-  { path: "assets/icons/icon-192.png", size: 192 },
-  { path: "assets/icons/icon-512.png", size: 512 },
-  { path: "assets/icons/apple-touch-icon.png", size: 180 },
+  { path: "public/assets/logo.png", size: 512 },
+  { path: "public/assets/icons/icon-192.png", size: 192 },
+  { path: "public/assets/icons/icon-512.png", size: 512 },
+  { path: "public/assets/icons/apple-touch-icon.png", size: 180 },
 ];
 
 for (const f of files) {
@@ -206,7 +206,7 @@ for (const f of files) {
     }
   }
   content.copy(canvas, (pad * M + pad) * 4);
-  const out = join(root, "assets/icons/icon-maskable-512.png");
+  const out = join(root, "public/assets/icons/icon-maskable-512.png");
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, encodePng(M, canvas));
   console.log("wrote assets/icons/icon-maskable-512.png (512x512)");
@@ -215,6 +215,6 @@ for (const f of files) {
 // Roster image (JPEG data served as .png — browsers sniff the content).
 copyFileSync(
   join(root, "public/assets/roster-1405.png"),
-  join(root, "assets/roster-1405.png"),
+  join(root, "public/assets/roster-1405.png"),
 );
-console.log("copied assets/roster-1405.png");
+console.log("copied public/assets/roster-1405.png");

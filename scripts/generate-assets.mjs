@@ -228,11 +228,11 @@ function drawIcon(size) {
 /* ---------------- Output ---------------- */
 
 const files = [
-  { path: "assets/logo.png", size: 512 },
-  { path: "assets/icons/icon-192.png", size: 192 },
-  { path: "assets/icons/icon-512.png", size: 512 },
-  { path: "assets/icons/icon-maskable-512.png", size: 512 },
-  { path: "assets/icons/apple-touch-icon.png", size: 180 },
+  { path: "public/assets/logo.png", size: 512 },
+  { path: "public/assets/icons/icon-192.png", size: 192 },
+  { path: "public/assets/icons/icon-512.png", size: 512 },
+  { path: "public/assets/icons/icon-maskable-512.png", size: 512 },
+  { path: "public/assets/icons/apple-touch-icon.png", size: 180 },
 ];
 
 for (const f of files) {

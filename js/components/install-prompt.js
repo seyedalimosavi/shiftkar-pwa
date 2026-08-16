@@ -77,6 +77,7 @@ export function initInstallPrompt() {
     e.preventDefault();
     deferredPrompt = e;
     emitState();
+    window.dispatchEvent(new CustomEvent("shiftkar:install-ready"));
   });
   window.addEventListener("appinstalled", () => {
     installedFlag = true;
@@ -200,29 +201,27 @@ export function tutorialHtml() {
   return genericInstructionsHtml();
 }
 
+const INSTALL_CTA_MARKUP = `
+  <div class="install-sheet">
+    <p class="install-desc">شیفت‌کار را به صفحهٔ اصلی دستگاه خود اضافه کنید تا مثل یک اپلیکیشن واقعی، سریع‌تر و حتی بدون اینترنت باز شود.</p>
+    <button type="button" class="btn btn-primary btn-block" id="install-sheet-action">
+      ${icon("download")} نصب برنامه
+    </button>
+  </div>`;
+
 /**
  * Bottom sheet with the install CTA — the single UI used by Settings and by
  * the one-time automatic prompt. Handles every state: installed / native
  * prompt / iOS instructions / Firefox instructions / generic manual guide.
+ *
+ * The CTA is ALWAYS shown first (Chrome fires `beforeinstallprompt` late —
+ * a few seconds after first load, once the service worker is ready). If the
+ * native prompt is not available when the user taps, the sheet swaps in the
+ * manual guide for that exact browser instead of showing a dead end.
  */
 export function showInstallSheet() {
   const st = getInstallState();
-
-  let body;
-  if (st.installed) {
-    body = DONE_MARKUP;
-  } else if (st.canPrompt) {
-    body = `
-      <div class="install-sheet">
-        <p class="install-desc">شیفت‌کار را به صفحهٔ اصلی دستگاه خود اضافه کنید تا مثل یک اپلیکیشن واقعی، سریع‌تر و حتی بدون اینترنت باز شود.</p>
-        <button type="button" class="btn btn-primary btn-block" id="install-sheet-action">
-          ${icon("download")} نصب برنامه
-        </button>
-      </div>`;
-  } else {
-    // No native prompt: show the manual guide for this exact browser.
-    body = tutorialHtml();
-  }
+  const body = st.installed ? DONE_MARKUP : INSTALL_CTA_MARKUP;
 
   const api = openSheet({
     title: "نصب برنامه",
@@ -247,6 +246,33 @@ export function showInstallSheet() {
       }
     });
   }
+
+  // Chrome may fire `beforeinstallprompt` while the sheet is open (first
+  // visit). Re-render the CTA so the tap uses the native prompt instead of
+  // the manual guide.
+  const onReady = () => {
+    if (!api.body.isConnected) return;
+    // If the sheet already shows the CTA (or the app is installed), nothing to do.
+    if (api.body.querySelector("#install-sheet-action") || getInstallState().installed) return;
+    api.body.innerHTML = INSTALL_CTA_MARKUP;
+    const btn = api.body.querySelector("#install-sheet-action");
+    if (btn) {
+      btn.addEventListener("click", async () => {
+        const res = await promptInstall();
+        if (res === "installed") {
+          api.close();
+          toast("شیفت‌کار نصب شد");
+        } else if (res === "instructions") {
+          api.body.innerHTML = tutorialHtml();
+        } else if (res === "dismissed") {
+          toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
+        } else {
+          toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
+        }
+      });
+    }
+  };
+  window.addEventListener("shiftkar:install-ready", onReady, { once: true });
 }
 
 /**
@@ -260,5 +286,8 @@ export function maybeAutoPromptInstall() {
   const flag = loadFlag();
   if (flag.autoShown) return;
   saveFlag({ autoShown: true });
-  setTimeout(() => showInstallSheet(), 2200);
+  // Give Chrome time to finish service-worker setup and decide
+  // installability before we ask — `beforeinstallprompt` only fires after
+  // the SW is active, which takes a moment on a cold visit.
+  setTimeout(() => showInstallSheet(), 4000);
 }

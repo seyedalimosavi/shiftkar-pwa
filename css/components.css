@@ -340,6 +340,7 @@
 
 .theme-mode-option:hover {
   border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
 }
 
 .theme-mode-option.is-active {
@@ -375,18 +376,21 @@
   gap: 8px;
   padding: 12px 8px;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-surface-strong);
   transition: all var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
 .theme-option:hover {
+  border-color: var(--color-primary-border);
   background: var(--color-primary-soft);
 }
 
 .theme-option.is-active {
-  border-color: var(--color-primary-border);
+  border-color: var(--color-primary);
   background: var(--color-primary-soft);
+  box-shadow: var(--shadow-primary);
 }
 
 .theme-swatch {
