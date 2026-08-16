@@ -6,7 +6,7 @@
  * same-origin GET at runtime — the first visit downloads the whole app,
  * and the hashed names mean stale files are never served.
  */
-const VERSION = "1.8.0";
+const VERSION = "1.9.0";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 /* Only the shell — everything else (hashed JS/CSS/assets) is cached on
@@ -29,7 +29,13 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      .then(async () => {
+        // Tell every open tab that a fresh version is in charge — the page
+        // shows a brief "update ready" banner and reloads once.
+        const clients = await self.clients.matchAll({ type: "window" });
+        clients.forEach((client) => client.postMessage({ type: "SK_UPDATE_READY" }));
+      }),
   );
 });
 

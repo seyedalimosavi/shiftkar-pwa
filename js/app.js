@@ -7,6 +7,71 @@ import { initRouter, navigate } from "./core/router.js";
 import { renderSplash } from "./pages/splash.js";
 import { initInstallPrompt } from "./components/install-prompt.js";
 
+/* ---------------- silent PWA updates ---------------- */
+
+const UPDATE_CHECK_MS = 60 * 60 * 1000; // check for a new version once an hour
+let updateBannerEl = null;
+
+/**
+ * Tell the user a newer version is installed and offer the reload.
+ * Stays on screen for a few seconds; dismissing it just closes the banner
+ * (the next update check will offer it again).
+ */
+function showUpdateBanner() {
+  if (updateBannerEl || !document.body) return;
+  const el = document.createElement("div");
+  el.className = "update-banner";
+  el.setAttribute("role", "status");
+  el.innerHTML = `
+    <span class="update-banner-text">نسخهٔ جدید آماده است</span>
+    <button type="button" class="update-banner-action">به‌روزرسانی</button>`;
+  const btn = el.querySelector(".update-banner-action");
+  btn.addEventListener("click", () => window.location.reload());
+  document.body.appendChild(el);
+  updateBannerEl = el;
+  // Auto-dismiss after a while — the reload stays one tap away.
+  setTimeout(() => dismissUpdateBanner(), 8000);
+}
+
+function dismissUpdateBanner() {
+  if (!updateBannerEl) return;
+  const el = updateBannerEl;
+  updateBannerEl = null;
+  el.classList.add("is-leaving");
+  setTimeout(() => el.remove(), 300);
+}
+
+/**
+ * Wire a registration for silent updates:
+ *  - `update()` on load and every UPDATE_CHECK_MS while the app is open;
+ *  - when a new service worker installs, wait until it is active;
+ *  - the new SW posts SK_UPDATE_READY → show the banner.
+ */
+function watchUpdates(reg) {
+  // Keep this tab's view fresh: when a new SW finishes installing, wait for
+  // it to activate (skipWaiting is called on install) and reload the page.
+  reg.addEventListener("updatefound", () => {
+    const next = reg.installing;
+    if (!next) return;
+    next.addEventListener("statechange", () => {
+      if (next.state === "activated") {
+        // The new SW now controls future navigations — reload once so the
+        // user lands on the fresh version (only if they haven't already).
+        if (!updateBannerEl) showUpdateBanner();
+      }
+    });
+  });
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "SK_UPDATE_READY") showUpdateBanner();
+  });
+
+  // Periodic check while the tab is open.
+  setInterval(() => {
+    reg.update().catch(() => {});
+  }, UPDATE_CHECK_MS);
+}
+
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   // Skip registration while running under the Vite dev server so the
@@ -16,6 +81,11 @@ function registerServiceWorker() {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./service-worker.js")
+      .then((reg) => {
+        watchUpdates(reg);
+        // Check right away so a stale cache is refreshed on this visit.
+        reg.update().catch(() => {});
+      })
       .catch((err) => console.warn("Service worker registration failed:", err));
   });
 }
