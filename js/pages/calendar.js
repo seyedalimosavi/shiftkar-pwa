@@ -207,6 +207,13 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapse
     return;
   }
 
+  // The guided tour holds the chip expanded while teaching it — no collapse
+  // timer and re-renders keep it expanded until the tour releases the hold.
+  if (todayChipHeld) {
+    chip.classList.remove("is-collapsed");
+    return;
+  }
+
   // Already shown + collapsed in this away-session → start minimized.
   if (todayChipSessionCollapsed) {
     chip.classList.add("is-collapsed");

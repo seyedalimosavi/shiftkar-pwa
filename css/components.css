@@ -340,7 +340,8 @@
 }
 
 /* Floating month arrows shown during the swipe step — the user can also
-   switch months by tapping these instead of swiping. */
+   switch months by tapping these instead of swiping. `display: flex` would
+   override the UA's [hidden] rule, so re-hide explicitly. */
 .tour-swipe-nav {
   position: fixed;
   inset: 0;
@@ -350,6 +351,10 @@
   padding: 0 14px;
   pointer-events: none;
   z-index: 1;
+}
+
+.tour-swipe-nav[hidden] {
+  display: none;
 }
 
 .tour-swipe-btn {

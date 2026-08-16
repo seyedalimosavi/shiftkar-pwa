@@ -193,13 +193,15 @@ function waitForScrollSettle(selector, timeout = 1500) {
 }
 
 /* Focus levels: some steps only point at a control and the surrounding
-   content is the real subject (tabs, view switch, systems) — blurring it
-   would hide exactly what the step is about. Those use "soft": the page
-   stays readable, the ring marks the target. Control-only steps use
-   "strong": everything outside the target is genuinely dimmed + blurred. */
+   content is the real subject (tabs, group chips, theme grid, view switch,
+   systems…) — blurring it would hide exactly what the step is about. Those
+   use "soft": NO blur and a whisper of dim, so the whole page stays fully
+   readable and the ring marks the target (the crisp hole still lets it
+   pop). Control-only steps use "strong": everything outside the target is
+   genuinely blurred + dimmed. */
 const FOCUS = {
-  soft: { blur: 1.5, dim: 0.16 },
-  strong: { blur: 4, dim: 0.36 },
+  soft: { blur: 0, dim: 0.1 },
+  strong: { blur: 3.5, dim: 0.38 },
   /* Pass-through steps (the swipe lesson) need the app fully readable AND
      interactive — no blur, no dim, only the bubble + swipe arrows guide. */
   clear: { blur: 0, dim: 0 },
@@ -215,11 +217,14 @@ function applyFocus(stepDef) {
 }
 
 /**
- * Spotlight the target(s): an elliptical mask punches a transparent hole
- * in the blur/dim overlay around the union of every matched element, so the
- * crisp real elements show through (ALL of them — group chips, the theme
- * grid, the nav bar) while everything else is blurred + dimmed. A glowing
- * ring marks the whole showcased group.
+ * Spotlight the target(s): an SVG mask punches a crisp rounded-rectangle
+ * hole in the dim/blur overlay around the union of every matched element, so
+ * the real elements show through (ALL of them — group chips, the theme
+ * grid, the nav bar) while everything else is dimmed + blurred. The mask is
+ * rebuilt from actual viewport-relative coordinates, so the hole matches the
+ * showcased group edge-to-edge — an ellipse drifted off wide/short groups
+ * (bottom nav, chips…) and left a torn blur edge. A glowing ring marks the
+ * whole showcased group.
  */
 function applyHole(rect) {
   const overlay = rootEl.querySelector(".tour-overlay");
@@ -230,18 +235,31 @@ function applyHole(rect) {
     ring.style.display = "none";
     return;
   }
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  // Ellipse sized to the union rect + a snug padding, so a wide group is
-  // covered edge-to-edge (a circle only cleared the middle of wide targets)
-  // and a small control isn't wrapped in a huge fuzzy oval.
-  const rx = rect.width / 2 + 16;
-  const ry = rect.height / 2 + 16;
 
-  // Transparent inside the hole → overlay (and its blur) invisible there.
-  const mask = `radial-gradient(ellipse ${Math.round(rx)}px ${Math.round(ry)}px at ${Math.round(cx)}px ${Math.round(cy)}px, transparent calc(100% - 14px), rgba(0,0,0,1) 100%)`;
-  overlay.style.maskImage = mask;
-  overlay.style.webkitMaskImage = mask;
+  // Rounded-rectangle hole slightly larger than the union rect. The SVG is
+  // sized to the current viewport, so its user-space coordinates map 1:1 to
+  // the overlay's fixed inset-0 box; white = dim/blur kept, black = hole.
+  const pad = 6;
+  const x = Math.max(0, Math.round(rect.left - pad));
+  const y = Math.max(0, Math.round(rect.top - pad));
+  const w = Math.round(rect.width + pad * 2);
+  const h = Math.round(rect.height + pad * 2);
+  const r = Math.min(22, Math.round(Math.min(w, h) / 2));
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${window.innerWidth}" height="${window.innerHeight}">` +
+    `<defs><mask id="shk-hole" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">` +
+    `<rect width="100%" height="100%" fill="white"/>` +
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="black"/>` +
+    `</mask></defs>` +
+    `<rect width="100%" height="100%" fill="white" mask="url(#shk-hole)"/>` +
+    `</svg>`;
+  const url = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+  overlay.style.maskImage = url;
+  overlay.style.webkitMaskImage = url;
+  overlay.style.maskSize = "100% 100%";
+  overlay.style.webkitMaskSize = "100% 100%";
+  overlay.style.maskRepeat = "no-repeat";
+  overlay.style.webkitMaskRepeat = "no-repeat";
 
   // Glowing ring around the showcased group — skipped when the target
   // covers most of the screen (whole calendar/sheet/grid), where the crisp
@@ -384,7 +402,13 @@ async function step(index) {
     // spotlight lands on the final position.
     if (stepDef.settle) await waitForScrollSettle(stepDef.selector);
   }
-  if (stepDef.holdTodayChip) setTodayChipHold(true);
+  if (stepDef.holdTodayChip) {
+    setTodayChipHold(true);
+    // The «برو به امروز» chip collapses ~1–2s after the user leaves the
+    // current month — it may already be minimized while the user reads the
+    // previous step. Re-expand it so the spotlight lands on the full button.
+    document.querySelectorAll(".today-chip").forEach((c) => c.classList.remove("is-collapsed"));
+  }
 
   showStep(stepDef);
   await spotlight(stepDef);
