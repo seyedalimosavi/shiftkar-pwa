@@ -2,8 +2,8 @@
  * Guided tour — a one-time, spotlight-style walkthrough of the whole app.
  *
  * While the tour is open the user can ONLY interact with the guide itself:
- *  - a full-screen overlay dims and blurs everything except the spotlighted
- *    element (a crisp "hole" around it);
+ *  - everything except the showcased element is dimmed AND blurred (a
+ *    blurred clone of the app sits behind a crisp spotlight hole);
  *  - taps, wheel and touch scrolling outside the tooltip are blocked;
  *  - steps auto-scroll the target into view and can switch tabs and trigger
  *    small UI actions (switch month, switch view) automatically.
@@ -87,6 +87,7 @@ function buildRoot() {
   el.setAttribute("role", "dialog");
   el.setAttribute("aria-label", "راهنمای برنامه");
   el.innerHTML = `
+    <div class="tour-blur-layer"></div>
     <div class="tour-overlay"></div>
     <div class="tour-bubble">
       <div class="tour-arrow"></div>
@@ -104,6 +105,17 @@ function buildRoot() {
   el.querySelector(".tour-skip").addEventListener("click", () => finish(false));
   el.querySelector(".tour-prev").addEventListener("click", () => step(stepIndex - 1));
   el.querySelector(".tour-next").addEventListener("click", () => step(stepIndex + 1));
+
+  // Build the blurred backdrop: a clone of the whole app, blurred. The real
+  // (crisp) app sits above it; the dim overlay's clip-path hole reveals the
+  // showcased element sharp while everything around it shows the blurred
+  // clone underneath.
+  const blurLayer = el.querySelector(".tour-blur-layer");
+  try {
+    blurLayer.appendChild(document.body.cloneNode(true));
+  } catch {
+    /* cloning can fail on exotic nodes — tour still works, just without blur */
+  }
   return el;
 }
 

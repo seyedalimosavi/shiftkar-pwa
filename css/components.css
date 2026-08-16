@@ -310,16 +310,30 @@
   pointer-events: none;
 }
 
-/* Full-screen dim + blur with a crisp hole around the spotlighted element.
-   The hole is applied via clip-path (updated per step). */
+/* Blurred backdrop: a clone of the whole app, blurred + darkened. The real
+   (crisp) app sits above it, and the dim overlay's clip-path hole reveals
+   the showcased element sharp while everything else shows this blur. */
+.tour-blur-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  filter: blur(10px) brightness(0.55);
+  z-index: 1;
+}
+
+.tour-blur-layer > * {
+  pointer-events: none;
+}
+
+/* Dim + clip-path hole around the spotlighted element (updated per step). */
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 14, 28, 0.45);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+  background: rgba(8, 11, 24, 0.38);
   pointer-events: auto;
   transition: clip-path 260ms var(--ease-out);
+  z-index: 2;
 }
 
 .tour-bubble {
@@ -334,6 +348,7 @@
   opacity: 1;
   transition: opacity 200ms var(--ease-out);
   animation: tour-bubble-in 220ms var(--ease-out) both;
+  z-index: 3;
 }
 
 .tour-arrow {
@@ -431,6 +446,23 @@
 /* Lock user scrolling while the tour is open (the tour scrolls itself). */
 body.tour-lock {
   overflow: hidden;
+}
+
+/* ---------- settings guide actions ---------- */
+.guide-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-action {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
 }
 
 /* ---------- text input ---------- */

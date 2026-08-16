@@ -173,13 +173,15 @@ function draw() {
 
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("refresh")} راهنمای شروع</h2>
-      <p class="settings-desc">راهنمای شروع برنامه دوباره نمایش داده می‌شود.</p>
-      <button type="button" class="btn btn-ghost" id="start-tour">
-        ${icon("info")} تور راهنمای برنامه
-      </button>
-      <button type="button" class="btn btn-ghost btn-danger-ghost" id="restart-onboarding">
-        نمایش دوباره راهنما
-      </button>
+      <p class="settings-desc">تور راهنمای برنامه را دوباره ببینید یا تنظیمات اولیهٔ نرم‌افزار را از نو شروع کنید.</p>
+      <div class="guide-actions">
+        <button type="button" class="btn btn-ghost guide-action" id="start-tour">
+          ${icon("info")} تور راهنمای برنامه
+        </button>
+        <button type="button" class="btn btn-ghost btn-danger-ghost guide-action" id="restart-onboarding">
+          راه‌اندازی مجدد تنظیمات اولیهٔ نرم‌افزار
+        </button>
+      </div>
     </section>`;
 
   wireEvents();
