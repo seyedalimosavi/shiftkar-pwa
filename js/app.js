@@ -7,6 +7,7 @@ import { initRouter, navigate } from "./core/router.js";
 import { renderSplash } from "./pages/splash.js";
 import { initInstallPrompt } from "./components/install-prompt.js";
 import { initUpdateCheck, hasVersionChanged } from "./components/update-check.js";
+import { initAnalytics, trackPageView } from "./core/analytics.js";
 
 /* ---------------- silent PWA updates ---------------- */
 
@@ -97,6 +98,7 @@ function boot() {
   initState();
   initInstallPrompt();
   initUpdateCheck();
+  initAnalytics();
   registerServiceWorker();
 
   const app = document.getElementById("app");
@@ -107,6 +109,11 @@ function boot() {
     initRouter(app);
     const target = state.settings.onboardingCompleted ? "calendar" : "onboarding";
     navigate(target);
+
+    // GA4 page views follow the hash router (initial + every change).
+    const track = () => trackPageView(window.location.hash.replace(/^#\/?/, "").split("?")[0] || "calendar");
+    window.addEventListener("hashchange", track);
+    track();
   }, 1000);
 }
 
