@@ -178,3 +178,16 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
   if (onMount) onMount(api);
   return api;
 }
+
+/* ---------------- quiet close (guided tour) ---------------- */
+
+/** Close the open sheet WITHOUT touching browser history (used by the guided
+ *  tour: it navigates to the next tab right after closing overlays, and the
+ *  normal close path's history.back() — which consumes the sheet's entry —
+ *  would pop the tour's freshly-navigated entry and bounce the app back to
+ *  the previous tab). The sheet's history entry is left in place (a
+ *  duplicate of the current URL); it costs at most one extra back press that
+ *  lands on the same page. */
+export function closeSheetQuietly() {
+  if (activeSheet) activeSheet.close(true);
+}

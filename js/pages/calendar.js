@@ -35,6 +35,7 @@ let lastLoadedMonth = null;
 let lastLoadedNotesVersion = -1;
 let windowListenerAttached = false;
 let keyHandler = null;
+let tableFullscreenApi = null;
 
 /* «برو به امروز» chip auto-collapse. The chip collapses ONCE per
    away-session: leave the current month → it shows the «امروز» label for a
@@ -62,6 +63,14 @@ let todayChipHeld = false;
  *  didn't exist when the tour started — it mounts expanded if the tour then
  *  navigates to another month). */
 let todayChipFrozenCollapsed = null;
+
+/** Close the fullscreen table WITHOUT touching history (guided tour — same
+ *  reasoning as closeSheetQuietly in bottom-sheet.js: the normal close
+ *  path's history.back() would race with the tour's own tab navigation and
+ *  pop its fresh entry). */
+export function closeTableFullscreenQuietly() {
+  if (tableFullscreenApi) tableFullscreenApi.close();
+}
 
 export function setTodayChipHold(held) {
   todayChipHeld = held;
@@ -458,6 +467,9 @@ function openTableFullscreen() {
   lockBodyScroll();
   requestAnimationFrame(() => overlay.classList.add("is-open"));
 
+  // The guided tour closes the fullscreen table without touching history.
+  tableFullscreenApi = { close: () => close(true), overlay };
+
   // The hardware/system back button closes the fullscreen table instead of
   // leaving the app (shared back-stack with the bottom sheets).
   let historyPushed = false;
@@ -559,6 +571,7 @@ function openTableFullscreen() {
 
   function close(popClosed = false) {
     if (!overlay.isConnected) return;
+    if (tableFullscreenApi && tableFullscreenApi.overlay === overlay) tableFullscreenApi = null;
     unregisterBack();
     document.removeEventListener("keydown", onKey);
     if (historyPushed && !popClosed) consumeBackEntry();

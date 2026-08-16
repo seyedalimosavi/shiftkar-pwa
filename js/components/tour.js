@@ -19,7 +19,8 @@ import { TOUR_STEPS } from "./tour-steps.js";
 import { navigate, getRoute } from "../core/router.js";
 import { state } from "../core/state.js";
 import { icon } from "./icons.js";
-import { setTodayChipHold } from "../pages/calendar.js";
+import { closeSheetQuietly } from "./bottom-sheet.js";
+import { setTodayChipHold, closeTableFullscreenQuietly } from "../pages/calendar.js";
 
 const SEEN_KEY = "shiftkar.tourSeen.v1";
 
@@ -104,12 +105,15 @@ async function runAction(action) {
 
 /** Close any bottom sheet / fullscreen table left open — the tour opens
  *  them while teaching (day detail, all-notes), and they must not linger
- *  blurred under later steps. */
+ *  blurred under later steps. Closed WITHOUT the history.back() their close
+ *  buttons normally trigger (consumeBackEntry): the tour navigates to the
+ *  next tab right after, and a pending back() would pop the freshly-
+ *  navigated history entry — the app would bounce back to the previous tab
+ *  while the bubble had already advanced (the page behind the guide stopped
+ *  following the steps). */
 function closeOverlays() {
-  const sheetClose = document.querySelector(".sheet-overlay .sheet-close");
-  if (sheetClose) sheetClose.click();
-  const tfClose = document.querySelector('.table-fullscreen [data-tf="close"]');
-  if (tfClose) tfClose.click();
+  closeSheetQuietly();
+  closeTableFullscreenQuietly();
 }
 
 /* ---------------- rendering ---------------- */
@@ -418,7 +422,18 @@ async function step(index) {
   // the spotlight; demo actions run after it, as a live demonstration.
   if (stepDef.click) await runAction(stepDef.click);
   if (stepDef.selector) {
-    await waitFor(() => document.querySelector(stepDef.selector));
+    // Steps with ensureVisible get a short first wait: if their subject was
+    // consumed by an earlier demo (the «برو به امروز» chip after its demo,
+    // an open sheet after it was closed), reveal it again right away so the
+    // spotlight has something real to highlight instead of hanging 4s and
+    // then showing a centered bubble pointing at nothing (this is what
+    // happens when the user goes BACK to those steps).
+    const firstWait = stepDef.ensureVisible ? 300 : 4000;
+    let target = await waitFor(() => document.querySelector(stepDef.selector), firstWait);
+    if (!target && stepDef.ensureVisible) {
+      await runAction(stepDef.ensureVisible);
+      target = await waitFor(() => document.querySelector(stepDef.selector));
+    }
     if (!stillCurrent(token)) return;
     // Sheet steps animate in — wait for the motion to settle so the
     // spotlight lands on the final position.

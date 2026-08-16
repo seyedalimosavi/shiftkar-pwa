@@ -20,6 +20,11 @@
  *              arrow buttons at the sides of the screen
  *  - sheetStep: keep the open bottom sheet (it is the subject of the step);
  *              the engine closes leftover sheets on every other step
+ *  - ensureVisible: action run when the selector is missing after a short
+ *              wait — used for steps whose subject is consumed by their own
+ *              demo (the «برو به امروز» chip) or closed by a later step
+ *              (the note editor), so going BACK to the step reveals it
+ *              again instead of spotlighting nothing
  *  - settle:   wait for the target position to stabilise (sheets animate
  *              in) before spotlighting it
  *  - holdTodayChip: marks the step that teaches «برو به امروز». The chip is
@@ -101,6 +106,9 @@ export const TOUR_STEPS = [
     text: "هر وقت از ماه جاری دور شدید، با این دکمهٔ کوچک یک‌تپه به ماه و روز امروز برمی‌گردید. الان می‌بینیدش!",
     holdTodayChip: true,
     demo: "goToday",
+    // Going BACK to this step after its demo returned to the current month
+    // leaves no chip to highlight — move to the next month to reveal it.
+    ensureVisible: "nextMonth",
   },
   {
     tab: "calendar",
@@ -152,6 +160,9 @@ export const TOUR_STEPS = [
     selector: ".note-editor",
     title: "یادداشت روزانه",
     text: "برای هر روز می‌توانید یادداشت بگذارید: «افزودن یادداشت» را بزنید، بنویسید و ذخیره کنید.",
+    // Going BACK to this step after the notes sheet closed it leaves no
+    // editor — open a day's detail sheet to reveal it again.
+    ensureVisible: "openDay",
   },
   {
     tab: "calendar",
