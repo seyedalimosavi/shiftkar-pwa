@@ -18,6 +18,8 @@
 import { TOUR_STEPS } from "./tour-steps.js";
 import { navigate, getRoute } from "../core/router.js";
 import { state } from "../core/state.js";
+import { icon } from "./icons.js";
+import { setTodayChipHold } from "../pages/calendar.js";
 
 const SEEN_KEY = "shiftkar.tourSeen.v1";
 
@@ -27,6 +29,7 @@ let rootEl = null;
 let savedTab = null;
 let savedView = null;
 let savedScrollY = 0;
+let passThroughActive = false;
 
 function seen() {
   try {
@@ -72,15 +75,38 @@ async function runAction(action) {
     case "goToday":
       document.querySelector('[data-action="today"]')?.click();
       break;
+    case "prevMonth":
+      document.querySelector('.cal-nav-btn[data-action="prev"]')?.click();
+      break;
     case "toTable":
       document.querySelector('[data-view="table"]')?.click();
       break;
     case "toGrid":
       document.querySelector('[data-view="grid"]')?.click();
       break;
+    case "openDay":
+      document
+        .querySelector(
+          ".cal-cell.is-today, tr.is-today, .cal-cell[data-datekey], tr[data-datekey]",
+        )
+        ?.click();
+      break;
+    case "openNotes":
+      document.querySelector('[data-action="notes"]')?.click();
+      break;
     default:
       break;
   }
+}
+
+/** Close any bottom sheet / fullscreen table left open — the tour opens
+ *  them while teaching (day detail, all-notes), and they must not linger
+ *  blurred under later steps. */
+function closeOverlays() {
+  const sheetClose = document.querySelector(".sheet-overlay .sheet-close");
+  if (sheetClose) sheetClose.click();
+  const tfClose = document.querySelector('.table-fullscreen [data-tf="close"]');
+  if (tfClose) tfClose.click();
 }
 
 /* ---------------- rendering ---------------- */
@@ -93,6 +119,10 @@ function buildRoot() {
   el.innerHTML = `
     <div class="tour-overlay"></div>
     <div class="tour-ring"></div>
+    <div class="tour-swipe-nav" hidden>
+      <button type="button" class="tour-swipe-btn" data-swipe="prev" aria-label="ماه قبل">${icon("chevronRight")}</button>
+      <button type="button" class="tour-swipe-btn" data-swipe="next" aria-label="ماه بعد">${icon("chevronLeft")}</button>
+    </div>
     <div class="tour-bubble">
       <div class="tour-arrow"></div>
       <div class="tour-step-label"></div>
@@ -109,6 +139,8 @@ function buildRoot() {
   el.querySelector(".tour-skip").addEventListener("click", () => finish(false));
   el.querySelector(".tour-prev").addEventListener("click", () => step(stepIndex - 1));
   el.querySelector(".tour-next").addEventListener("click", () => step(stepIndex + 1));
+  el.querySelector('[data-swipe="prev"]').addEventListener("click", () => runAction("prevMonth"));
+  el.querySelector('[data-swipe="next"]').addEventListener("click", () => runAction("nextMonth"));
   return el;
 }
 
@@ -166,8 +198,8 @@ function waitForScrollSettle(selector, timeout = 1500) {
    stays readable, the ring marks the target. Control-only steps use
    "strong": everything outside the target is genuinely dimmed + blurred. */
 const FOCUS = {
-  soft: { blur: 1.5, dim: 0.18 },
-  strong: { blur: 5, dim: 0.42 },
+  soft: { blur: 1.5, dim: 0.16 },
+  strong: { blur: 4, dim: 0.36 },
 };
 
 function applyFocus(stepDef) {
@@ -208,8 +240,12 @@ function applyHole(rect) {
   overlay.style.maskImage = mask;
   overlay.style.webkitMaskImage = mask;
 
-  // Glowing ring around the showcased group.
-  ring.style.display = "block";
+  // Glowing ring around the showcased group — skipped when the target
+  // covers most of the screen (whole calendar/sheet/grid), where the crisp
+  // hole itself is the highlight and a huge frame reads as a glitch.
+  const coversScreen =
+    rect.width * rect.height > window.innerWidth * window.innerHeight * 0.4;
+  ring.style.display = coversScreen ? "none" : "block";
   ring.style.top = `${rect.top - 5}px`;
   ring.style.left = `${rect.left - 5}px`;
   ring.style.width = `${rect.width + 10}px`;
@@ -253,6 +289,13 @@ function placeBubble(rect) {
 
 async function spotlight(stepDef) {
   applyFocus(stepDef);
+  // Steps with passThrough (the swipe lesson) let touches reach the app so
+  // the gesture actually works; the bubble and swipe arrows stay clickable.
+  passThroughActive = !!stepDef.passThrough;
+  rootEl.querySelector(".tour-overlay").style.pointerEvents = passThroughActive ? "none" : "auto";
+  const swipeNav = rootEl.querySelector(".tour-swipe-nav");
+  if (swipeNav) swipeNav.hidden = !stepDef.swipeArrows;
+
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const rect = targetRect(stepDef.selector);
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
@@ -302,6 +345,10 @@ async function step(index) {
   stepIndex = index;
   let stepDef = TOUR_STEPS[index];
 
+  // Close any sheet/fullscreen left open by a previous step (sheet steps
+  // keep theirs open — the sheet is the subject of the step).
+  if (!stepDef.sheetStep) closeOverlays();
+
   // Move to the right tab first.
   const current = getRoute() || "calendar";
   if (stepDef.tab !== current) {
@@ -330,7 +377,11 @@ async function step(index) {
   if (stepDef.click) await runAction(stepDef.click);
   if (stepDef.selector) {
     await waitFor(() => document.querySelector(stepDef.selector));
+    // Sheet steps animate in — wait for the motion to settle so the
+    // spotlight lands on the final position.
+    if (stepDef.settle) await waitForScrollSettle(stepDef.selector);
   }
+  if (stepDef.holdTodayChip) setTodayChipHold(true);
 
   showStep(stepDef);
   await spotlight(stepDef);
@@ -357,6 +408,9 @@ async function finish(completed) {
   if (!active) return;
   active = false;
   if (completed) markSeen();
+
+  closeOverlays();
+  setTodayChipHold(false);
 
   // Unblock scrolling and restore the original scroll position.
   document.body.classList.remove("tour-lock");
@@ -406,12 +460,14 @@ export async function startTour() {
   document.body.classList.add("tour-lock");
   const blockWheel = (e) => {
     if (!active) return;
+    if (passThroughActive) return;
     if (rootEl && e.target && rootEl.contains(e.target)) return;
     e.preventDefault();
     e.stopPropagation();
   };
   const blockTouch = (e) => {
     if (!active) return;
+    if (passThroughActive) return;
     if (rootEl && e.target && rootEl.contains(e.target)) return;
     e.preventDefault();
   };

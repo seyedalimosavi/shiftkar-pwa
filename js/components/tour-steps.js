@@ -15,6 +15,15 @@
  *  - demo:     optional action performed a moment AFTER the tooltip shows, as
  *              a live demonstration (e.g. «برو به امروز»); the spotlight
  *              re-measures afterwards and fades if the target disappears
+ *  - passThrough/swipeArrows: unlock touches to the app for this step (so
+ *              the swipe gesture really works) and show floating month
+ *              arrow buttons at the sides of the screen
+ *  - sheetStep: keep the open bottom sheet (it is the subject of the step);
+ *              the engine closes leftover sheets on every other step
+ *  - settle:   wait for the target position to stabilise (sheets animate
+ *              in) before spotlighting it
+ *  - holdTodayChip: pause the «برو به امروز» chip's auto-collapse so the
+ *              spotlight stays accurate while teaching it
  *  - installedTitle/installedText: when the install CTA is already satisfied
  *              (app installed), the step swaps in this copy and skips the
  *              spotlight instead of pointing at a pointless button
@@ -62,6 +71,13 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    selector: ".today-banner",
+    title: "بنر شیفت امروز",
+    text: "در بالای تقویم، تاریخ امروز و شیفت شما (روزکار، شب‌کار یا استراحت) را یک‌جا می‌بینید؛ با ضربه روی آن، جزئیات همان روز باز می‌شود.",
+  },
+  {
+    tab: "calendar",
+    focus: "soft",
     selector: ".cal-title-btn",
     title: "ماه و سال",
     text: "روی عنوان ماه بزنید تا با تقویم انتخاب ماه، ماه و سال دلخواه را پیدا کنید.",
@@ -78,6 +94,7 @@ export const TOUR_STEPS = [
     selector: ".today-chip",
     title: "برو به امروز",
     text: "هر وقت از ماه جاری دور شدید، با این دکمهٔ کوچک یک‌تپه به ماه و روز امروز برمی‌گردید. الان می‌بینیدش!",
+    holdTodayChip: true,
     demo: "goToday",
   },
   {
@@ -88,9 +105,11 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
+    passThrough: true,
+    swipeArrows: true,
     selector: ".cal-body",
     title: "کشیدن انگشت بین ماه‌ها",
-    text: "روی همین تقویم، انگشت خود را به راست یا چپ بکشید تا ماه بعد یا قبل را ببینید.",
+    text: "همین حالا امتحان کنید: روی تقویم انگشت‌تان را به راست یا چپ بکشید تا ماه عوض شود — یا از فلش‌های دو طرف صفحه استفاده کنید.",
   },
   {
     tab: "calendar",
@@ -106,6 +125,36 @@ export const TOUR_STEPS = [
     selector: '[data-action="fullscreen"]',
     title: "جدول تمام‌صفحه",
     text: "با این دکمه جدول شیفت‌ها تمام‌صفحه می‌شود؛ با دکمهٔ بستن یا دکمهٔ بازگشت گوشی، تمام‌صفحه بسته می‌شود.",
+  },
+
+  {
+    tab: "calendar",
+    focus: "soft",
+    sheetStep: true,
+    settle: true,
+    selector: ".sheet",
+    click: "openDay",
+    title: "جزئیات هر روز",
+    text: "با ضربه روی هر روز، برگهٔ جزئیات باز می‌شود: شیفت همهٔ گروه‌ها، مناسبت‌ها و یادداشت همان روز.",
+  },
+  {
+    tab: "calendar",
+    focus: "soft",
+    sheetStep: true,
+    settle: true,
+    selector: ".note-editor",
+    title: "یادداشت روزانه",
+    text: "برای هر روز می‌توانید یادداشت بگذارید: «افزودن یادداشت» را بزنید، بنویسید و ذخیره کنید.",
+  },
+  {
+    tab: "calendar",
+    focus: "soft",
+    sheetStep: true,
+    settle: true,
+    selector: ".sheet",
+    click: "openNotes",
+    title: "مدیریت همهٔ یادداشت‌ها",
+    text: "دکمهٔ یادداشت بالای تقویم، همهٔ یادداشت‌های شما را با جستجو و پرش به همان روز نشان می‌دهد.",
   },
 
   // ---------- systems ----------

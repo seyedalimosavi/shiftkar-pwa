@@ -52,6 +52,19 @@ let todayChipSessionStarted = false;
 let todayChipSessionCollapsed = false;
 let offCurrentMonthCount = 0;
 
+/** While the guided tour teaches «برو به امروز», hold the chip expanded so
+ *  the highlight stays accurate — the collapse timer is paused and the
+ *  collapse is a no-op until the tour releases the hold. */
+let todayChipHeld = false;
+
+export function setTodayChipHold(held) {
+  todayChipHeld = held;
+  if (held && todayChipTimer) {
+    clearTimeout(todayChipTimer);
+    todayChipTimer = null;
+  }
+}
+
 export function renderCalendar(el) {
   container = el;
   if (!unsubscribe) {
@@ -183,6 +196,7 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapse
   // before the timer fires keep the chip expanded instead of killing the
   // label the moment it appears.
   const collapse = () => {
+    if (todayChipHeld) return;
     chip.classList.add("is-collapsed");
     todayChipSessionCollapsed = true;
   };
