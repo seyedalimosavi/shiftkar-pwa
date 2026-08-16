@@ -3,6 +3,10 @@
  *
  * Each step:
  *  - tab:      route to navigate to before looking for the target
+ *  - focus:    "soft" (default "strong") — soft keeps the page readable and
+ *              only marks the target with the ring; strong blurs + dims
+ *              everything except the target. Use soft when the surrounding
+ *              content is the subject (tabs, view switch, systems…).
  *  - selector: element(s) to spotlight (null → skip targeting, tooltip centered).
  *              Any selector may match several elements — the spotlight then
  *              covers them ALL (one crisp hole + one ring around the group).
@@ -20,30 +24,35 @@ export const TOUR_STEPS = [
   // ---------- bottom navigation ----------
   {
     tab: "calendar",
+    focus: "soft",
     selector: ".bottom-nav-inner",
     title: "نوار پایین برنامه",
     text: "چهار بخش اصلی برنامه در این نوار قرار دارد: تقویم، سامانه‌ها، تصویر لوحه و تنظیمات. در ادامه هر کدام را می‌بینید.",
   },
   {
     tab: "calendar",
+    focus: "soft",
     selector: '.nav-item[data-route="calendar"]',
     title: "تقویم",
     text: "بخش اصلی برنامه: تقویم ماهانهٔ شیفت‌ها با محاسبهٔ خودکار روزکار، شب‌کاری و استراحت.",
   },
   {
     tab: "systems",
+    focus: "soft",
     selector: '.nav-item[data-route="systems"]',
     title: "سامانه‌ها",
     text: "دسترسی سریع به سامانه‌های شرکت پتروشیمی بندر امام خمینی (ره).",
   },
   {
     tab: "roster",
+    focus: "soft",
     selector: '.nav-item[data-route="roster"]',
     title: "تصویر لوحه",
     text: "لوحهٔ شیفت همان تصویری است که همیشه در محل کار نصب است؛ اینجا همیشه به‌روز در دسترس شماست.",
   },
   {
     tab: "settings",
+    focus: "soft",
     selector: '.nav-item[data-route="settings"]',
     title: "تنظیمات",
     text: "شخصی‌سازی برنامه: گروه شیفت، تم، نمای تقویم و نصب برنامه.",
@@ -52,6 +61,7 @@ export const TOUR_STEPS = [
   // ---------- calendar ----------
   {
     tab: "calendar",
+    focus: "soft",
     selector: ".cal-title-btn",
     title: "ماه و سال",
     text: "روی عنوان ماه بزنید تا با تقویم انتخاب ماه، ماه و سال دلخواه را پیدا کنید.",
@@ -84,13 +94,15 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
+    focus: "soft",
     selector: ".view-toggle-nav, .view-single-toggle",
     title: "نمای تقویم و جدول",
-    text: "بین نمای شبکه‌ای (تقویم) و جدول شیفت‌ها جابه‌جا شوید.",
+    text: "بین نمای شبکه‌ای (تقویم) و جدول شیفت‌ها جابه‌جا شوید — الان نمای جدولی را می‌بینید.",
     click: "toTable",
   },
   {
     tab: "calendar",
+    focus: "soft",
     selector: '[data-action="fullscreen"]',
     title: "جدول تمام‌صفحه",
     text: "با این دکمه جدول شیفت‌ها تمام‌صفحه می‌شود؛ با دکمهٔ بستن یا دکمهٔ بازگشت گوشی، تمام‌صفحه بسته می‌شود.",

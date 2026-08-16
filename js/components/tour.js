@@ -160,6 +160,25 @@ function waitForScrollSettle(selector, timeout = 1500) {
   });
 }
 
+/* Focus levels: some steps only point at a control and the surrounding
+   content is the real subject (tabs, view switch, systems) — blurring it
+   would hide exactly what the step is about. Those use "soft": the page
+   stays readable, the ring marks the target. Control-only steps use
+   "strong": everything outside the target is genuinely dimmed + blurred. */
+const FOCUS = {
+  soft: { blur: 1.5, dim: 0.18 },
+  strong: { blur: 5, dim: 0.42 },
+};
+
+function applyFocus(stepDef) {
+  const f = FOCUS[stepDef.focus] || FOCUS.strong;
+  const overlay = rootEl.querySelector(".tour-overlay");
+  const blur = `blur(${f.blur}px)`;
+  overlay.style.webkitBackdropFilter = blur;
+  overlay.style.backdropFilter = blur;
+  overlay.style.background = `rgba(8, 11, 24, ${f.dim})`;
+}
+
 /**
  * Spotlight the target(s): an elliptical mask punches a transparent hole
  * in the blur/dim overlay around the union of every matched element, so the
@@ -178,13 +197,14 @@ function applyHole(rect) {
   }
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
-  // Ellipse sized to the union rect + padding, so a wide group is covered
-  // edge-to-edge (a circle only cleared the middle of wide targets).
-  const rx = rect.width / 2 + 30;
-  const ry = rect.height / 2 + 30;
+  // Ellipse sized to the union rect + a snug padding, so a wide group is
+  // covered edge-to-edge (a circle only cleared the middle of wide targets)
+  // and a small control isn't wrapped in a huge fuzzy oval.
+  const rx = rect.width / 2 + 16;
+  const ry = rect.height / 2 + 16;
 
   // Transparent inside the hole → overlay (and its blur) invisible there.
-  const mask = `radial-gradient(ellipse ${Math.round(rx)}px ${Math.round(ry)}px at ${Math.round(cx)}px ${Math.round(cy)}px, transparent calc(100% - 26px), rgba(0,0,0,1) 100%)`;
+  const mask = `radial-gradient(ellipse ${Math.round(rx)}px ${Math.round(ry)}px at ${Math.round(cx)}px ${Math.round(cy)}px, transparent calc(100% - 14px), rgba(0,0,0,1) 100%)`;
   overlay.style.maskImage = mask;
   overlay.style.webkitMaskImage = mask;
 
@@ -206,7 +226,11 @@ function placeBubble(rect) {
   let arrowLeft = "50%";
 
   if (!rect) {
+    // No target (or it vanished after a demo): center the bubble WITHOUT an
+    // arrow — a dangling pointer at nothing looks broken.
     top = Math.max(12, (window.innerHeight - bubbleH) / 2);
+    arrowPos = "none";
+    arrowLeft = "50%";
   } else if (rect.top - bubbleH - margin > 8) {
     top = rect.top - bubbleH - margin;
     arrowPos = "bottom";
@@ -228,6 +252,7 @@ function placeBubble(rect) {
 }
 
 async function spotlight(stepDef) {
+  applyFocus(stepDef);
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const rect = targetRect(stepDef.selector);
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
@@ -293,6 +318,7 @@ async function step(index) {
       stepDef = {
         ...stepDef,
         selector: null,
+        focus: "soft",
         title: stepDef.installedTitle || stepDef.title,
         text: stepDef.installedText,
       };
@@ -309,18 +335,21 @@ async function step(index) {
   showStep(stepDef);
   await spotlight(stepDef);
 
-  // Demo (e.g. «برو به امروز»): perform the action a moment later, then
-  // re-measure — the target usually disappears (chip only exists off the
-  // current month), so the ring fades and the bubble recentres.
+  // Demo (e.g. «برو به امروز»): perform the action a moment later. The
+  // target usually disappears (the chip only exists off the current month),
+  // so the ring and the arrow fade at that moment — the bubble stays where
+  // it is instead of jumping to a recentred spot with a dangling pointer.
   if (stepDef.demo) {
     const demoIndex = stepIndex;
     setTimeout(() => {
-      if (active && stepIndex === demoIndex) runAction(stepDef.demo);
-    }, 1000);
-    setTimeout(() => {
       if (!active || !rootEl || !rootEl.isConnected) return;
-      if (stepIndex === demoIndex) spotlight(TOUR_STEPS[demoIndex]);
-    }, 2000);
+      if (stepIndex !== demoIndex) return;
+      runAction(stepDef.demo);
+      const ring = rootEl.querySelector(".tour-ring");
+      ring.style.display = "none";
+      const bubble = rootEl.querySelector(".tour-bubble");
+      bubble.dataset.arrow = "none";
+    }, 1000);
   }
 }
 

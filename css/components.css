@@ -317,9 +317,11 @@
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 11, 24, 0.45);
-  -webkit-backdrop-filter: blur(7px);
-  backdrop-filter: blur(7px);
+  /* Default focus level — JS overrides blur/dim per step (soft steps keep
+     the page readable). */
+  background: rgba(8, 11, 24, 0.42);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   pointer-events: auto;
 }
 
@@ -372,6 +374,10 @@
 .tour-bubble[data-arrow="top"] .tour-arrow {
   top: -8px;
   transform: rotate(225deg);
+}
+
+.tour-bubble[data-arrow="none"] .tour-arrow {
+  display: none;
 }
 
 .tour-step-label {
