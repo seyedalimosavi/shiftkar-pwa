@@ -22,6 +22,7 @@
 import { openSheet } from "./bottom-sheet.js";
 import { icon } from "./icons.js";
 import { toast } from "./dialogs.js";
+import { isTourActive } from "./tour.js";
 
 const FLAG_KEY = "shiftkar.installPrompt.v1";
 
@@ -315,6 +316,8 @@ export function maybeAutoPromptInstall() {
   if (getInstallState().installed) return;
   const flag = loadFlag();
   if (flag.autoShown) return;
+  // Don't stack the install sheet on top of the first-run guided tour.
+  if (isTourActive()) return;
   saveFlag({ autoShown: true });
   // Give Chrome time to finish service-worker setup and decide
   // installability before we ask — `beforeinstallprompt` only fires after

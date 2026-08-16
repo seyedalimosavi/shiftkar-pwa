@@ -10,6 +10,7 @@ import { icon } from "../components/icons.js";
 import { confirmDialog, toast } from "../components/dialogs.js";
 import { viewPickerMarkup, wireViewPicker } from "../components/view-picker.js";
 import { getInstallState, showInstallSheet } from "../components/install-prompt.js";
+import { startTour } from "../components/tour.js";
 
 let container = null;
 let unsubscribe = null;
@@ -173,6 +174,9 @@ function draw() {
     <section class="settings-card glass-card">
       <h2 class="settings-title">${icon("refresh")} راهنمای شروع</h2>
       <p class="settings-desc">راهنمای شروع برنامه دوباره نمایش داده می‌شود.</p>
+      <button type="button" class="btn btn-ghost" id="start-tour">
+        ${icon("info")} تور راهنمای برنامه
+      </button>
       <button type="button" class="btn btn-ghost btn-danger-ghost" id="restart-onboarding">
         نمایش دوباره راهنما
       </button>
@@ -222,6 +226,11 @@ function wireEvents() {
     }
     showInstallSheet();
   });
+
+  const tourBtn = container.querySelector("#start-tour");
+  if (tourBtn) {
+    tourBtn.addEventListener("click", () => startTour());
+  }
 
   container.querySelector("#restart-onboarding").addEventListener("click", async () => {
     const ok = await confirmDialog({

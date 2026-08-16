@@ -26,6 +26,7 @@ import { shiftBadge, shiftCodeBadge, miniGroupBadge } from "../components/shift-
 import { icon } from "../components/icons.js";
 import { registerBackHandler, consumeBackEntry, lockBodyScroll, unlockBodyScroll } from "../components/bottom-sheet.js";
 import { maybeAutoPromptInstall } from "../components/install-prompt.js";
+import { maybeAutoStartTour } from "../components/tour.js";
 
 let container = null;
 let unsubscribe = null;
@@ -68,6 +69,8 @@ export function renderCalendar(el) {
   // One-time install ask — fires when the calendar is first reached, which
   // is after onboarding OR on any later visit. Internal flag makes it once-ever.
   maybeAutoPromptInstall();
+  // One-time guided tour — only after onboarding is complete and only once.
+  maybeAutoStartTour();
 }
 
 function currentView() {
