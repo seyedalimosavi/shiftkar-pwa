@@ -310,40 +310,17 @@
   pointer-events: none;
 }
 
-/* Blurred backdrop: a clone of the whole app, blurred + darkened. The real
-   (crisp) app sits above it, and the dim overlay's clip-path hole reveals
-   the showcased element sharp while everything else shows this blur. */
-.tour-blur-layer {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  background: var(--color-background);
-  filter: blur(10px) brightness(0.6);
-  z-index: 0;
-}
-
-/* Keep the blurred copy of the app at the same position as the real one. */
-.tour-blur-layer #app {
-  position: relative;
-}
-
-.tour-blur-layer #bottom-nav {
-  position: fixed;
-}
-
-.tour-blur-layer > * {
-  pointer-events: none;
-}
-
-/* Dim + clip-path hole around the spotlighted element (updated per step). */
+/* Dim + blur everything EXCEPT the clip-path hole around the spotlighted
+   element (updated per step). backdrop-filter blurs the real content behind
+   the overlay; the transparent hole lets the crisp element show through. */
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 11, 24, 0.38);
+  background: rgba(8, 11, 24, 0.4);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   pointer-events: auto;
   transition: clip-path 260ms var(--ease-out);
-  z-index: 2;
 }
 
 .tour-bubble {
@@ -358,7 +335,6 @@
   opacity: 1;
   transition: opacity 200ms var(--ease-out);
   animation: tour-bubble-in 220ms var(--ease-out) both;
-  z-index: 3;
 }
 
 [data-theme-mode="dark"] .tour-bubble {
@@ -462,15 +438,8 @@ body.tour-lock {
   overflow: hidden;
 }
 
-/* Stacking: the blurred clone (z 0) sits above the real app (z 10) but the
-   dim overlay (z 2) covers both — its clip-path hole reveals the crisp
-   real app through the blur. */
-body.tour-lock #app,
-body.tour-lock #bottom-nav {
-  position: relative;
-  z-index: 10;
-}
-
+/* The tour sits above the app (real content is blurred by the overlay's
+   backdrop-filter; the clip-path hole reveals the crisp element). */
 body.tour-lock .tour {
   z-index: 500;
 }

@@ -87,7 +87,6 @@ function buildRoot() {
   el.setAttribute("role", "dialog");
   el.setAttribute("aria-label", "راهنمای برنامه");
   el.innerHTML = `
-    <div class="tour-blur-layer"></div>
     <div class="tour-overlay"></div>
     <div class="tour-bubble">
       <div class="tour-arrow"></div>
@@ -108,26 +107,7 @@ function buildRoot() {
   return el;
 }
 
-/**
- * Blurred backdrop = a snapshot of the APP ONLY (never the tour itself),
- * blurred + darkened, positioned where the real app is. The dim overlay's
- * clip-path hole reveals the crisp real element on top; everything else
- * shows this blurred copy underneath.
- */
-function buildBlur() {
-  if (!rootEl || !rootEl.isConnected) return;
-  const blurLayer = rootEl.querySelector(".tour-blur-layer");
-  if (!blurLayer) return;
-  blurLayer.innerHTML = "";
-  try {
-    const app = document.getElementById("app");
-    const nav = document.getElementById("bottom-nav");
-    if (app) blurLayer.appendChild(app.cloneNode(true));
-    if (nav) blurLayer.appendChild(nav.cloneNode(true));
-  } catch {
-    /* cloning can fail on exotic nodes — tour still works, just without blur */
-  }
-}
+
 
 /** Dim + blur everything except a crisp hole around the target rect. */
 function applyHole(rect) {
@@ -175,6 +155,9 @@ function placeBubble(rect) {
     arrowPos = "top";
     arrowLeft = `${Math.min(Math.max(rect.left + rect.width / 2 - 10, 18), window.innerWidth - 28)}px`;
   }
+
+  // Safety: never push the bubble off-screen.
+  top = Math.max(10, Math.min(top, window.innerHeight - bubbleH - 10));
 
   bubble.style.top = `${top}px`;
   bubble.style.left = `${Math.max(8, (window.innerWidth - bubbleW) / 2)}px`;
@@ -266,10 +249,6 @@ async function step(index) {
     await waitFor(() => document.querySelector(stepDef.selector));
   }
 
-  // Refresh the blurred backdrop to the current screen (tab switches and
-  // view changes re-render the app while the tour stays put).
-  buildBlur();
-
   showStep(stepDef);
   spotlight(stepDef);
 }
@@ -323,7 +302,6 @@ export async function startTour() {
   prevScrollY = savedScrollY;
 
   rootEl = buildRoot();
-  buildBlur();
 
   // Block user scrolling (the tour scrolls itself) and taps outside the guide.
   document.body.classList.add("tour-lock");
