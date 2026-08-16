@@ -3,16 +3,24 @@
  *
  * Each step:
  *  - tab:      route to navigate to before looking for the target
- *  - selector: element(s) to spotlight (null → skip targeting, tooltip centered)
- *  - click:    optional action performed before the tooltip shows, e.g. a
+ *  - selector: element(s) to spotlight (null → skip targeting, tooltip centered).
+ *              Any selector may match several elements — the spotlight then
+ *              covers them ALL (one crisp hole + one ring around the group).
+ *  - click:    optional action performed BEFORE the tooltip shows, e.g. a
  *              button that reveals the element being explained
+ *  - demo:     optional action performed a moment AFTER the tooltip shows, as
+ *              a live demonstration (e.g. «برو به امروز»); the spotlight
+ *              re-measures afterwards and fades if the target disappears
+ *  - installedTitle/installedText: when the install CTA is already satisfied
+ *              (app installed), the step swaps in this copy and skips the
+ *              spotlight instead of pointing at a pointless button
  *  - title/text: Persian copy for the tooltip bubble
  */
 export const TOUR_STEPS = [
   // ---------- bottom navigation ----------
   {
     tab: "calendar",
-    selector: "#bottom-nav",
+    selector: ".bottom-nav-inner",
     title: "نوار پایین برنامه",
     text: "چهار بخش اصلی برنامه در این نوار قرار دارد: تقویم، سامانه‌ها، تصویر لوحه و تنظیمات. در ادامه هر کدام را می‌بینید.",
   },
@@ -59,8 +67,8 @@ export const TOUR_STEPS = [
     tab: "calendar",
     selector: ".today-chip",
     title: "برو به امروز",
-    text: "هر وقت از ماه جاری دور شدید، با این دکمهٔ کوچک یک‌تپه به ماه و روز امروز برمی‌گردید.",
-    click: "goToday",
+    text: "هر وقت از ماه جاری دور شدید، با این دکمهٔ کوچک یک‌تپه به ماه و روز امروز برمی‌گردید. الان می‌بینیدش!",
+    demo: "goToday",
   },
   {
     tab: "calendar",
@@ -86,7 +94,6 @@ export const TOUR_STEPS = [
     selector: '[data-action="fullscreen"]',
     title: "جدول تمام‌صفحه",
     text: "با این دکمه جدول شیفت‌ها تمام‌صفحه می‌شود؛ با دکمهٔ بستن یا دکمهٔ بازگشت گوشی، تمام‌صفحه بسته می‌شود.",
-    click: "toGrid",
   },
 
   // ---------- systems ----------
@@ -108,20 +115,22 @@ export const TOUR_STEPS = [
   // ---------- settings ----------
   {
     tab: "settings",
-    selector: '[data-mygroup="A"]',
+    selector: "[data-mygroup]",
     title: "گروه شخصی شما",
-    text: "گروه شیفت خود را اینجا انتخاب کنید تا تقویم از همان ابتدا بر اساس گروه شما باشد.",
+    text: "گروه شیفت خود را اینجا انتخاب کنید — همهٔ گزینه‌ها (A تا D و «همه») برای انتخاب باز هستند و تقویم بر اساس گروه شما ساخته می‌شود.",
   },
   {
     tab: "settings",
     selector: ".theme-grid",
     title: "رنگ اصلی برنامه",
-    text: "از بین شش رنگ، رنگ دلخواه خود را انتخاب کنید.",
+    text: "هر شش رنگ برای انتخاب باز است؛ رنگ دلخواه خود را بزنید تا کل برنامه با آن هماهنگ شود.",
   },
   {
     tab: "settings",
     selector: "#install-app-btn",
     title: "نصب برنامه",
     text: "شیفت‌کار را روی گوشی یا رایانهٔ خود نصب کنید تا بدون اینترنت هم کار کند و مثل یک اپ واقعی باز شود.",
+    installedTitle: "نصب برنامه",
+    installedText: "شیفت‌کار همین حالا روی این دستگاه نصب شده است؛ از فهرست برنامه‌ها بازش کنید تا مثل یک اپ واقعی کار کند — حتی بدون اینترنت.",
   },
 ];

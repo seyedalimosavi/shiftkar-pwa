@@ -3,12 +3,15 @@
  *
  * While the tour is open the user can ONLY interact with the guide itself:
  *  - a full-screen overlay dims + blurs everything EXCEPT the showcased
- *    element — a radial-gradient mask punches a transparent hole over it,
- *    so it stays crisp (no DOM cloning, no fragile clip-path);
- *  - a glowing ring marks the showcased element;
+ *    element(s) — an elliptical mask punches a transparent hole over the
+ *    union of all matched elements, so a whole group (nav bar, group chips,
+ *    theme grid) stays crisp (no DOM cloning, no fragile clip-path);
+ *  - a glowing ring marks the showcased group;
  *  - taps, wheel and touch scrolling outside the tooltip are blocked;
- *  - steps auto-scroll the target into view and can switch tabs and trigger
- *    small UI actions (switch month, switch view) automatically.
+ *  - steps auto-scroll the target into view (waiting for the scroll to
+ *    settle before measuring, so the ring never lands mid-scroll) and can
+ *    switch tabs, trigger small UI actions (switch month, switch view) and
+ *    run live demos («برو به امروز»).
  *
  * Runs once per device (like onboarding); replayable from Settings → راهنمای شروع.
  */
@@ -109,13 +112,17 @@ function buildRoot() {
   return el;
 }
 
-/** Union of the bounding rects of every element matching a selector. */
+/** Union of the bounding rects of every element matching a selector.
+ *  Hidden elements (display:none / zero-size) are skipped so they can never
+ *  inflate the union across the whole screen (e.g. the desktop view-toggle
+ *  group on narrow screens). */
 function targetRect(selector) {
   const els = selector ? document.querySelectorAll(selector) : [];
   if (!els.length) return null;
   let r = null;
   els.forEach((el) => {
     const rect = el.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return; // hidden — ignore
     if (!r) r = { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
     else {
       r.left = Math.min(r.left, rect.left);
@@ -124,16 +131,41 @@ function targetRect(selector) {
       r.bottom = Math.max(r.bottom, rect.bottom);
     }
   });
+  if (!r) return null;
   r.width = r.right - r.left;
   r.height = r.bottom - r.top;
   return r;
 }
 
+/** Resolve once the target has stopped moving (smooth scroll finished), so
+ *  measurements happen at the final resting position. */
+function waitForScrollSettle(selector, timeout = 1500) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    let lastTop = null;
+    let stable = 0;
+    const poll = () => {
+      const r = targetRect(selector);
+      const top = r ? Math.round(r.top) : null;
+      if (top !== null && top === lastTop) stable += 1;
+      else if (top !== null) {
+        stable = 0;
+        lastTop = top;
+      }
+      if (Date.now() - start > timeout) return resolve();
+      if (top !== null && stable >= 4) return resolve();
+      setTimeout(poll, 60);
+    };
+    poll();
+  });
+}
+
 /**
- * Spotlight the target: a radial-gradient mask punches a transparent hole
- * in the blur/dim overlay around the element, so the crisp real element
- * shows through while everything else is blurred + dimmed. A glowing ring
- * marks the showcased element.
+ * Spotlight the target(s): an elliptical mask punches a transparent hole
+ * in the blur/dim overlay around the union of every matched element, so the
+ * crisp real elements show through (ALL of them — group chips, the theme
+ * grid, the nav bar) while everything else is blurred + dimmed. A glowing
+ * ring marks the whole showcased group.
  */
 function applyHole(rect) {
   const overlay = rootEl.querySelector(".tour-overlay");
@@ -146,14 +178,17 @@ function applyHole(rect) {
   }
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
-  const radius = Math.max(rect.width, rect.height) / 2 + 40;
+  // Ellipse sized to the union rect + padding, so a wide group is covered
+  // edge-to-edge (a circle only cleared the middle of wide targets).
+  const rx = rect.width / 2 + 30;
+  const ry = rect.height / 2 + 30;
 
   // Transparent inside the hole → overlay (and its blur) invisible there.
-  const mask = `radial-gradient(circle ${Math.round(radius)}px at ${Math.round(cx)}px ${Math.round(cy)}px, transparent 68%, rgba(0,0,0,1) 100%)`;
+  const mask = `radial-gradient(ellipse ${Math.round(rx)}px ${Math.round(ry)}px at ${Math.round(cx)}px ${Math.round(cy)}px, transparent calc(100% - 26px), rgba(0,0,0,1) 100%)`;
   overlay.style.maskImage = mask;
   overlay.style.webkitMaskImage = mask;
 
-  // Glowing ring around the showcased element.
+  // Glowing ring around the showcased group.
   ring.style.display = "block";
   ring.style.top = `${rect.top - 5}px`;
   ring.style.left = `${rect.left - 5}px`;
@@ -192,14 +227,15 @@ function placeBubble(rect) {
   bubble.querySelector(".tour-arrow").style.left = arrowLeft;
 }
 
-function spotlight(stepDef) {
+async function spotlight(stepDef) {
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const rect = targetRect(stepDef.selector);
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
 
   if (needsScroll) {
-    // Hide the bubble while the target scrolls into view, then position
-    // everything after the scroll settles.
+    // Hide the bubble while the target scrolls into view, then wait for the
+    // scroll to SETTLE before measuring — measuring mid-smooth-scroll left
+    // the ring stuck at a wrong spot (e.g. floating over the bottom nav).
     const bubble = rootEl.querySelector(".tour-bubble");
     bubble.style.opacity = "0";
     try {
@@ -207,13 +243,12 @@ function spotlight(stepDef) {
     } catch {
       /* ignore */
     }
-    setTimeout(() => {
-      if (!active || !rootEl || !rootEl.isConnected) return;
-      const r = targetRect(stepDef.selector);
-      applyHole(r);
-      placeBubble(r);
-      bubble.style.opacity = "";
-    }, 320);
+    await waitForScrollSettle(stepDef.selector);
+    if (!active || !rootEl || !rootEl.isConnected) return;
+    const r = targetRect(stepDef.selector);
+    applyHole(r);
+    placeBubble(r);
+    bubble.style.opacity = "";
     return;
   }
 
@@ -240,7 +275,7 @@ async function step(index) {
     return;
   }
   stepIndex = index;
-  const stepDef = TOUR_STEPS[index];
+  let stepDef = TOUR_STEPS[index];
 
   // Move to the right tab first.
   const current = getRoute() || "calendar";
@@ -249,14 +284,44 @@ async function step(index) {
     await waitFor(() => getRoute() === stepDef.tab);
   }
 
-  // Perform the click action, then wait for the target to exist.
+  // Install step: once the app is installed, pointing at the CTA is
+  // meaningless — swap in the "already installed" copy and skip the
+  // spotlight (must run after the settings page rendered).
+  if (stepDef.installedText) {
+    const btn = document.querySelector("#install-app-btn");
+    if (btn && /نصب شده/.test(btn.textContent)) {
+      stepDef = {
+        ...stepDef,
+        selector: null,
+        title: stepDef.installedTitle || stepDef.title,
+        text: stepDef.installedText,
+      };
+    }
+  }
+
+  // click actions REVEAL the target (switch month / view) and run before
+  // the spotlight; demo actions run after it, as a live demonstration.
   if (stepDef.click) await runAction(stepDef.click);
   if (stepDef.selector) {
     await waitFor(() => document.querySelector(stepDef.selector));
   }
 
   showStep(stepDef);
-  spotlight(stepDef);
+  await spotlight(stepDef);
+
+  // Demo (e.g. «برو به امروز»): perform the action a moment later, then
+  // re-measure — the target usually disappears (chip only exists off the
+  // current month), so the ring fades and the bubble recentres.
+  if (stepDef.demo) {
+    const demoIndex = stepIndex;
+    setTimeout(() => {
+      if (active && stepIndex === demoIndex) runAction(stepDef.demo);
+    }, 1000);
+    setTimeout(() => {
+      if (!active || !rootEl || !rootEl.isConnected) return;
+      if (stepIndex === demoIndex) spotlight(TOUR_STEPS[demoIndex]);
+    }, 2000);
+  }
 }
 
 async function finish(completed) {
