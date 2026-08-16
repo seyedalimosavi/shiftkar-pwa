@@ -1,5 +1,5 @@
 /**
- * Roster page («تابلو»).
+ * Roster page («لوحه»).
  * Shows assets/roster-1405.png when present; otherwise a graceful
  * missing-asset state (no fake roster data is generated).
  * The viewer supports zoom, pan, drag, pinch, double-tap and reset.
@@ -9,14 +9,36 @@ import { lockBodyScroll, unlockBodyScroll } from "../components/bottom-sheet.js"
 
 const ROSTER_SRC = "./assets/roster-1405.png";
 
+/** Color legend for the لوحه (red = Fridays, yellow = official holidays). */
+const LEGEND_HTML = `
+  <div class="roster-legend" aria-hidden="true">
+    <span class="roster-legend-item"><i class="roster-legend-dot is-red"></i>روزهای جمعه</span>
+    <span class="roster-legend-item"><i class="roster-legend-dot is-yellow"></i>تعطیلات رسمی</span>
+    <span class="roster-legend-zoom">${icon("zoomIn")} جهت زوم بر روی عکس کلیک کنید</span>
+  </div>`;
+
+/**
+ * Warm the roster image in the background on first use — even if the user
+ * never opens the لوحه tab (calendar, onboarding, tour…), the picture is
+ * already downloaded and cached (browser + service worker) and ready.
+ */
+export function prefetchRosterImage() {
+  try {
+    const img = new Image();
+    img.src = ROSTER_SRC;
+  } catch (err) {
+    /* ignore */
+  }
+}
+
 export function renderRoster(container) {
   container.innerHTML = `
     <div class="page-head">
-      <h1 class="page-title">تابلو</h1>
-      <p class="page-subtitle">تصویر تابلو شیفت ۱۴۰۵</p>
+      <h1 class="page-title">لوحه</h1>
+      <p class="page-subtitle">تصویر لوحه امسال</p>
     </div>
     <div class="roster-card glass-card" id="roster-card">
-      <div class="roster-loading" role="status" aria-label="در حال بارگذاری تابلو">
+      <div class="roster-loading" role="status" aria-label="در حال بارگذاری لوحه">
         <div class="spinner"></div>
         <span>در حال بارگذاری…</span>
       </div>
@@ -27,10 +49,10 @@ export function renderRoster(container) {
 
   img.onload = () => {
     card.innerHTML = `
-      <button type="button" class="roster-preview" aria-label="باز کردن تابلو در نمای کامل">
-        <img src="${ROSTER_SRC}" alt="تابلو شیفت ۱۴۰۵" />
-        <span class="roster-open-hint">${icon("zoomIn")} برای مشاهدهٔ کامل ضربه بزنید</span>
-      </button>`;
+      <button type="button" class="roster-preview" aria-label="باز کردن لوحه در نمای کامل">
+        <img src="${ROSTER_SRC}" alt="لوحه شیفت امسال" />
+      </button>
+      ${LEGEND_HTML}`;
     card.querySelector(".roster-preview").addEventListener("click", () => openRosterViewer(ROSTER_SRC));
   };
 
@@ -38,7 +60,7 @@ export function renderRoster(container) {
     card.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">${icon("roster")}</div>
-        <h2>تصویر تابلو در دسترس نیست</h2>
+        <h2>تصویر لوحه در دسترس نیست</h2>
         <p>فایل <code>assets/roster-1405.png</code> در این نسخه موجود نیست. به محض قرار گرفتن تصویر، از همین بخش نمایش داده می‌شود.</p>
         <button type="button" class="btn btn-primary" id="roster-retry">تلاش دوباره</button>
       </div>`;
@@ -55,7 +77,7 @@ function openRosterViewer(src) {
   overlay.className = "roster-viewer";
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
-  overlay.setAttribute("aria-label", "نمایش تابلو");
+  overlay.setAttribute("aria-label", "نمایش لوحه");
   overlay.innerHTML = `
     <div class="viewer-toolbar">
       <span class="viewer-hint">برای بزرگ‌نمایی دو بار ضربه بزنید</span>
@@ -67,7 +89,7 @@ function openRosterViewer(src) {
       </div>
     </div>
     <div class="viewer-stage">
-      <img class="viewer-img" src="${src}" alt="تابلو شیفت ۱۴۰۵" draggable="false" />
+      <img class="viewer-img" src="${src}" alt="لوحه شیفت امسال" draggable="false" />
     </div>`;
 
   document.body.appendChild(overlay);

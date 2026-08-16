@@ -200,6 +200,9 @@ function waitForScrollSettle(selector, timeout = 1500) {
 const FOCUS = {
   soft: { blur: 1.5, dim: 0.16 },
   strong: { blur: 4, dim: 0.36 },
+  /* Pass-through steps (the swipe lesson) need the app fully readable AND
+     interactive — no blur, no dim, only the bubble + swipe arrows guide. */
+  clear: { blur: 0, dim: 0 },
 };
 
 function applyFocus(stepDef) {

@@ -84,6 +84,7 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
+    focus: "soft",
     selector: ".cal-nav-start, .cal-nav-end",
     title: "جابه‌جایی بین ماه‌ها",
     text: "با این دو دکمه (فلش‌های دو طرف عنوان ماه) به ماه بعد و قبل بروید. روی «بعدی» بزنید تا ببینید.",
@@ -91,6 +92,7 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
+    focus: "soft",
     selector: ".today-chip",
     title: "برو به امروز",
     text: "هر وقت از ماه جاری دور شدید، با این دکمهٔ کوچک یک‌تپه به ماه و روز امروز برمی‌گردید. الان می‌بینیدش!",
@@ -99,12 +101,14 @@ export const TOUR_STEPS = [
   },
   {
     tab: "calendar",
+    focus: "soft",
     selector: ".group-filter",
     title: "فیلتر گروه شیفت",
     text: "گروه شیفت خود (A تا D) را انتخاب کنید؛ «همه» هم وضعیت هر چهار گروه را یک‌جا نشان می‌دهد.",
   },
   {
     tab: "calendar",
+    focus: "clear",
     passThrough: true,
     swipeArrows: true,
     selector: ".cal-body",
@@ -160,6 +164,7 @@ export const TOUR_STEPS = [
   // ---------- systems ----------
   {
     tab: "systems",
+    focus: "soft",
     selector: ".systems-grid",
     title: "سامانه‌های شرکت",
     text: "با یک ضربه، هر سامانه در مرورگر باز می‌شود — پورتال، پنل سفر، سهام فصلی و بقیه.",
@@ -168,6 +173,7 @@ export const TOUR_STEPS = [
   // ---------- roster ----------
   {
     tab: "roster",
+    focus: "soft",
     selector: ".roster-preview",
     title: "تصویر لوحهٔ شیفت",
     text: "با ضربه روی تصویر، نمای کامل و بزرگ‌نمایی لوحه باز می‌شود.",
@@ -176,18 +182,21 @@ export const TOUR_STEPS = [
   // ---------- settings ----------
   {
     tab: "settings",
+    focus: "soft",
     selector: "[data-mygroup]",
     title: "گروه شخصی شما",
     text: "گروه شیفت خود را اینجا انتخاب کنید — همهٔ گزینه‌ها (A تا D و «همه») برای انتخاب باز هستند و تقویم بر اساس گروه شما ساخته می‌شود.",
   },
   {
     tab: "settings",
+    focus: "soft",
     selector: ".theme-grid",
     title: "رنگ اصلی برنامه",
     text: "هر شش رنگ برای انتخاب باز است؛ رنگ دلخواه خود را بزنید تا کل برنامه با آن هماهنگ شود.",
   },
   {
     tab: "settings",
+    focus: "soft",
     selector: "#install-app-btn",
     title: "نصب برنامه",
     text: "شیفت‌کار را روی گوشی یا رایانهٔ خود نصب کنید تا بدون اینترنت هم کار کند و مثل یک اپ واقعی باز شود.",

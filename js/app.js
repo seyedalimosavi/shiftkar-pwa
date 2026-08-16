@@ -7,6 +7,7 @@ import { initRouter, navigate } from "./core/router.js";
 import { renderSplash } from "./pages/splash.js";
 import { initInstallPrompt } from "./components/install-prompt.js";
 import { initAnalytics, trackPageView } from "./core/analytics.js";
+import { prefetchRosterImage } from "./pages/roster.js";
 
 /* Silent service-worker refresh — no UI, no banner. The service worker
    serves the network-first on navigations, so deployed changes appear on
@@ -38,6 +39,10 @@ function boot() {
   initInstallPrompt();
   initAnalytics();
   registerServiceWorker();
+
+  // Start downloading the لوحه picture in the background right away, so it
+  // is cached and ready even if the user never opens the لوحه tab.
+  prefetchRosterImage();
 
   const app = document.getElementById("app");
   renderSplash(app);
