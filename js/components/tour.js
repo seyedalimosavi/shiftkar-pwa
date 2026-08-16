@@ -30,6 +30,9 @@ let savedTab = null;
 let savedView = null;
 let savedScrollY = 0;
 let passThroughActive = false;
+/** Monotonic token for step transitions — invalidates stale async step()
+ *  invocations (see step() below). */
+let stepToken = 0;
 
 function seen() {
   try {
@@ -192,6 +195,12 @@ function waitForScrollSettle(selector, timeout = 1500) {
   });
 }
 
+/** True while `token` is still the latest step transition — a newer «بعدی» /
+ *  «قبلی» tap, or a finished tour, invalidates older ones. */
+function stillCurrent(token) {
+  return active && rootEl && rootEl.isConnected && token === stepToken;
+}
+
 /* Focus levels: some steps only point at a control and the surrounding
    content is the real subject (tabs, group chips, theme grid, view switch,
    systems…) — blurring it would hide exactly what the step is about. Those
@@ -309,6 +318,7 @@ function placeBubble(rect) {
 }
 
 async function spotlight(stepDef) {
+  const thisStep = stepIndex;
   applyFocus(stepDef);
   // Steps with passThrough (the swipe lesson) let touches reach the app so
   // the gesture actually works; the bubble and swipe arrows stay clickable.
@@ -334,6 +344,9 @@ async function spotlight(stepDef) {
     }
     await waitForScrollSettle(stepDef.selector);
     if (!active || !rootEl || !rootEl.isConnected) return;
+    // A newer step may have started while the scroll settled — don't let a
+    // stale spotlight overwrite the new step's ring/bubble.
+    if (stepIndex !== thisStep) return;
     const r = targetRect(stepDef.selector);
     applyHole(r);
     placeBubble(r);
@@ -363,6 +376,13 @@ async function step(index) {
     finish(true);
     return;
   }
+  // Guard against overlapping transitions: if the user taps «بعدی» while the
+  // previous step is still settling (tab switch, scroll, sheet animation),
+  // two step() invocations can race — the slower one used to overwrite the
+  // new step's title/text with the old step's content while the counter had
+  // already advanced. Every invocation gets a token; any that is no longer
+  // current bails before touching the UI.
+  const token = ++stepToken;
   stepIndex = index;
   let stepDef = TOUR_STEPS[index];
 
@@ -375,6 +395,7 @@ async function step(index) {
   if (stepDef.tab !== current) {
     navigate(stepDef.tab);
     await waitFor(() => getRoute() === stepDef.tab);
+    if (!stillCurrent(token)) return;
   }
 
   // Install step: once the app is installed, pointing at the CTA is
@@ -398,20 +419,23 @@ async function step(index) {
   if (stepDef.click) await runAction(stepDef.click);
   if (stepDef.selector) {
     await waitFor(() => document.querySelector(stepDef.selector));
+    if (!stillCurrent(token)) return;
     // Sheet steps animate in — wait for the motion to settle so the
     // spotlight lands on the final position.
     if (stepDef.settle) await waitForScrollSettle(stepDef.selector);
+    if (!stillCurrent(token)) return;
   }
+  // The tour froze the chip when it started; re-asserting is a no-op but
+  // keeps the step flag meaningful. The chip keeps whatever state it is in
+  // (expanded label or folded icon) and the spotlight highlights exactly
+  // that — it is never forced to expand or collapse mid-guide.
   if (stepDef.holdTodayChip) {
     setTodayChipHold(true);
-    // The «برو به امروز» chip collapses ~1–2s after the user leaves the
-    // current month — it may already be minimized while the user reads the
-    // previous step. Re-expand it so the spotlight lands on the full button.
-    document.querySelectorAll(".today-chip").forEach((c) => c.classList.remove("is-collapsed"));
   }
 
   showStep(stepDef);
   await spotlight(stepDef);
+  if (!stillCurrent(token)) return;
 
   // Demo (e.g. «برو به امروز»): perform the action a moment later. The
   // target usually disappears (the chip only exists off the current month),
@@ -476,6 +500,11 @@ export async function startTour() {
   if (rootEl) return;
   active = true;
   stepIndex = 0;
+
+  // Pause the app for the duration of the guide — the «برو به امروز» chip is
+  // frozen in its current state so it can't collapse or re-expand under the
+  // spotlight; finish() unfreezes it and normal behavior resumes.
+  setTodayChipHold(true);
 
   savedTab = getRoute() || "calendar";
   savedView = state.settings.calendarViewType === "table" ? "table" : "grid";

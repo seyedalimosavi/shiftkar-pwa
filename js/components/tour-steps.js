@@ -22,8 +22,11 @@
  *              the engine closes leftover sheets on every other step
  *  - settle:   wait for the target position to stabilise (sheets animate
  *              in) before spotlighting it
- *  - holdTodayChip: pause the «برو به امروز» chip's auto-collapse so the
- *              spotlight stays accurate while teaching it
+ *  - holdTodayChip: marks the step that teaches «برو به امروز». The chip is
+ *              actually frozen for the WHOLE tour (startTour pauses it — it
+ *              keeps its current state, expanded or folded, and never
+ *              collapses/expands on its own until finish); this flag just
+ *              documents which step teaches it
  *  - installedTitle/installedText: when the install CTA is already satisfied
  *              (app installed), the step swaps in this copy and skips the
  *              spotlight instead of pointing at a pointless button

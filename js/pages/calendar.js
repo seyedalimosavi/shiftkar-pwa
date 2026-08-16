@@ -52,16 +52,41 @@ let todayChipSessionStarted = false;
 let todayChipSessionCollapsed = false;
 let offCurrentMonthCount = 0;
 
-/** While the guided tour teaches «برو به امروز», hold the chip expanded so
- *  the highlight stays accurate — the collapse timer is paused and the
- *  collapse is a no-op until the tour releases the hold. */
+/** While the guided tour runs, the app is paused: the «برو به امروز» chip is
+ *  FROZEN in whatever state it is in (expanded label or the folded icon) —
+ *  no collapse timer, no re-collapse on re-render, no forced re-expansion.
+ *  The spotlight therefore always highlights the button the user actually
+ *  sees, and normal behavior resumes the moment the tour ends. */
 let todayChipHeld = false;
+/** Snapshot of the chip's collapsed state at freeze time (null = the chip
+ *  didn't exist when the tour started — it mounts expanded if the tour then
+ *  navigates to another month). */
+let todayChipFrozenCollapsed = null;
 
 export function setTodayChipHold(held) {
   todayChipHeld = held;
-  if (held && todayChipTimer) {
+  if (todayChipTimer) {
     clearTimeout(todayChipTimer);
     todayChipTimer = null;
+  }
+  if (held) {
+    // Freeze: remember the CURRENT visual state so every re-render keeps it.
+    const chip = document.querySelector(".today-chip");
+    todayChipFrozenCollapsed = chip ? chip.classList.contains("is-collapsed") : null;
+    return;
+  }
+  // Unfreeze — the chip resumes its natural lifecycle. If it is mounted
+  // expanded right now (the label already served its moment before the tour
+  // froze it), let it collapse again shortly.
+  todayChipFrozenCollapsed = null;
+  const chip = document.querySelector(".today-chip");
+  if (chip && chip.isConnected && !chip.classList.contains("is-collapsed")) {
+    todayChipTimer = setTimeout(() => {
+      todayChipTimer = null;
+      if (todayChipHeld || !chip.isConnected) return;
+      chip.classList.add("is-collapsed");
+      todayChipSessionCollapsed = true;
+    }, 900);
   }
 }
 
@@ -143,7 +168,7 @@ function draw() {
           ).join("")}
         </div>
         ${view === "table" ? `<button type="button" class="icon-btn" data-action="fullscreen" aria-label="جدول تمام‌صفحه">${icon("expand")}</button>` : ""}
-        ${isCurrentMonth ? "" : todayChipHtml({ collapsed: view === "table" || todayChipSessionCollapsed })}
+        ${isCurrentMonth ? "" : todayChipHtml({ collapsed: todayChipCollapsedState(view) })}
       </div>
 
       ${view === "grid" && s.filterGroup === "ALL" ? legendHtml() : ""}
@@ -164,6 +189,16 @@ function draw() {
 /* Sits in the actions row (next to the fullscreen toggle) so it never
    covers calendar content. Only rendered off the current month — on the
    current month there is nowhere to go, so it disappears. */
+/** Collapsed state of the chip for the current draw: the table view always
+ *  keeps it minimized; while the guided tour freezes the app it keeps the
+ *  frozen snapshot (expanded label or folded icon — never forced either
+ *  way); otherwise the usual once-per-session collapse applies. */
+function todayChipCollapsedState(view) {
+  if (view === "table") return true;
+  if (todayChipHeld) return todayChipFrozenCollapsed === true;
+  return todayChipSessionCollapsed;
+}
+
 function todayChipHtml({ collapsed = false } = {}) {
   return `
     <button type="button" class="today-chip ${collapsed ? "is-collapsed" : ""}" data-action="today" title="برو به امروز" aria-label="رفتن به امروز">
@@ -207,12 +242,10 @@ function armTodayChip(root, { firstHold = 2400, repeatHold = 900, alwaysCollapse
     return;
   }
 
-  // The guided tour holds the chip expanded while teaching it — no collapse
-  // timer and re-renders keep it expanded until the tour releases the hold.
-  if (todayChipHeld) {
-    chip.classList.remove("is-collapsed");
-    return;
-  }
+  // The guided tour freezes the app: the chip keeps the state it was mounted
+  // with (the HTML already reflects the frozen snapshot) — no collapse
+  // timer, no hover re-expansion, until the tour releases the hold.
+  if (todayChipHeld) return;
 
   // Already shown + collapsed in this away-session → start minimized.
   if (todayChipSessionCollapsed) {
