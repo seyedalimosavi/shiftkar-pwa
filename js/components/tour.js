@@ -323,6 +323,11 @@ function placeBubble(rect) {
 
 async function spotlight(stepDef) {
   const thisStep = stepIndex;
+  const bubble = rootEl.querySelector(".tour-bubble");
+  // A step that was interrupted while its target scrolled into view leaves
+  // the bubble at opacity 0 — always restore it so the current step's
+  // bubble can never stay invisible after a rapid قبلی/بعدی tap.
+  bubble.style.opacity = "";
   applyFocus(stepDef);
   // Steps with passThrough (the swipe lesson) let touches reach the app so
   // the gesture actually works; the bubble and swipe arrows stay clickable.
@@ -339,7 +344,6 @@ async function spotlight(stepDef) {
     // Hide the bubble while the target scrolls into view, then wait for the
     // scroll to SETTLE before measuring — measuring mid-smooth-scroll left
     // the ring stuck at a wrong spot (e.g. floating over the bottom nav).
-    const bubble = rootEl.querySelector(".tour-bubble");
     bubble.style.opacity = "0";
     try {
       els[0].scrollIntoView({ block: "center", behavior: "smooth" });
@@ -349,8 +353,12 @@ async function spotlight(stepDef) {
     await waitForScrollSettle(stepDef.selector);
     if (!active || !rootEl || !rootEl.isConnected) return;
     // A newer step may have started while the scroll settled — don't let a
-    // stale spotlight overwrite the new step's ring/bubble.
-    if (stepIndex !== thisStep) return;
+    // stale spotlight overwrite the new step's ring/bubble, and don't leave
+    // the bubble hidden for the step that replaced us.
+    if (stepIndex !== thisStep) {
+      bubble.style.opacity = "";
+      return;
+    }
     const r = targetRect(stepDef.selector);
     applyHole(r);
     placeBubble(r);
@@ -374,6 +382,24 @@ function showStep(stepDef) {
 
 /* ---------------- engine ---------------- */
 
+/** Install step: once the app is installed, pointing at the CTA is
+ *  meaningless — returns the "already installed" variant (no spotlight,
+ *  different copy), or the original step while the CTA still applies. */
+function installedVariant(def) {
+  if (!def.installedText) return def;
+  const btn = document.querySelector("#install-app-btn");
+  if (btn && /نصب شده/.test(btn.textContent)) {
+    return {
+      ...def,
+      selector: null,
+      focus: "soft",
+      title: def.installedTitle || def.title,
+      text: def.installedText,
+    };
+  }
+  return def;
+}
+
 async function step(index) {
   if (!active) return;
   if (index < 0 || index >= TOUR_STEPS.length) {
@@ -388,33 +414,42 @@ async function step(index) {
   // current bails before touching the UI.
   const token = ++stepToken;
   stepIndex = index;
-  let stepDef = TOUR_STEPS[index];
+  const baseDef = TOUR_STEPS[index];
 
   // Close any sheet/fullscreen left open by a previous step (sheet steps
   // keep theirs open — the sheet is the subject of the step).
-  if (!stepDef.sheetStep) closeOverlays();
+  if (!baseDef.sheetStep) closeOverlays();
 
-  // Move to the right tab first.
+  // Update the bubble IMMEDIATELY — counter, title, text and the button
+  // states follow the tap now, not after the navigation/settling below.
+  // Showing them late made the bubble lag the page: pressing «قبلی» moved
+  // the app to the previous tab while the counter stayed put (or vice
+  // versa) until every wait below had finished, and rapid taps could leave
+  // it stuck on the previous step's content.
+  let stepDef = installedVariant(baseDef);
+  showStep(stepDef);
+
+  // Move to the right tab first. If the route doesn't land where we asked,
+  // retry once — a stale history entry used to let the bubble advance while
+  // the page stayed behind.
   const current = getRoute() || "calendar";
-  if (stepDef.tab !== current) {
-    navigate(stepDef.tab);
-    await waitFor(() => getRoute() === stepDef.tab);
+  if (baseDef.tab !== current) {
+    navigate(baseDef.tab);
+    let landed = await waitFor(() => getRoute() === baseDef.tab);
+    if (!landed) {
+      navigate(baseDef.tab);
+      landed = await waitFor(() => getRoute() === baseDef.tab);
+    }
     if (!stillCurrent(token)) return;
-  }
-
-  // Install step: once the app is installed, pointing at the CTA is
-  // meaningless — swap in the "already installed" copy and skip the
-  // spotlight (must run after the settings page rendered).
-  if (stepDef.installedText) {
-    const btn = document.querySelector("#install-app-btn");
-    if (btn && /نصب شده/.test(btn.textContent)) {
-      stepDef = {
-        ...stepDef,
-        selector: null,
-        focus: "soft",
-        title: stepDef.installedTitle || stepDef.title,
-        text: stepDef.installedText,
-      };
+    // The install step's copy depends on the settings page having rendered —
+    // re-resolve it now that the tab has loaded and refresh the bubble if
+    // the swap differs from what it already shows.
+    if (baseDef.installedText) {
+      const swapped = installedVariant(baseDef);
+      if (swapped !== stepDef) {
+        stepDef = swapped;
+        showStep(stepDef);
+      }
     }
   }
 
