@@ -1,244 +1,227 @@
 /**
- * Official Iranian holidays.
+ * Official Iranian holidays & events — the same system the Persian Calendar
+ * Android app uses (persian-calendar/persian-calendar):
  *
- * Three layers, so the calendar shows holidays for EVERY year the user can
- * browse — not just the hand-verified ones:
+ *  - Data: the project's official events dataset (persian-calendar/events),
+ *    compiled from the University of Tehran Calendar Center's official
+ *    calendars — holidays AND occasions, with Persian-year ranges.
+ *  - Lunar (Hijri) dates: the exact official Iranian qamari calendar (a
+ *    lookup table from roozbehp/qamari, Hijri years 1264–1449), NOT an
+ *    approximation — so عاشورا، عید فطر و… land on the exact printed dates.
+ *  - Irregular rules: end-of-month (شهادت امام رضا = آخرین روز صفر),
+ *    nth/last weekday of month (قالی‌شویان اردهال، روز جهانی قدس…),
+ *    single events.
  *
- * 1. SOLAR_HOLIDAYS — fixed Jalali dates that are official holidays every
- *    year (Nowruz, جمهوری اسلامی، رحلت امام خمینی، قیام ۱۵ خرداد، پیروزی
- *    انقلاب اسلامی، ملی شدن صنعت نفت).
- *
- * 2. YEAR_HOLIDAYS — lunar (Hijri) religious holidays, reference-checked
- *    against Iranian calendar sites (bahesab.ir, time.ir, bani-chap.com)
- *    for the years this build targets (1404–1406; 1405 is the reference
- *    year). These are the ground truth for those years and OVERRIDE the
- *    computed layer, because Iran's official lunar calendar can sit a day
- *    off the Umm al-Qura calendar. More years can be added here anytime.
- *
- * 3. COMPUTED — the same religious holidays derived from the Hijri calendar
- *    for ANY other year, so browsing to 1407 or 1398 still shows every
- *    holiday. Uses the device's Umm al-Qura calendar (astronomical; matches
- *    the real moon-based calendar within a day or so), falling back to the
- *    arithmetic (tabular) Islamic calendar when that locale is unavailable.
- *    If neither is available, the app simply shows the solar + verified
- *    years (the previous behaviour).
- *
- * When a solar and a lunar holiday land on the same day (e.g. عید غدیر and
- * رحلت امام خمینی on ۱۴ خرداد ۱۴۰۵, or نوروز + عید فطر on ۱ فروردین ۱۴۰۵)
- * both names are merged into one entry.
+ * Resolution: for a Jalali year, every Persian/Hijri/Gregorian event is
+ * mapped to its Jalali date(s) (a Jalali year spans two Hijri years, so
+ * e.g. عید فطر can occur twice — ۱۴۰۵ has one at the start and one at the
+ * end), then filtered by the event's Persian-year range. Results are
+ * memoized per Jalali year.
  */
 import { toJalaali, toGregorian, jalaaliMonthLength } from "./jalali.js";
+import {
+  islamicToJdn,
+  jdnToIslamic,
+  islamicMonthLength,
+  gregorianToJdn,
+  jdnToGregorian,
+  weekDayOrdinal,
+} from "./islamic-calendar.js";
+import { RECURRING_EVENTS, IRREGULAR_EVENTS } from "./events-data.js";
 
 export const HOLIDAY_SOURCE_LABEL = "تعطیلات رسمی ایران";
 
-/* ---------- fixed solar holidays (every year) ---------- */
-const SOLAR_HOLIDAYS = [
-  { jm: 1, jd: 1, name: "نوروز؛ آغاز سال نو" },
-  { jm: 1, jd: 2, name: "عید نوروز" },
-  { jm: 1, jd: 3, name: "عید نوروز" },
-  { jm: 1, jd: 4, name: "عید نوروز" },
-  { jm: 1, jd: 12, name: "روز جمهوری اسلامی ایران" },
-  { jm: 1, jd: 13, name: "روز طبیعت (سیزده‌به‌در)" },
-  { jm: 3, jd: 14, name: "رحلت امام خمینی (ره)" },
-  { jm: 3, jd: 15, name: "قیام ۱۵ خرداد" },
-  { jm: 11, jd: 22, name: "پیروزی انقلاب اسلامی" },
-  { jm: 12, jd: 29, name: "ملی شدن صنعت نفت ایران" },
-];
+/* ---------------- calendar helpers ---------------- */
 
-/* ---------- verified lunar holidays (override the computed layer) ---------- */
-const YEAR_HOLIDAYS = {
-  1404: [
-    { jm: 1, jd: 2, name: "شهادت امام علی (ع)" },
-    { jm: 1, jd: 11, name: "عید سعید فطر" },
-    { jm: 1, jd: 12, name: "تعطیل به مناسبت عید سعید فطر" },
-    { jm: 2, jd: 4, name: "شهادت امام جعفر صادق (ع)" },
-    { jm: 3, jd: 16, name: "عید سعید قربان" },
-    { jm: 3, jd: 24, name: "عید سعید غدیر خم" },
-    { jm: 4, jd: 14, name: "تاسوعای حسینی" },
-    { jm: 4, jd: 15, name: "عاشورای حسینی" },
-    { jm: 5, jd: 23, name: "اربعین حسینی" },
-    { jm: 5, jd: 31, name: "رحلت رسول اکرم (ص)؛ شهادت امام حسن مجتبی (ع)" },
-    { jm: 6, jd: 2, name: "شهادت امام رضا (ع)" },
-    { jm: 6, jd: 10, name: "شهادت امام حسن عسکری (ع)" },
-    { jm: 6, jd: 19, name: "میلاد رسول اکرم (ص)؛ میلاد امام جعفر صادق (ع)" },
-    { jm: 9, jd: 3, name: "شهادت حضرت فاطمه زهرا (س)" },
-    { jm: 10, jd: 13, name: "ولادت امام علی (ع)؛ روز پدر" },
-    { jm: 10, jd: 27, name: "مبعث رسول اکرم (ص)" },
-    { jm: 11, jd: 15, name: "ولادت امام زمان (عج)" },
-    { jm: 12, jd: 20, name: "شهادت امام علی (ع)" },
-  ],
-  1405: [
-    { jm: 1, jd: 1, name: "عید سعید فطر" },
-    { jm: 1, jd: 2, name: "تعطیل به مناسبت عید سعید فطر" },
-    { jm: 1, jd: 25, name: "شهادت امام جعفر صادق (ع)" },
-    { jm: 3, jd: 6, name: "عید سعید قربان" },
-    { jm: 3, jd: 14, name: "عید سعید غدیر خم" },
-    { jm: 4, jd: 3, name: "تاسوعای حسینی" },
-    { jm: 4, jd: 4, name: "عاشورای حسینی" },
-    { jm: 5, jd: 13, name: "اربعین حسینی" },
-    { jm: 5, jd: 21, name: "رحلت رسول اکرم (ص)؛ شهادت امام حسن مجتبی (ع)" },
-    { jm: 5, jd: 22, name: "شهادت امام رضا (ع)" },
-    { jm: 5, jd: 30, name: "شهادت امام حسن عسکری (ع)؛ آغاز امامت حضرت ولیعصر (عج)" },
-    { jm: 6, jd: 8, name: "میلاد رسول اکرم (ص)؛ میلاد امام جعفر صادق (ع)" },
-    { jm: 8, jd: 22, name: "شهادت حضرت فاطمه زهرا (س)" },
-    { jm: 10, jd: 2, name: "ولادت امام علی (ع)؛ روز پدر" },
-    { jm: 10, jd: 16, name: "مبعث رسول اکرم (ص)" },
-    { jm: 11, jd: 4, name: "ولادت امام زمان (عج)" },
-    { jm: 12, jd: 9, name: "شهادت امام علی (ع)" },
-    { jm: 12, jd: 19, name: "عید سعید فطر" },
-    { jm: 12, jd: 20, name: "تعطیل به مناسبت عید سعید فطر" },
-  ],
-  1406: [
-    { jm: 1, jd: 14, name: "شهادت امام جعفر صادق (ع)" },
-    { jm: 2, jd: 27, name: "عید سعید قربان" },
-    { jm: 3, jd: 4, name: "عید سعید غدیر خم" },
-    { jm: 3, jd: 24, name: "تاسوعای حسینی" },
-    { jm: 3, jd: 25, name: "عاشورای حسینی" },
-    { jm: 5, jd: 3, name: "اربعین حسینی" },
-    { jm: 5, jd: 11, name: "رحلت رسول اکرم (ص)؛ شهادت امام حسن مجتبی (ع)" },
-    { jm: 5, jd: 13, name: "شهادت امام رضا (ع)" },
-    { jm: 5, jd: 20, name: "شهادت امام حسن عسکری (ع)؛ آغاز امامت حضرت ولیعصر (عج)" },
-    { jm: 5, jd: 29, name: "میلاد رسول اکرم (ص)؛ میلاد امام جعفر صادق (ع)" },
-    { jm: 8, jd: 12, name: "شهادت حضرت فاطمه زهرا (س)" },
-    { jm: 9, jd: 21, name: "ولادت امام علی (ع)؛ روز پدر" },
-    { jm: 10, jd: 5, name: "مبعث رسول اکرم (ص)" },
-    { jm: 10, jd: 23, name: "ولادت امام زمان (عج)" },
-    { jm: 11, jd: 28, name: "شهادت امام علی (ع)" },
-    { jm: 12, jd: 8, name: "عید سعید فطر" },
-    { jm: 12, jd: 9, name: "تعطیل به مناسبت عید سعید فطر" },
-  ],
-};
+function jalaliToJdn(jy, jm, jd) {
+  const g = toGregorian(jy, jm, jd);
+  return gregorianToJdn(g.gy, g.gm, g.gd);
+}
 
-/* ---------- lunar holidays at fixed Hijri dates ---------- */
+function jdnToJalali(jdn) {
+  const g = jdnToGregorian(jdn);
+  return toJalaali(g.gy, g.gm, g.gd);
+}
+
+function gregorianMonthLength(gy, gm) {
+  return new Date(Date.UTC(gy, gm, 0)).getUTCDate();
+}
+
+/* Weekday ordinal for a date, in the persian-calendar convention where the
+ * data's weekday numbers are 1 = Sunday … 7 = Saturday. weekDayOrdinal()
+ * gives 0 = Saturday … 6 = Friday, so a data weekday's ordinal is wd % 7. */
+function dataWeekDayOrdinal(wd) {
+  return wd % 7;
+}
+
+/* Port of Calendar.getNthWeekDayOfMonth — day of month of the nth `weekDay`
+ * (1=Sunday…7=Saturday) of the month whose first day has JDN jdnOfDay1. */
+function nthWeekDayOfMonth(jdnOfDay1, weekDay, nth) {
+  const appWd = dataWeekDayOrdinal(weekDay);
+  const monthStartWd = weekDayOrdinal(jdnOfDay1);
+  return appWd + 1 - monthStartWd + nth * 7 - (monthStartWd <= appWd ? 7 : 0);
+}
+
+/* Port of Calendar.getLastWeekDayOfMonth — day of month of the LAST `weekDay`
+ * of the month (jdnOfDay1 = first day's JDN, monthLength = days in month). */
+function lastWeekDayOfMonth(jdnOfDay1, monthLength, weekDay) {
+  const appWd = dataWeekDayOrdinal(weekDay);
+  return monthLength - weekDayOrdinal(jdnOfDay1 + monthLength - 1 - appWd);
+}
+
+/* ---------------- irregular rule resolution ---------------- */
+
 /**
- * hm/hd are Hijri month/day (1 = محرم … 12 = ذی‌الحجه). monthEnd: the date
- * is «the last day of the month» — شهادت امام رضا is ۳۰ صفر, which falls on
- * ۲۹ صفر in years when صفر has only 29 days.
+ * Resolve one irregular event against a year of its own calendar, returning
+ * the (JDN, monthLength) of the created date or null. `year` is the year in
+ * the event's own calendar (Jalali for Persian, Hijri for Hijri, Gregorian
+ * for Gregorian).
  */
-const LUNAR_HOLIDAYS = [
-  { hm: 1, hd: 9, name: "تاسوعای حسینی" },
-  { hm: 1, hd: 10, name: "عاشورای حسینی" },
-  { hm: 2, hd: 20, name: "اربعین حسینی" },
-  { hm: 2, hd: 28, name: "رحلت رسول اکرم (ص)؛ شهادت امام حسن مجتبی (ع)" },
-  { hm: 2, hd: 30, name: "شهادت امام رضا (ع)", monthEnd: true },
-  { hm: 3, hd: 8, name: "شهادت امام حسن عسکری (ع)؛ آغاز امامت حضرت ولیعصر (عج)" },
-  { hm: 3, hd: 17, name: "میلاد رسول اکرم (ص)؛ میلاد امام جعفر صادق (ع)" },
-  { hm: 6, hd: 3, name: "شهادت حضرت فاطمه زهرا (س)" },
-  { hm: 7, hd: 13, name: "ولادت امام علی (ع)؛ روز پدر" },
-  { hm: 7, hd: 27, name: "مبعث رسول اکرم (ص)" },
-  { hm: 8, hd: 15, name: "ولادت امام زمان (عج)" },
-  { hm: 9, hd: 21, name: "شهادت امام علی (ع)" },
-  { hm: 10, hd: 1, name: "عید سعید فطر" },
-  { hm: 10, hd: 2, name: "تعطیل به مناسبت عید سعید فطر" },
-  { hm: 10, hd: 25, name: "شهادت امام جعفر صادق (ع)" },
-  { hm: 12, hd: 10, name: "عید سعید قربان" },
-  { hm: 12, hd: 18, name: "عید سعید غدیر خم" },
-];
+function monthLengthOf(calendar, year, month) {
+  if (calendar === "Hijri") return islamicMonthLength(year, month);
+  if (calendar === "Gregorian") return gregorianMonthLength(year, month);
+  return jalaaliMonthLength(year, month);
+}
 
-/* ---------- Hijri calendar access ---------- */
+function calendarJdn(calendar, year, month, day) {
+  if (calendar === "Hijri") return islamicToJdn(year, month, day);
+  if (calendar === "Gregorian") return gregorianToJdn(year, month, day);
+  return jalaliToJdn(year, month, day);
+}
 
-/** Pick the best Hijri calendar the engine offers: Umm al-Qura (astronomical,
- *  closest to the real moon-based calendar) first, then the arithmetic
- *  (tabular) Islamic calendar. Sanity-check the result — some engines ignore
- *  unknown calendar extensions and silently return the Gregorian date. */
-function pickHijriFormatter() {
-  for (const cal of ["islamic-umalqura", "islamic"]) {
-    try {
-      const fmt = new Intl.DateTimeFormat(`en-u-ca-${cal}`, {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-        timeZone: "UTC",
-      });
-      const probe = new Date(Date.UTC(2026, 2, 21)); // ۱ فروردین ۱۴۰۵
-      const parts = {};
-      for (const p of fmt.formatToParts(probe)) parts[p.type] = p.value;
-      if (parts.year && parts.year !== String(probe.getUTCFullYear())) return fmt;
-    } catch {
-      /* try the next calendar */
+/** Resolve one irregular event against a year of its own calendar; returns
+ *  the JDN of the created date, or null when the rule doesn't apply. */
+function resolveRule(e, year) {
+  const jdnOf = (m, d) => calendarJdn(e.calendar, year, m, d);
+  const monthLen = (m) => monthLengthOf(e.calendar, year, m);
+  switch (e.rule) {
+    case "single event":
+      if (e.year !== year) return null;
+      return jdnOf(e.month, e.day);
+    case "end of month":
+      return jdnOf(e.month, monthLen(e.month));
+    case "last weekday of month": {
+      const len = monthLen(e.month);
+      const day = lastWeekDayOfMonth(jdnOf(e.month, 1), len, e.weekday) + (e.offset || 0);
+      return jdnOf(e.month, day);
+    }
+    case "nth weekday of month": {
+      const day = nthWeekDayOfMonth(jdnOf(e.month, 1), e.weekday, e.nth);
+      return jdnOf(e.month, day);
+    }
+    case "nth day from":
+      return jdnOf(e.month, e.day) + e.nth - 1;
+    default:
+      return null;
+  }
+}
+
+/* ---------------- per-year resolution ---------------- */
+
+const yearCache = new Map();
+
+function inRange(jy, e) {
+  if (e.begin != null && jy < e.begin) return false;
+  if (e.end != null && jy > e.end) return false;
+  return true;
+}
+
+/** Map of "jm-jd" -> [{ title, isHoliday }] for one Jalali year. */
+function resolveYear(jy) {
+  if (yearCache.has(jy)) return yearCache.get(jy);
+  const map = new Map();
+
+  const add = (jm, jd, title, isHoliday) => {
+    if (!jm || !jd || jm < 1 || jm > 12 || jd < 1 || jd > 31) return;
+    const key = `${jm}-${jd}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push({ title, isHoliday: !!isHoliday });
+  };
+
+  // Persian (solar) recurring events — fixed Jalali dates.
+  for (const e of RECURRING_EVENTS) {
+    if (e.calendar !== "Persian" || !inRange(jy, e)) continue;
+    add(e.month, e.day, e.title, e.holiday);
+  }
+
+  // Hijri recurring events — every Hijri year overlapping this Jalali year.
+  const jdnStart = jalaliToJdn(jy, 1, 1);
+  const jdnEnd = jalaliToJdn(jy, 12, jalaaliMonthLength(jy, 12));
+  const hyStart = jdnToIslamic(jdnStart).hy;
+  const hyEnd = jdnToIslamic(jdnEnd).hy;
+  for (let hy = hyStart; hy <= hyEnd; hy += 1) {
+    for (const e of RECURRING_EVENTS) {
+      if (e.calendar !== "Hijri") continue;
+      const j = jdnToJalali(islamicToJdn(hy, e.month, e.day));
+      if (j.jy !== jy || !inRange(jy, e)) continue;
+      add(j.jm, j.jd, e.title, e.holiday);
     }
   }
-  return null;
+
+  // Gregorian recurring events — recur every Gregorian year; map each
+  // candidate Gregorian year that overlaps the Jalali year.
+  const gy1 = toGregorian(jy, 1, 1).gy;
+  const gy2 = toGregorian(jy, 12, jalaaliMonthLength(jy, 12)).gy;
+  for (let gy = gy1; gy <= gy2; gy += 1) {
+    for (const e of RECURRING_EVENTS) {
+      if (e.calendar !== "Gregorian") continue;
+      const j = toJalaali(gy, e.month, e.day);
+      if (j.jy !== jy || !inRange(jy, e)) continue;
+      add(j.jm, j.jd, e.title, e.holiday);
+    }
+  }
+
+  // Irregular events — resolved per year of their own calendar.
+  for (const e of IRREGULAR_EVENTS) {
+    if (!inRange(jy, e)) continue;
+    if (e.calendar === "Hijri") {
+      for (let hy = hyStart; hy <= hyEnd; hy += 1) {
+        const r = resolveRule(e, hy);
+        if (r == null) continue;
+        const j = jdnToJalali(r);
+        if (j.jy === jy) add(j.jm, j.jd, e.title, e.holiday);
+      }
+    } else if (e.calendar === "Gregorian") {
+      for (let gy = gy1; gy <= gy2; gy += 1) {
+        const r = resolveRule(e, gy);
+        if (r == null) continue;
+        const j = jdnToJalali(r);
+        if (j.jy === jy) add(j.jm, j.jd, e.title, e.holiday);
+      }
+    } else {
+      const r = resolveRule(e, jy);
+      if (r == null) continue;
+      const j = jdnToJalali(r);
+      if (j.jy === jy) add(j.jm, j.jd, e.title, e.holiday);
+    }
+  }
+
+  // Stable display order per day: official holidays first, then by title.
+  for (const list of map.values()) {
+    list.sort((a, b) => (b.isHoliday - a.isHoliday) || a.title.localeCompare(b.title, "fa"));
+  }
+
+  yearCache.set(jy, map);
+  return map;
 }
 
-const HIJRI_FMT = pickHijriFormatter();
+/* ---------------- public API ---------------- */
 
-function hijriOfDate(date) {
-  const parts = {};
-  for (const p of HIJRI_FMT.formatToParts(date)) parts[p.type] = p.value;
-  return { hy: Number(parts.year), hm: Number(parts.month), hd: Number(parts.day) };
+/** All events (holidays + occasions) on a Jalali date, holidays first. */
+export function getDayEvents(jy, jm, jd) {
+  return resolveYear(jy).get(`${jm}-${jd}`) || [];
 }
-
-/* ---------- computed lunar holidays for any year ---------- */
-
-const computedCache = new Map();
 
 /**
- * Walks every day of the Jalali year and maps each Hijri date that occurs
- * inside it back to its Jalali (jm, jd). A Jalali year spans ~1.03 Hijri
- * years, so a fixed Hijri date can legitimately occur TWICE in one Jalali
- * year (e.g. both عید فطرs of ۱۴۰۵, at the start and the end of the year) —
- * each occurrence is kept.
- */
-function computeLunarYear(jy) {
-  const g1 = toGregorian(jy, 1, 1);
-  const g2 = toGregorian(jy, 12, jalaaliMonthLength(jy, 12));
-  const byHijri = new Map(); // "hy-hm-hd" -> { jm, jd }
-  const monthMax = new Map(); // "hy-hm" -> last day of that Hijri month
-  let date = new Date(Date.UTC(g1.gy, g1.gm - 1, g1.gd));
-  const end = new Date(Date.UTC(g2.gy, g2.gm - 1, g2.gd));
-
-  while (date <= end) {
-    const j = toJalaali(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
-    if (j.jy === jy) {
-      const h = hijriOfDate(date);
-      const hk = `${h.hy}-${h.hm}-${h.hd}`;
-      if (!byHijri.has(hk)) byHijri.set(hk, { jm: j.jm, jd: j.jd });
-      const mk = `${h.hy}-${h.hm}`;
-      monthMax.set(mk, Math.max(monthMax.get(mk) || 0, h.hd));
-    }
-    date = new Date(date.getTime() + 86400000);
-  }
-
-  const out = [];
-  for (const def of LUNAR_HOLIDAYS) {
-    for (const [hk, { jm, jd }] of byHijri) {
-      const [hy, hm, hd] = hk.split("-").map(Number);
-      if (hm !== def.hm) continue;
-      const hit = def.monthEnd ? hd === monthMax.get(`${hy}-${hm}`) : hd === def.hd;
-      if (!hit) continue;
-      out.push({ jm, jd, name: def.name });
-    }
-  }
-  return out;
-}
-
-/** The lunar holiday list for a year: the verified override when one exists,
- *  otherwise the computed Hijri holidays (memoized). */
-function lunarYearList(jy) {
-  if (YEAR_HOLIDAYS[jy]) return YEAR_HOLIDAYS[jy];
-  if (computedCache.has(jy)) return computedCache.get(jy);
-  const list = HIJRI_FMT ? computeLunarYear(jy) : [];
-  computedCache.set(jy, list);
-  return list;
-}
-
-/**
- * Returns { name, source: 'official' } when (jy, jm, jd) is an official
- * holiday, otherwise null. Solar + lunar names on the same day are merged.
+ * Returns { name, source: 'official' } when the Jalali date is an official
+ * public holiday (all holiday titles merged), otherwise null.
  */
 export function getHoliday(jy, jm, jd) {
-  const names = [];
-  for (const h of SOLAR_HOLIDAYS) {
-    if (h.jm === jm && h.jd === jd) names.push(h.name);
-  }
-  for (const h of lunarYearList(jy)) {
-    if (h.jm === jm && h.jd === jd) names.push(h.name);
-  }
-  if (!names.length) return null;
-  return { name: names.join("، "), source: "official" };
+  const holidays = getDayEvents(jy, jm, jd).filter((e) => e.isHoliday);
+  if (!holidays.length) return null;
+  return { name: holidays.map((e) => e.title).join("، "), source: HOLIDAY_SOURCE_LABEL };
 }
 
 export function isHoliday(jy, jm, jd) {
-  return getHoliday(jy, jm, jd) !== null;
+  return getDayEvents(jy, jm, jd).some((e) => e.isHoliday);
 }

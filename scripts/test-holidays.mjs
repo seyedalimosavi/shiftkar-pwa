@@ -27,12 +27,12 @@ function ok(cond, label) {
 }
 
 console.log("— Solar holidays (every year) —");
-eq(getHoliday(1405, 1, 1).name, "نوروز؛ آغاز سال نو، عید سعید فطر", "1405/01/01 merges Nowruz + Eid al-Fitr");
-eq(getHoliday(1398, 1, 1).name, "نوروز؛ آغاز سال نو", "1398/01/01 = Nowruz only");
-eq(getHoliday(1407, 1, 1).name, "نوروز؛ آغاز سال نو", "1407/01/01 = Nowruz only");
-eq(getHoliday(1405, 3, 14).name, "رحلت امام خمینی (ره)، عید سعید غدیر خم", "1405/03/14 merges Eid Ghadir + Imam Khomeini");
-eq(getHoliday(1405, 3, 15).name, "قیام ۱۵ خرداد", "1405/03/15 solar");
-eq(getHoliday(1405, 11, 22).name, "پیروزی انقلاب اسلامی", "1405/11/22 solar");
+eq(getHoliday(1405, 1, 1).name, "آغاز نوروز، عید سعید فطر", "1405/01/01 merges Nowruz + Eid al-Fitr");
+eq(getHoliday(1398, 1, 1).name, "آغاز نوروز", "1398/01/01 = Nowruz only");
+eq(getHoliday(1407, 1, 1).name, "آغاز نوروز", "1407/01/01 = Nowruz only");
+eq(getHoliday(1405, 3, 14).name, "رحلت حضرت امام خمینی (ره) رهبر کبیر انقلاب و بنیان‌گذار جمهوری اسلامی ایران (۱۳۶۸ ه‍.ق)، عید سعید غدیر خم (۱۰ ه‍.ق)", "1405/03/14 merges Eid Ghadir + Imam Khomeini");
+eq(getHoliday(1405, 3, 15).name, "قیام خونین ۱۵ خرداد (۱۳۴۲ ه‍.ش)", "1405/03/15 solar");
+eq(getHoliday(1405, 11, 22).name, "پیروزی انقلاب اسلامی ایران و سقوط نظام شاهنشاهی (۱۳۵۷ ه‍.ش)", "1405/11/22 solar");
 ok(getHoliday(1405, 5, 10) === null, "1405/05/10 is not a holiday");
 
 console.log("— Verified lunar overrides (1404–1406) —");
@@ -43,7 +43,7 @@ ok(isHoliday(1405, 1, 25), "1405/01/25 Imam Sadegh");
 ok(isHoliday(1404, 4, 15), "1404/04/15 Ashura");
 ok(isHoliday(1406, 3, 25), "1406/03/25 Ashura");
 ok(isHoliday(1406, 12, 8), "1406/12/08 Eid al-Fitr");
-eq(getHoliday(1405, 5, 22).name, "شهادت امام رضا (ع)", "1405/05/22 Imam Reza");
+eq(getHoliday(1405, 5, 22).name, "شهادت حضرت امام رضا (ع) (۲۰۳ ه‍.ق) (۳۰ صَفَر یا انتهای ماه)", "1405/05/22 Imam Reza (end-of-Safar rule)");
 
 console.log("— Computed lunar holidays for any year —");
 for (const jy of [1398, 1400, 1402, 1403, 1407, 1408, 1410, 1420]) {
@@ -60,8 +60,8 @@ for (const jy of [1398, 1400, 1402, 1403, 1407, 1408, 1410, 1420]) {
   ok(names.some((n) => n.includes("عاشورای حسینی")), `${jy} includes Ashura`);
   ok(names.some((n) => n.includes("عید سعید فطر")), `${jy} includes Eid al-Fitr`);
   ok(names.some((n) => n.includes("عید سعید قربان")), `${jy} includes Eid al-Adha`);
-  ok(names.some((n) => n.includes("شهادت امام علی (ع)")), `${jy} includes Imam Ali martyrdom`);
-  ok(names.some((n) => n.includes("شهادت حضرت فاطمه زهرا (س)")), `${jy} includes Fatimiyya`);
+  ok(names.some((n) => n.includes("شهادت حضرت امام علی (ع)")), `${jy} includes Imam Ali martyrdom`);
+  ok(names.some((n) => n.includes("شهادت حضرت فاطمهٔ زهرا (س)")), `${jy} includes Fatimiyya`);
 }
 
 // A specific computed date must be stable and deterministic (call twice).

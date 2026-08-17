@@ -11,7 +11,7 @@ import {
   toGregorian,
 } from "../domain/jalali.js";
 import { calculateShift } from "../domain/shift-calculator.js";
-import { getHoliday } from "../domain/holidays.js";
+import { getHoliday, getDayEvents } from "../domain/holidays.js";
 import { GROUPS, GROUP_FA } from "../domain/models.js";
 import { state } from "../core/state.js";
 import { openSheet } from "./bottom-sheet.js";
@@ -25,6 +25,7 @@ export function openDayDetail(dateKey, opts = {}) {
   const today = todayJalaali();
   const isToday = today.jy === jy && today.jm === jm && today.jd === jd;
   const holiday = getHoliday(jy, jm, jd);
+  const occasions = getDayEvents(jy, jm, jd).filter((e) => !e.isHoliday);
 
   const content = document.createElement("div");
   content.className = "day-detail";
@@ -42,6 +43,13 @@ export function openDayDetail(dateKey, opts = {}) {
       <div class="day-detail-holiday" role="note">
         <span class="day-detail-holiday-icon">${icon("holiday")}</span>
         <span class="day-detail-holiday-text">${holiday.name}</span>
+      </div>` : ""}
+    ${occasions.length ? `
+      <div class="day-detail-occasions" role="note">
+        <span class="day-detail-occasions-icon">${icon("holiday")}</span>
+        <ul class="day-detail-occasions-list">
+          ${occasions.map((o) => `<li>${o.title}</li>`).join("")}
+        </ul>
       </div>` : ""}
     <div class="day-detail-groups">
       <div class="day-detail-groups-title">${icon("groups")} شیفت گروه‌ها</div>
