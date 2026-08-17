@@ -1421,7 +1421,7 @@
     <section class="hero">
       <div class="container hero-grid">
         <div class="hero-text">
-          <span class="hero-badge"><span class="dot"></span> نسخهٔ ۵.۷ — اندروید + وب</span>
+          <span class="hero-badge"><span class="dot"></span> نسخهٔ ۵.۷.۶ — اندروید + وب</span>
           <h1>
             تقویم شیفتی که
             <span class="accent">خودش حساب می‌کند</span>
@@ -1901,7 +1901,7 @@
       var WEEKDAYS = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
       var MONTHS = [
         { name: "مرداد ۱۴۰۵", days: 31, offset: 5, today: 17, holiday: 22, holName: "شهادت امام رضا" },
-        { name: "شهریور ۱۴۰۵", days: 31, offset: 1, today: 17, holiday: 26, holName: "عاشورای حسینی" }
+        { name: "تیر ۱۴۰۵", days: 31, offset: 2, today: 17, holiday: 4, holName: "عاشورای حسینی" }
       ];
       var CYCLE = ["day", "day", "night", "night", "rest", "rest"];
       var monthIndex = 0;
@@ -1909,7 +1909,6 @@
       function renderMonth() {
         var m = MONTHS[monthIndex];
         document.getElementById("mockMonth").textContent = m.name;
-        document.getElementById("mockSub").textContent = m.holName + " — " + fa(m.holiday) + " " + m.name.split(" ")[0];
         document.getElementById("mockSub").textContent = fa(m.holiday) + " " + m.name.split(" ")[0] + " — " + m.holName;
 
         var wd = document.getElementById("mockWeekdays");
