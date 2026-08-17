@@ -1,0 +1,2038 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شیفت‌کار | ShiftKar — تقویم هوشمند شیفت کاری</title>
+  <meta name="description" content="شیفت‌کار — تقویم شمسی و شیفت کاری با محاسبهٔ خودکار روز، شب و استراحت گروه‌ها؛ تعطیلات رسمی ایران، یادداشت روزانه و کاملاً آفلاین." />
+  <meta property="og:title" content="شیفت‌کار | ShiftKar" />
+  <meta property="og:description" content="تقویم هوشمند شیفت کاری — آفلاین، سریع و زیبا برای اندروید و وب." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#3d6bf5" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%233d6bf5'/%3E%3Crect x='14' y='18' width='36' height='32' rx='7' fill='white'/%3E%3Crect x='14' y='27' width='36' height='4' fill='%23c9d6ff'/%3E%3Ccircle cx='26' cy='37' r='4' fill='%23c67a06'/%3E%3Ccircle cx='38' cy='37' r='4' fill='%234f46e5'/%3E%3Ccircle cx='32' cy='45' r='4' fill='%230f9d72'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+  <script>
+    /* Apply saved theme before first paint (mirrors the app's boot script). */
+    (function () {
+      try {
+        var raw = localStorage.getItem("shiftkar-landing.v1");
+        var s = raw ? JSON.parse(raw) : {};
+        var mode = s.mode || "system";
+        var dark =
+          mode === "dark" ||
+          (mode === "system" &&
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.themeMode = dark ? "dark" : "light";
+        if (s.theme) document.documentElement.dataset.theme = s.theme;
+      } catch (e) {
+        /* keep defaults */
+      }
+    })();
+  </script>
+  <style>
+    /* ============================================================
+       ShiftKar landing — exact design tokens from the app
+       (css/variables.css), light + dark + the six theme palettes.
+       ============================================================ */
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --font-family: "Vazirmatn", "IRANSansX", "Vazir", "IRANSans", "IRANYekan",
+        "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif;
+
+      --fs-xs: 11px;
+      --fs-sm: 13px;
+      --fs-base: 15px;
+      --fs-md: 17px;
+      --fs-lg: 20px;
+      --fs-xl: 24px;
+      --fs-2xl: 30px;
+
+      --fw-regular: 400;
+      --fw-medium: 500;
+      --fw-bold: 700;
+      --fw-black: 800;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 40px;
+      --space-9: 56px;
+      --space-10: 80px;
+
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      --radius-pill: 999px;
+
+      --shadow-card: 0 6px 24px -10px rgba(23, 40, 80, 0.16);
+      --shadow-float: 0 14px 36px -12px rgba(23, 40, 80, 0.2);
+      --shadow-primary: 0 10px 22px -8px rgba(61, 107, 245, 0.4);
+
+      --z-nav: 40;
+      --z-toast: 90;
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --motion-fast: 160ms;
+      --motion: 260ms;
+      --motion-slow: 420ms;
+
+      /* Shift status colors (consistent across themes) */
+      --shift-day: #c67a06;
+      --shift-day-soft: #fdf2dc;
+      --shift-night: #4f46e5;
+      --shift-night-soft: #e9ebff;
+      --shift-rest: #0f9d72;
+      --shift-rest-soft: #e1f5ed;
+
+      --holiday: #e11d48;
+      --holiday-soft: #ffe9ee;
+
+      /* Light glass base */
+      --color-background: #eef3fb;
+      --color-surface: rgba(255, 255, 255, 0.6);
+      --color-surface-strong: rgba(255, 255, 255, 0.86);
+      --color-surface-solid: #ffffff;
+      --color-text: #1c2740;
+      --color-text-muted: #5c6b8c;
+      --color-text-faint: #8b98b5;
+      --color-border: rgba(255, 255, 255, 0.72);
+      --color-border-strong: rgba(141, 160, 200, 0.4);
+      --glass-blur: 22px;
+    }
+
+    /* ---- Theme palettes (identical to the app) ---- */
+    [data-theme="blue"] {
+      --color-primary: #3d6bf5;
+      --color-primary-strong: #2f56d6;
+      --color-primary-soft: #e7eeff;
+      --color-primary-border: #bcd0ff;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(93, 133, 255, 0.34);
+      --glow-b: rgba(122, 189, 255, 0.26);
+      --shadow-primary: 0 10px 22px -8px rgba(61, 107, 245, 0.45);
+    }
+
+    [data-theme="emerald"] {
+      --color-primary: #0f9d72;
+      --color-primary-strong: #0b7d5b;
+      --color-primary-soft: #e2f6ee;
+      --color-primary-border: #b5e6d2;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(31, 180, 132, 0.3);
+      --glow-b: rgba(110, 220, 180, 0.24);
+      --shadow-primary: 0 10px 22px -8px rgba(15, 157, 114, 0.42);
+    }
+
+    [data-theme="purple"] {
+      --color-primary: #8b5cf6;
+      --color-primary-strong: #7443e0;
+      --color-primary-soft: #f0e9ff;
+      --color-primary-border: #d5c3fb;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(150, 106, 250, 0.32);
+      --glow-b: rgba(190, 150, 255, 0.24);
+      --shadow-primary: 0 10px 22px -8px rgba(139, 92, 246, 0.42);
+    }
+
+    [data-theme="orange"] {
+      --color-primary: #f46b16;
+      --color-primary-strong: #d9550a;
+      --color-primary-soft: #ffede0;
+      --color-primary-border: #f9cdb1;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(255, 138, 66, 0.3);
+      --glow-b: rgba(255, 190, 130, 0.24);
+      --shadow-primary: 0 10px 22px -8px rgba(244, 107, 22, 0.42);
+    }
+
+    [data-theme="rose"] {
+      --color-primary: #f43f5e;
+      --color-primary-strong: #d92a4b;
+      --color-primary-soft: #ffe9ee;
+      --color-primary-border: #f9c2cd;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(255, 92, 120, 0.3);
+      --glow-b: rgba(255, 160, 180, 0.24);
+      --shadow-primary: 0 10px 22px -8px rgba(244, 63, 94, 0.42);
+    }
+
+    [data-theme="teal"] {
+      --color-primary: #0ea5a0;
+      --color-primary-strong: #0b8581;
+      --color-primary-soft: #e0f6f4;
+      --color-primary-border: #b2e5e1;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(30, 180, 172, 0.3);
+      --glow-b: rgba(100, 220, 210, 0.24);
+      --shadow-primary: 0 10px 22px -8px rgba(14, 165, 160, 0.42);
+    }
+
+    :root:not([data-theme]) {
+      --color-primary: #3d6bf5;
+      --color-primary-strong: #2f56d6;
+      --color-primary-soft: #e7eeff;
+      --color-primary-border: #bcd0ff;
+      --color-on-primary: #ffffff;
+      --glow-a: rgba(93, 133, 255, 0.34);
+      --glow-b: rgba(122, 189, 255, 0.26);
+      --shadow-primary: 0 10px 22px -8px rgba(61, 107, 245, 0.45);
+    }
+
+    /* ---- Dark mode (identical tokens to the app) ---- */
+    [data-theme-mode="dark"] {
+      --color-background: #0c1322;
+      --color-surface: rgba(255, 255, 255, 0.05);
+      --color-surface-strong: rgba(255, 255, 255, 0.08);
+      --color-surface-solid: #171f37;
+      --color-text: #e9eefb;
+      --color-text-muted: #a4b2cf;
+      --color-text-faint: #6e7d9d;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-border-strong: rgba(255, 255, 255, 0.14);
+
+      --shadow-card: 0 6px 24px -10px rgba(0, 0, 0, 0.5);
+      --shadow-float: 0 14px 36px -12px rgba(0, 0, 0, 0.6);
+
+      --color-primary-soft: color-mix(in srgb, var(--color-primary) 20%, transparent);
+      --color-primary-border: color-mix(in srgb, var(--color-primary) 42%, transparent);
+
+      --shift-day-soft: color-mix(in srgb, var(--shift-day) 20%, transparent);
+      --shift-night-soft: color-mix(in srgb, var(--shift-night) 20%, transparent);
+      --shift-rest-soft: color-mix(in srgb, var(--shift-rest) 18%, transparent);
+
+      --holiday-soft: color-mix(in srgb, var(--holiday) 20%, transparent);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-family);
+      font-size: var(--fs-base);
+      line-height: 1.8;
+      color: var(--color-text);
+      background: var(--color-background);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      transition: background var(--motion) var(--ease-out), color var(--motion) var(--ease-out);
+    }
+
+    /* Soft theme glows behind the page */
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      transition: background var(--motion-slow) var(--ease-out);
+    }
+
+    body::before {
+      width: 560px;
+      height: 560px;
+      top: -180px;
+      right: -120px;
+      background: radial-gradient(circle, var(--glow-a), transparent 70%);
+    }
+
+    body::after {
+      width: 520px;
+      height: 520px;
+      bottom: -200px;
+      left: -140px;
+      background: radial-gradient(circle, var(--glow-b), transparent 70%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+    }
+
+    img,
+    svg {
+      display: block;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-5);
+    }
+
+    section {
+      scroll-margin-top: 84px;
+      padding: var(--space-9) 0;
+    }
+
+    /* ---------- Glass card ---------- */
+    .glass {
+      background: var(--color-surface);
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+    }
+
+    /* ---------- Header ---------- */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-nav);
+      background: color-mix(in srgb, var(--color-background) 72%, transparent);
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      backdrop-filter: blur(var(--glass-blur));
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--motion) var(--ease-out),
+        box-shadow var(--motion) var(--ease-out);
+    }
+
+    .site-header.is-scrolled {
+      border-bottom-color: var(--color-border);
+      box-shadow: 0 8px 30px -18px rgba(23, 40, 80, 0.25);
+    }
+
+    .header-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-5);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: var(--space-5);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: var(--fw-black);
+      font-size: var(--fs-md);
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      box-shadow: var(--shadow-primary);
+      flex-shrink: 0;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-5);
+      margin-inline-start: auto;
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-medium);
+      color: var(--color-text-muted);
+    }
+
+    .nav-links a {
+      transition: color var(--motion-fast) var(--ease-out);
+    }
+
+    .nav-links a:hover {
+      color: var(--color-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      font-weight: var(--fw-bold);
+      font-size: var(--fs-sm);
+      transition: transform var(--motion-fast) var(--ease-out),
+        box-shadow var(--motion-fast) var(--ease-out),
+        background var(--motion-fast) var(--ease-out);
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      box-shadow: var(--shadow-primary);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 14px 28px -8px color-mix(in srgb, var(--color-primary) 55%, transparent);
+    }
+
+    .btn-ghost {
+      background: var(--color-surface-strong);
+      border: 1px solid var(--color-border-strong);
+      color: var(--color-text);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--color-primary-border);
+      color: var(--color-primary);
+    }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: var(--fs-base);
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      padding-top: var(--space-10);
+      padding-bottom: var(--space-8);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: var(--space-8);
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: var(--radius-pill);
+      background: var(--color-primary-soft);
+      border: 1px solid var(--color-primary-border);
+      color: var(--color-primary);
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-bold);
+      margin-bottom: var(--space-4);
+    }
+
+    .hero-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent);
+      animation: pulse 2.4s var(--ease-out) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 4.6vw, 3.1rem);
+      font-weight: var(--fw-black);
+      line-height: 1.35;
+      letter-spacing: -0.5px;
+      margin-bottom: var(--space-4);
+    }
+
+    .hero h1 .accent {
+      color: var(--color-primary);
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .hero h1 .accent::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 4px;
+      width: 100%;
+      height: 10px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+      z-index: -1;
+    }
+
+    .hero-sub {
+      color: var(--color-text-muted);
+      font-size: var(--fs-md);
+      max-width: 46ch;
+      margin-bottom: var(--space-6);
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    .hero-note {
+      margin-top: var(--space-4);
+      font-size: var(--fs-xs);
+      color: var(--color-text-faint);
+    }
+
+    /* ---------- Phone mockup ---------- */
+    .phone-wrap {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone-glow {
+      position: absolute;
+      inset: 8% -4%;
+      background: radial-gradient(
+        ellipse at center,
+        color-mix(in srgb, var(--color-primary) 26%, transparent),
+        transparent 72%
+      );
+      filter: blur(40px);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .phone {
+      position: relative;
+      width: 296px;
+      border-radius: 46px;
+      padding: 12px;
+      background: linear-gradient(160deg, #26324d, #141c31 60%, #0e1526);
+      box-shadow: 0 30px 70px -24px rgba(15, 25, 55, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      animation: float 7s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .phone-screen {
+      position: relative;
+      height: 596px;
+      border-radius: 36px;
+      overflow: hidden;
+      background: var(--color-background);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 96px;
+      height: 22px;
+      border-radius: var(--radius-pill);
+      background: #141c31;
+      z-index: 3;
+    }
+
+    .mock-body {
+      flex: 1;
+      padding: 38px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .mock-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .mock-month-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .mock-month {
+      font-weight: var(--fw-black);
+      font-size: var(--fs-md);
+    }
+
+    .mock-sub {
+      font-size: var(--fs-xs);
+      color: var(--color-text-faint);
+      margin-top: 2px;
+    }
+
+    .mock-nav-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-surface-strong);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      font-size: 14px;
+      line-height: 1;
+      transition: color var(--motion-fast), border-color var(--motion-fast);
+    }
+
+    .mock-nav-btn:hover {
+      color: var(--color-primary);
+      border-color: var(--color-primary-border);
+    }
+
+    .mock-today-chip {
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-bold);
+      color: var(--color-primary);
+      background: var(--color-primary-soft);
+      border: 1px solid var(--color-primary-border);
+      padding: 6px 10px;
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-primary);
+      white-space: nowrap;
+    }
+
+    .mock-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      text-align: center;
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-bold);
+      color: var(--color-text-faint);
+      padding: 0 2px;
+    }
+
+    .mock-weekdays .fri {
+      color: var(--holiday);
+    }
+
+    .mock-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      flex: 1;
+    }
+
+    .mock-day {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border-radius: 12px;
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-medium);
+      color: var(--color-text);
+      min-height: 44px;
+      transition: transform var(--motion-fast) var(--ease-out);
+    }
+
+    .mock-day .day-num {
+      line-height: 1;
+    }
+
+    .mock-day .day-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      transition: opacity var(--motion-fast);
+    }
+
+    .mock-day.is-empty {
+      visibility: hidden;
+    }
+
+    .mock-day.is-fri .day-num {
+      color: var(--holiday);
+    }
+
+    .mock-day.is-holiday .day-num {
+      color: var(--holiday);
+      font-weight: var(--fw-black);
+    }
+
+    .mock-day.is-holiday .day-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--holiday);
+    }
+
+    .mock-day.is-today {
+      background: var(--color-primary-soft);
+      border: 1.5px solid var(--color-primary);
+      box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--color-primary) 55%, transparent);
+    }
+
+    .mock-day.is-today .day-num {
+      color: var(--color-primary);
+      font-weight: var(--fw-black);
+    }
+
+    .mock-day.badge-day .day-dot {
+      background: var(--shift-day);
+    }
+
+    .mock-day.badge-night .day-dot {
+      background: var(--shift-night);
+    }
+
+    .mock-day.badge-rest .day-dot {
+      background: var(--shift-rest);
+    }
+
+    .mock-legend {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      font-size: var(--fs-xs);
+      color: var(--color-text-muted);
+      padding: 8px 0 4px;
+      flex-wrap: wrap;
+    }
+
+    .mock-legend .lg {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mock-legend .lg i {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .lg.day i { background: var(--shift-day); }
+    .lg.night i { background: var(--shift-night); }
+    .lg.rest i { background: var(--shift-rest); }
+    .lg.hol i { background: var(--holiday); }
+
+    .mock-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: var(--color-surface);
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      backdrop-filter: blur(var(--glass-blur));
+      border-top: 1px solid var(--color-border);
+      border-radius: 20px 20px 0 0;
+      padding: 8px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .mock-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: var(--fs-xs);
+      color: var(--color-text-faint);
+      padding: 4px 0;
+      border-radius: var(--radius-sm);
+      transition: color var(--motion-fast);
+    }
+
+    .mock-tab svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .mock-tab.is-active {
+      color: var(--color-primary);
+      font-weight: var(--fw-bold);
+    }
+
+    .mock-tab.is-active svg {
+      filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
+    }
+
+    /* ---------- Stats ---------- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: var(--space-5) var(--space-4);
+    }
+
+    .stat-num {
+      font-size: var(--fs-2xl);
+      font-weight: var(--fw-black);
+      color: var(--color-primary);
+      line-height: 1.3;
+    }
+
+    .stat-label {
+      font-size: var(--fs-sm);
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    /* ---------- Section headers ---------- */
+    .sec-head {
+      text-align: center;
+      max-width: 620px;
+      margin: 0 auto var(--space-8);
+    }
+
+    .sec-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-bold);
+      color: var(--color-primary);
+      background: var(--color-primary-soft);
+      border: 1px solid var(--color-primary-border);
+      border-radius: var(--radius-pill);
+      padding: 6px 14px;
+      margin-bottom: var(--space-4);
+    }
+
+    .sec-head h2 {
+      font-size: clamp(1.5rem, 3vw, 2.1rem);
+      font-weight: var(--fw-black);
+      line-height: 1.4;
+      margin-bottom: var(--space-3);
+    }
+
+    .sec-head p {
+      color: var(--color-text-muted);
+      font-size: var(--fs-md);
+    }
+
+    /* ---------- Features ---------- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+    }
+
+    .feature-card {
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      transition: transform var(--motion) var(--ease-out),
+        box-shadow var(--motion) var(--ease-out),
+        border-color var(--motion) var(--ease-out);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-float);
+      border-color: var(--color-primary-border);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-primary-soft);
+      border: 1px solid var(--color-primary-border);
+      color: var(--color-primary);
+      transition: transform var(--motion) var(--ease-out);
+    }
+
+    .feature-card:hover .feature-icon {
+      transform: scale(1.08) rotate(-4deg);
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .feature-card h3 {
+      font-size: var(--fs-md);
+      font-weight: var(--fw-bold);
+    }
+
+    .feature-card p {
+      font-size: var(--fs-sm);
+      color: var(--color-text-muted);
+      flex: 1;
+    }
+
+    /* ---------- Shifts section ---------- */
+    .shifts-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-7);
+      align-items: center;
+    }
+
+    .shift-desc h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: var(--fw-black);
+      line-height: 1.4;
+      margin-bottom: var(--space-3);
+    }
+
+    .shift-desc p {
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-5);
+    }
+
+    .shift-types {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .shift-type {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+    }
+
+    .shift-type .st-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 5px var(--st-soft);
+    }
+
+    .shift-type.day { --st: var(--shift-day); --st-soft: var(--shift-day-soft); }
+    .shift-type.night { --st: var(--shift-night); --st-soft: var(--shift-night-soft); }
+    .shift-type.rest { --st: var(--shift-rest); --st-soft: var(--shift-rest-soft); }
+
+    .shift-type .st-dot {
+      background: var(--st);
+    }
+
+    .shift-type b {
+      font-size: var(--fs-sm);
+    }
+
+    .shift-type span {
+      font-size: var(--fs-xs);
+      color: var(--color-text-muted);
+      margin-inline-start: auto;
+    }
+
+    .cycle-card {
+      padding: var(--space-6);
+      text-align: center;
+    }
+
+    .cycle-card h3 {
+      font-size: var(--fs-md);
+      font-weight: var(--fw-bold);
+      margin-bottom: var(--space-4);
+    }
+
+    .cycle-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cycle-cell {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-black);
+      color: var(--st-ink, #fff);
+      background: var(--st);
+      box-shadow: 0 8px 16px -8px var(--st);
+      animation: pop 2.8s var(--ease-out) infinite;
+    }
+
+    .cycle-cell.day { --st: var(--shift-day); --st-ink: #7a4c00; }
+    .cycle-cell.night { --st: var(--shift-night); }
+    .cycle-cell.rest { --st: var(--shift-rest); }
+
+    @keyframes pop {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .cycle-note {
+      margin-top: var(--space-4);
+      font-size: var(--fs-xs);
+      color: var(--color-text-faint);
+    }
+
+    /* ---------- Themes ---------- */
+    .themes-card {
+      padding: var(--space-7);
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .themes-card h3 {
+      font-size: var(--fs-md);
+      font-weight: var(--fw-bold);
+      margin-bottom: var(--space-5);
+    }
+
+    .theme-swatches {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-5);
+    }
+
+    .theme-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--fs-xs);
+      color: var(--color-text-muted);
+      transition: transform var(--motion-fast) var(--ease-out);
+    }
+
+    .theme-swatch:hover {
+      transform: translateY(-3px);
+    }
+
+    .theme-swatch .sw {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      outline: 2px solid transparent;
+      outline-offset: 3px;
+      box-shadow: 0 8px 18px -8px rgba(23, 40, 80, 0.35);
+      transition: outline-color var(--motion-fast) var(--ease-out),
+        transform var(--motion-fast) var(--ease-out);
+    }
+
+    .theme-swatch:hover .sw {
+      transform: scale(1.08);
+    }
+
+    .theme-swatch.is-active .sw {
+      outline-color: var(--color-primary);
+      outline-width: 2.5px;
+    }
+
+    .theme-swatch.is-active {
+      color: var(--color-primary);
+      font-weight: var(--fw-bold);
+    }
+
+    .sw-blue { background: linear-gradient(135deg, #5b8cff, #3d6bf5); }
+    .sw-emerald { background: linear-gradient(135deg, #1fc08d, #0f9d72); }
+    .sw-purple { background: linear-gradient(135deg, #a880ff, #8b5cf6); }
+    .sw-orange { background: linear-gradient(135deg, #ff8a45, #f46b16); }
+    .sw-rose { background: linear-gradient(135deg, #ff6b84, #f43f5e); }
+    .sw-teal { background: linear-gradient(135deg, #2bc4bf, #0ea5a0); }
+
+    .mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: var(--radius-pill);
+      background: var(--color-surface-strong);
+      border: 1px solid var(--color-border-strong);
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-bold);
+      color: var(--color-text);
+      transition: border-color var(--motion-fast), color var(--motion-fast);
+    }
+
+    .mode-toggle:hover {
+      border-color: var(--color-primary-border);
+      color: var(--color-primary);
+    }
+
+    .mode-toggle svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    /* ---------- Download ---------- */
+    .download-card {
+      text-align: center;
+      padding: var(--space-9) var(--space-6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .download-card::before {
+      content: "";
+      position: absolute;
+      inset: -40% -10%;
+      background: radial-gradient(
+        ellipse at center,
+        color-mix(in srgb, var(--color-primary) 14%, transparent),
+        transparent 70%
+      );
+      pointer-events: none;
+    }
+
+    .download-card h2 {
+      font-size: clamp(1.5rem, 3vw, 2.1rem);
+      font-weight: var(--fw-black);
+      margin-bottom: var(--space-3);
+      position: relative;
+    }
+
+    .download-card > p {
+      color: var(--color-text-muted);
+      max-width: 52ch;
+      margin: 0 auto var(--space-6);
+      position: relative;
+    }
+
+    .download-ctas {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      position: relative;
+    }
+
+    .download-note {
+      margin-top: var(--space-4);
+      font-size: var(--fs-xs);
+      color: var(--color-text-faint);
+      position: relative;
+    }
+
+    /* ---------- FAQ ---------- */
+    .faq-list {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    details.faq-item {
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+      transition: border-color var(--motion) var(--ease-out);
+    }
+
+    details.faq-item[open] {
+      border-color: var(--color-primary-border);
+    }
+
+    .faq-item summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-5);
+      cursor: pointer;
+      font-weight: var(--fw-bold);
+      font-size: var(--fs-sm);
+    }
+
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-item summary .plus {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
+      font-size: var(--fs-md);
+      font-weight: var(--fw-black);
+      flex-shrink: 0;
+      transition: transform var(--motion) var(--ease-out);
+    }
+
+    .faq-item[open] summary .plus {
+      transform: rotate(45deg);
+    }
+
+    .faq-item .faq-body {
+      padding: 0 var(--space-5) var(--space-4);
+      font-size: var(--fs-sm);
+      color: var(--color-text-muted);
+      line-height: 1.9;
+    }
+
+    /* ---------- Footer ---------- */
+    .site-footer {
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-7) 0 var(--space-8);
+      margin-top: var(--space-4);
+    }
+
+    .footer-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-5);
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: var(--fw-black);
+    }
+
+    .footer-brand .brand-logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+    }
+
+    .footer-copy {
+      font-size: var(--fs-xs);
+      color: var(--color-text-faint);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: var(--space-5);
+      font-size: var(--fs-xs);
+      color: var(--color-text-muted);
+    }
+
+    .footer-links a:hover {
+      color: var(--color-primary);
+    }
+
+    /* ---------- Reveal on scroll ---------- */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 640ms var(--ease-out), transform 640ms var(--ease-out);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translate(-50%, 24px);
+      z-index: var(--z-toast);
+      background: var(--color-surface-solid);
+      color: var(--color-text);
+      border: 1px solid var(--color-border-strong);
+      border-radius: var(--radius-pill);
+      padding: 11px 22px;
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-bold);
+      box-shadow: var(--shadow-float);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--motion) var(--ease-out),
+        transform var(--motion) var(--ease-out);
+    }
+
+    .toast.is-show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 920px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-7);
+      }
+
+      .hero-text {
+        text-align: center;
+      }
+
+      .hero-sub {
+        margin-inline: auto;
+      }
+
+      .hero-ctas,
+      .hero-note {
+        justify-content: center;
+      }
+
+      .phone-wrap {
+        order: -1;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .shifts-wrap {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-inner .btn-header {
+        padding: 9px 14px;
+        font-size: var(--fs-xs);
+      }
+
+      .stats-grid {
+        gap: var(--space-3);
+      }
+
+      section {
+        padding: var(--space-8) 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      .phone,
+      .cycle-cell,
+      .hero-badge .dot {
+        animation: none;
+      }
+
+      .reveal {
+        transition: none;
+        opacity: 1;
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ Header ============ -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="brand" href="#top">
+        <svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="lgLogo" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--color-primary)" />
+              <stop offset="1" stop-color="var(--color-primary-strong)" />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="16" fill="url(#lgLogo)" />
+          <rect x="13" y="17" width="38" height="34" rx="8" fill="var(--color-surface-solid)" />
+          <rect x="13" y="26" width="38" height="4.5" fill="var(--color-primary-border)" />
+          <circle cx="25" cy="37" r="4" fill="var(--shift-day)" />
+          <circle cx="38" cy="37" r="4" fill="var(--shift-night)" />
+          <circle cx="31.5" cy="45" r="4" fill="var(--shift-rest)" />
+        </svg>
+        شیفت‌کار
+      </a>
+      <nav class="nav-links" aria-label="ناوبری اصلی">
+        <a href="#features">امکانات</a>
+        <a href="#shifts">شیفت‌ها</a>
+        <a href="#themes">تم‌ها</a>
+        <a href="#faq">سوالات</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn-primary btn-header" href="#download">دانلود برنامه</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <span class="hero-badge"><span class="dot"></span> نسخهٔ ۵.۷ — اندروید + وب</span>
+          <h1>
+            تقویم شیفتی که
+            <span class="accent">خودش حساب می‌کند</span>
+          </h1>
+          <p class="hero-sub">
+            شیفت‌کار روزهای کار، شب‌کاری و استراحت گروه‌های A تا D را به‌صورت خودکار
+            با تقویم رسمی ایران هماهنگ می‌کند؛ آفلاین، سریع و زیبا.
+          </p>
+          <div class="hero-ctas">
+            <!-- جایگزین کن: لینک واقعی گوگل‌پلی -->
+            <a class="btn btn-primary btn-lg" href="#" data-dl="play">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3 2 3 22 15 12 3 2" fill="currentColor" stroke="none" />
+                <path d="M15 12 3 22" stroke="none" fill="currentColor" />
+                <path d="M21 6.5 15 12l6 5.5" fill="currentColor" stroke="none" />
+              </svg>
+              دانلود از گوگل‌پلی
+            </a>
+            <a class="btn btn-ghost btn-lg" href="#features">مشاهدهٔ امکانات</a>
+          </div>
+          <p class="hero-note">رایگان · بدون اینترنت · بدون تبلیغات مزاحم</p>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone-glow" aria-hidden="true"></div>
+          <div class="phone" aria-label="پیش‌نمایش برنامهٔ شیفت‌کار">
+            <div class="phone-screen">
+              <div class="phone-notch" aria-hidden="true"></div>
+              <div class="mock-body">
+                <div class="mock-header">
+                  <div class="mock-month-row">
+                    <button class="mock-nav-btn" id="mockPrev" aria-label="ماه قبل">›</button>
+                    <div>
+                      <div class="mock-month" id="mockMonth">مرداد ۱۴۰۵</div>
+                      <div class="mock-sub" id="mockSub">شنبه ۱۷ مرداد — امروز</div>
+                    </div>
+                    <button class="mock-nav-btn" id="mockNext" aria-label="ماه بعد">‹</button>
+                  </div>
+                  <span class="mock-today-chip">برو به امروز</span>
+                </div>
+                <div class="mock-weekdays" id="mockWeekdays"></div>
+                <div class="mock-grid" id="mockGrid"></div>
+                <div class="mock-legend">
+                  <span class="lg day"><i></i> روز</span>
+                  <span class="lg night"><i></i> شب</span>
+                  <span class="lg rest"><i></i> استراحت</span>
+                  <span class="lg hol"><i></i> تعطیل</span>
+                </div>
+              </div>
+              <div class="mock-nav">
+                <span class="mock-tab is-active">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="4" width="18" height="17" rx="3" />
+                    <path d="M8 2v4M16 2v4M3 10h18" />
+                  </svg>
+                  تقویم
+                </span>
+                <span class="mock-tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="4" width="18" height="16" rx="3" />
+                    <path d="M3 9h18M9 9v11" />
+                  </svg>
+                  جدول
+                </span>
+                <span class="mock-tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                  سامانه‌ها
+                </span>
+                <span class="mock-tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
+                  </svg>
+                  تنظیمات
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Stats ============ -->
+    <section class="stats" style="padding-top: 0;">
+      <div class="container stats-grid">
+        <div class="stat-card glass reveal">
+          <div class="stat-num">۴</div>
+          <div class="stat-label">گروه شیفت A تا D</div>
+        </div>
+        <div class="stat-card glass reveal">
+          <div class="stat-num">۴۱۲+</div>
+          <div class="stat-label">مناسبت و تعطیل رسمی ایران</div>
+        </div>
+        <div class="stat-card glass reveal">
+          <div class="stat-num">۱۰۰٪</div>
+          <div class="stat-label">آفلاین — بدون اینترنت</div>
+        </div>
+        <div class="stat-card glass reveal">
+          <div class="stat-num">۶</div>
+          <div class="stat-label">تم رنگی + حالت تاریک</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Features ============ -->
+    <section id="features">
+      <div class="container">
+        <div class="sec-head reveal">
+          <span class="sec-eyebrow">امکانات</span>
+          <h2>هر چیزی که یک تیم شیفتی نیاز دارد</h2>
+          <p>از محاسبهٔ خودکار شیفت‌ها تا تقویم رسمی ایران — همه در یک برنامهٔ سبک و آفلاین.</p>
+        </div>
+
+        <div class="features-grid">
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="3" />
+                <path d="M8 2v4M16 2v4M3 10h18" />
+              </svg>
+            </div>
+            <h3>تقویم شمسی و قمری</h3>
+            <p>تقویم جلالی با تطبیق تاریخ قمری برای هر روز؛ پیمایش سریع بین ماه‌ها با کشیدن انگشت.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
+              </svg>
+            </div>
+            <h3>شیفت خودکار گروه‌ها</h3>
+            <p>محاسبهٔ هوشمند روز، شب و استراحت برای گروه‌های A تا D — فقط یک‌بار تنظیم کن، بقیه‌اش با برنامه.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 22V3" />
+                <path d="M4 3h14l-2.4 3L18 9H4" />
+              </svg>
+            </div>
+            <h3>تعطیلات رسمی ایران</h3>
+            <p>تعطیلات ثابت و قمری برای هر سال — از نوروز و عید فطر تا تاسوعا و عاشورا — با تقویم رسمی کشور.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M8 9h8M8 13h5" />
+              </svg>
+            </div>
+            <h3>یادداشت روزانه</h3>
+            <p>برای هر روز یک یادداشت بنویس؛ ذخیرهٔ محلی، کاملاً خصوصی و همیشه همراهت.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M12 15V3" />
+              </svg>
+            </div>
+            <h3>کاملاً آفلاین</h3>
+            <p>پس از نصب، همهٔ داده‌ها روی دستگاه توست — بدون اینترنت، بدون دغدغه.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.8L3.5 20.5l4.3-1.1A8.5 8.5 0 1 0 12 3.5Z" />
+                <path d="M9 10.3c0-.5.3-.8.7-1l.5-.3c.3-.1.6 0 .8.2l.7.8c.2.2.1.5-.1.7l-.2.2c.4.8 1.1 1.5 1.9 1.9l.2-.2c.2-.2.5-.3.7-.1l.8.7c.2.2.3.5.2.8l-.3.5c-.2.4-.6.7-1 .7-2.6 0-4.9-2.3-4.9-5.2Z" />
+              </svg>
+            </div>
+            <h3>راهنمای تعاملی</h3>
+            <p>تور آموزشی قدم‌به‌قدم که همه‌چیز را نشانت می‌دهد؛ یک‌بار ببین، راحت شو.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="13.5" cy="6.5" r="2.5" />
+                <circle cx="17.5" cy="10.5" r="2.5" />
+                <circle cx="8.5" cy="7.5" r="2.5" />
+                <circle cx="6.5" cy="12.5" r="2.5" />
+                <path d="M12 2a10 10 0 1 0 10 10" />
+              </svg>
+            </div>
+            <h3>۶ تم رنگی + حالت تاریک</h3>
+            <p>آبی، زمردی، بنفش، نارنجی، رز و فیروزه‌ای — با حالت تاریک هماهنگ با سیستم.</p>
+          </article>
+
+          <article class="feature-card glass reveal">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="3" />
+                <path d="M3 9h18M9 9v11" />
+              </svg>
+            </div>
+            <h3>نمای جدول و تمام‌صفحه</h3>
+            <p>مشاهدهٔ شیفت‌های کل ماه در یک جدول مرتب، یا تمام‌صفحه برای برنامه‌ریزی دقیق.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Shifts ============ -->
+    <section id="shifts">
+      <div class="container shifts-wrap">
+        <div class="shift-desc reveal">
+          <span class="sec-eyebrow">سیستم شیفت</span>
+          <h2>شیفت‌ها با رنگ، ساده می‌شوند</h2>
+          <p>
+            هر گروه یک چرخهٔ منظم دارد؛ شیفت‌کار به‌صورت خودکار تشخیص می‌دهد هر روز
+            کدام گروه روزکار، شب‌کار یا استراحت است — با رنگ‌بندی واضح که در یک نگاه
+            برنامه‌ات را بفهمی.
+          </p>
+          <div class="shift-types">
+            <div class="shift-type day">
+              <span class="st-dot"></span>
+              <b>روز</b>
+              <span>شیفت روز — کهربایی</span>
+            </div>
+            <div class="shift-type night">
+              <span class="st-dot"></span>
+              <b>شب</b>
+              <span>شیفت شب — نیلی</span>
+            </div>
+            <div class="shift-type rest">
+              <span class="st-dot"></span>
+              <b>استراحت</b>
+              <span>روزهای آزاد — سبز</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cycle-card glass reveal">
+          <h3>چرخهٔ نمونهٔ گروه A</h3>
+          <div class="cycle-row">
+            <span class="cycle-cell day">روز</span>
+            <span class="cycle-cell day">روز</span>
+            <span class="cycle-cell night">شب</span>
+            <span class="cycle-cell night">شب</span>
+            <span class="cycle-cell rest">آزاد</span>
+            <span class="cycle-cell rest">آزاد</span>
+          </div>
+          <p class="cycle-note">چرخهٔ هر گروه را در تنظیمات تعریف کن؛ محاسبهٔ بقیهٔ روزها با برنامه.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Themes ============ -->
+    <section id="themes">
+      <div class="container">
+        <div class="sec-head reveal">
+          <span class="sec-eyebrow">شخصی‌سازی</span>
+          <h2>تم خودت را انتخاب کن</h2>
+          <p>همین‌جا امتحانش کن — انتخاب تو روی همین صفحه هم اعمال می‌شود.</p>
+        </div>
+
+        <div class="themes-card glass reveal">
+          <h3>رنگ اصلی</h3>
+          <div class="theme-swatches" id="themeSwatches">
+            <button class="theme-swatch" data-theme="blue" aria-label="تم آبی">
+              <span class="sw sw-blue"></span>
+              آبی
+            </button>
+            <button class="theme-swatch" data-theme="emerald" aria-label="تم زمردی">
+              <span class="sw sw-emerald"></span>
+              زمردی
+            </button>
+            <button class="theme-swatch" data-theme="purple" aria-label="تم بنفش">
+              <span class="sw sw-purple"></span>
+              بنفش
+            </button>
+            <button class="theme-swatch" data-theme="orange" aria-label="تم نارنجی">
+              <span class="sw sw-orange"></span>
+              نارنجی
+            </button>
+            <button class="theme-swatch" data-theme="rose" aria-label="تم رز">
+              <span class="sw sw-rose"></span>
+              رز
+            </button>
+            <button class="theme-swatch" data-theme="teal" aria-label="تم فیروزه‌ای">
+              <span class="sw sw-teal"></span>
+              فیروزه‌ای
+            </button>
+          </div>
+
+          <h3 style="margin-top: var(--space-6);">حالت نمایش</h3>
+          <button class="mode-toggle" id="modeToggle" type="button">
+            <svg id="modeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+            <span id="modeLabel">حالت تاریک</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Download ============ -->
+    <section id="download">
+      <div class="container">
+        <div class="download-card glass reveal">
+          <h2>همین حالا شروع کن</h2>
+          <p>
+            شیفت‌کار را نصب کن و تقویم شیفتی‌ات را از فردا بدون دردسر مدیریت کن —
+            رایگان، آفلاین و آمادهٔ استفاده.
+          </p>
+          <div class="download-ctas">
+            <!-- جایگزین کن: لینک واقعی گوگل‌پلی -->
+            <a class="btn btn-primary btn-lg" href="#" data-dl="play">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3 2 3 22 15 12 3 2" fill="currentColor" stroke="none" />
+                <path d="M15 12 3 22" stroke="none" fill="currentColor" />
+                <path d="M21 6.5 15 12l6 5.5" fill="currentColor" stroke="none" />
+              </svg>
+              دانلود از گوگل‌پلی
+            </a>
+            <!-- جایگزین کن: لینک فایل APK -->
+            <a class="btn btn-ghost btn-lg" href="#" data-dl="apk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M12 15V3" />
+              </svg>
+              دانلود مستقیم APK
+            </a>
+          </div>
+          <p class="download-note">نسخهٔ وب هم در دسترس است — نصب PWA روی صفحهٔ اصلی گوشی</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq">
+      <div class="container">
+        <div class="sec-head reveal">
+          <span class="sec-eyebrow">سوالات پرتکرار</span>
+          <h2>چیزی هست که بخوای بدونی؟</h2>
+        </div>
+
+        <div class="faq-list reveal">
+          <details class="faq-item">
+            <summary>
+              آیا شیفت‌کار به اینترنت نیاز دارد؟
+              <span class="plus">+</span>
+            </summary>
+            <div class="faq-body">
+              خیر. همهٔ داده‌ها — شیفت‌ها، تعطیلات، یادداشت‌ها و تنظیمات — روی خود دستگاه
+              ذخیره می‌شود و برنامه کاملاً آفلاین کار می‌کند.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>
+              تعطیلات رسمی چطور به‌روز می‌شود؟
+              <span class="plus">+</span>
+            </summary>
+            <div class="faq-body">
+              تقویم رسمی ایران برای هر سال در برنامه تعبیه شده است — از تعطیلات ثابت شمسی
+              تا اعیاد و سوگواری‌های قمری که هر سال جابه‌جا می‌شوند. به‌روزرسانی‌ها همراه
+              نسخه‌های جدید برنامه عرضه می‌شوند.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>
+              داده‌های من کجا ذخیره می‌شود؟
+              <span class="plus">+</span>
+            </summary>
+            <div class="faq-body">
+              همه‌چیز روی خود دستگاه شماست؛ هیچ سروری در کار نیست و هیچ داده‌ای ارسال
+              نمی‌شود. یادداشت‌ها و تنظیمات کاملاً خصوصی می‌مانند.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>
+              نصب PWA چیست و چه فرقی دارد؟
+              <span class="plus">+</span>
+            </summary>
+            <div class="faq-body">
+              نسخهٔ وب را می‌توانی «روی صفحهٔ اصلی» اضافه کنی تا مثل یک اپلیکیشن واقعی
+              باز شود — با آیکون اختصاصی، تمام‌صفحه و کارکرد آفلاین. روی اندروید
+              (کروم) معمولاً خودش پیشنهاد نصب می‌دهد.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>
+              آیا روی تبلت و دسکتاپ هم کار می‌کند؟
+              <span class="plus">+</span>
+            </summary>
+            <div class="faq-body">
+              بله. رابط برنامه موبایل‌محور است اما روی تبلت و مرورگرهای دسکتاپ هم
+              مرتب و راحت استفاده می‌شود.
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ Footer ============ -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="url(#lgLogo)" />
+          <rect x="13" y="17" width="38" height="34" rx="8" fill="var(--color-surface-solid)" />
+          <rect x="13" y="26" width="38" height="4.5" fill="var(--color-primary-border)" />
+          <circle cx="25" cy="37" r="4" fill="var(--shift-day)" />
+          <circle cx="38" cy="37" r="4" fill="var(--shift-night)" />
+          <circle cx="31.5" cy="45" r="4" fill="var(--shift-rest)" />
+        </svg>
+        شیفت‌کار
+      </div>
+      <p class="footer-copy">© ۱۴۰۵ شیفت‌کار — ساخته‌شده برای تیم‌های شیفتی</p>
+      <div class="footer-links">
+        <a href="#features">امکانات</a>
+        <a href="#faq">سوالات</a>
+        <a href="#download">دانلود</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var faDigits = "۰۱۲۳۴۵۶۷۸۹";
+      function fa(n) {
+        return String(n).replace(/\d/g, function (d) {
+          return faDigits[+d];
+        });
+      }
+
+      /* ---------- Theme state (mirrors the app) ---------- */
+      var THEMES = ["blue", "emerald", "purple", "orange", "rose", "teal"];
+      var state = (function () {
+        try {
+          var raw = localStorage.getItem("shiftkar-landing.v1");
+          return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+          return {};
+        }
+      })();
+
+      function persist() {
+        try {
+          localStorage.setItem("shiftkar-landing.v1", JSON.stringify(state));
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function applyTheme(theme) {
+        state.theme = theme;
+        persist();
+        document.documentElement.dataset.theme = theme;
+        document.querySelectorAll(".theme-swatch").forEach(function (sw) {
+          sw.classList.toggle("is-active", sw.dataset.theme === theme);
+        });
+      }
+
+      /* ---------- Phone mockup ---------- */
+      var WEEKDAYS = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+      var MONTHS = [
+        { name: "مرداد ۱۴۰۵", days: 31, offset: 5, today: 17, holiday: 22, holName: "شهادت امام رضا" },
+        { name: "شهریور ۱۴۰۵", days: 31, offset: 1, today: 17, holiday: 26, holName: "عاشورای حسینی" }
+      ];
+      var CYCLE = ["day", "day", "night", "night", "rest", "rest"];
+      var monthIndex = 0;
+
+      function renderMonth() {
+        var m = MONTHS[monthIndex];
+        document.getElementById("mockMonth").textContent = m.name;
+        document.getElementById("mockSub").textContent = m.holName + " — " + fa(m.holiday) + " " + m.name.split(" ")[0];
+        document.getElementById("mockSub").textContent = fa(m.holiday) + " " + m.name.split(" ")[0] + " — " + m.holName;
+
+        var wd = document.getElementById("mockWeekdays");
+        wd.innerHTML = WEEKDAYS.map(function (w, i) {
+          return '<span class="' + (i === 6 ? "fri" : "") + '">' + w + "</span>";
+        }).join("");
+
+        var grid = document.getElementById("mockGrid");
+        var cells = "";
+        for (var i = 0; i < m.offset; i++) {
+          cells += '<span class="mock-day is-empty"></span>';
+        }
+        for (var d = 1; d <= m.days; d++) {
+          var badge = CYCLE[(d - 1) % CYCLE.length];
+          var cls = "mock-day ";
+          cls += (d + m.offset - 1) % 7 === 6 ? "is-fri " : "";
+          cls += d === m.holiday ? "is-holiday " : "";
+          cls += d === m.today ? "is-today " : "";
+          cls += "badge-" + badge;
+          cells += '<span class="' + cls + '">' +
+            '<span class="day-num">' + fa(d) + "</span>" +
+            '<span class="day-dot"></span></span>';
+        }
+        grid.innerHTML = cells;
+      }
+
+      document.getElementById("mockPrev").addEventListener("click", function () {
+        monthIndex = (monthIndex + MONTHS.length - 1) % MONTHS.length;
+        renderMonth();
+      });
+      document.getElementById("mockNext").addEventListener("click", function () {
+        monthIndex = (monthIndex + 1) % MONTHS.length;
+        renderMonth();
+      });
+
+      /* ---------- Theme swatches ---------- */
+      var current = document.documentElement.dataset.theme || null;
+      document.querySelectorAll(".theme-swatch").forEach(function (sw) {
+        sw.addEventListener("click", function () {
+          applyTheme(sw.dataset.theme);
+        });
+        sw.classList.toggle("is-active", sw.dataset.theme === current);
+      });
+
+      /* ---------- Dark / light toggle ---------- */
+      var modeBtn = document.getElementById("modeToggle");
+      var modeLabel = document.getElementById("modeLabel");
+      var modeIcon = document.getElementById("modeIcon");
+
+      function updateModeUI() {
+        var dark = document.documentElement.dataset.themeMode === "dark";
+        modeLabel.textContent = dark ? "حالت روشن" : "حالت تاریک";
+        modeIcon.innerHTML = dark
+          ? '<circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'
+          : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      }
+
+      modeBtn.addEventListener("click", function () {
+        var dark = document.documentElement.dataset.themeMode === "dark";
+        state.mode = dark ? "light" : "dark";
+        persist();
+        document.documentElement.dataset.themeMode = state.mode;
+        updateModeUI();
+      });
+      updateModeUI();
+
+      /* ---------- Sticky header shadow ---------- */
+      var header = document.getElementById("siteHeader");
+      function onScroll() {
+        header.classList.toggle("is-scrolled", window.scrollY > 8);
+      }
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+
+      /* ---------- Reveal on scroll ---------- */
+      var revealEls = document.querySelectorAll(".reveal");
+      if ("IntersectionObserver" in window) {
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+        );
+        revealEls.forEach(function (el, i) {
+          el.style.transitionDelay = (i % 3) * 70 + "ms";
+          io.observe(el);
+        });
+      } else {
+        revealEls.forEach(function (el) {
+          el.classList.add("is-visible");
+        });
+      }
+
+      /* ---------- Toast for placeholder download links ---------- */
+      var toast = document.getElementById("toast");
+      var toastTimer = null;
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("is-show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+          toast.classList.remove("is-show");
+        }, 2600);
+      }
+
+      document.querySelectorAll("[data-dl]").forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          e.preventDefault();
+          showToast(
+            el.dataset.dl === "play"
+              ? "لینک گوگل‌پلی به‌زودی اینجا قرار می‌گیرد"
+              : "لینک فایل APK به‌زودی اینجا قرار می‌گیرد"
+          );
+        });
+      });
+
+      renderMonth();
+    })();
+  </script>
+</body>
+</html>
