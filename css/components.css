@@ -518,24 +518,18 @@
   box-shadow: var(--shadow-primary);
 }
 
-/* Disabled/loading state for بعدی/قبلی while the spotlight is being
-   placed — grayed out, non-clickable, subtle pulse animation so the
-   user knows something is happening. */
+/* Loading state for بعدی/قبلی while the spotlight is being placed —
+   slightly dimmed so the user sees the buttons exist but aren't ready
+   yet. No pointer-events change (click handlers check stepReady) and
+   no disabled attr (avoids default browser focus/press styles). */
 .tour-prev.is-loading,
 .tour-next.is-loading {
-  opacity: 0.45;
-  pointer-events: none;
-  filter: grayscale(0.4);
-  animation: tour-btn-pulse 1.2s ease-in-out infinite;
+  opacity: 0.35;
+  filter: grayscale(0.3);
 }
 
 .tour-next.is-loading {
   box-shadow: none;
-}
-
-@keyframes tour-btn-pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.6; }
 }
 
 @keyframes tour-bubble-in {

@@ -151,8 +151,8 @@ function buildRoot() {
     </div>`;
   document.body.appendChild(el);
   el.querySelector(".tour-skip").addEventListener("click", () => finish(false));
-  el.querySelector(".tour-prev").addEventListener("click", () => step(stepIndex - 1));
-  el.querySelector(".tour-next").addEventListener("click", () => step(stepIndex + 1));
+  el.querySelector(".tour-prev").addEventListener("click", () => { if (stepReady) step(stepIndex - 1); });
+  el.querySelector(".tour-next").addEventListener("click", () => { if (stepReady) step(stepIndex + 1); });
   el.querySelector('[data-swipe="prev"]').addEventListener("click", () => runAction("prevMonth"));
   el.querySelector('[data-swipe="next"]').addEventListener("click", () => runAction("nextMonth"));
   return el;
@@ -427,14 +427,10 @@ function setButtonsReady(ready) {
   if (!rootEl || !rootEl.isConnected) return;
   const prevBtn = rootEl.querySelector(".tour-prev");
   const nextBtn = rootEl.querySelector(".tour-next");
-  if (prevBtn) {
-    prevBtn.disabled = !ready;
-    prevBtn.classList.toggle("is-loading", !ready);
-  }
-  if (nextBtn) {
-    nextBtn.disabled = !ready;
-    nextBtn.classList.toggle("is-loading", !ready);
-  }
+  // Use only CSS class (no disabled attr) to avoid default browser
+  // focus/press animations. The click handlers check stepReady directly.
+  if (prevBtn) prevBtn.classList.toggle("is-loading", !ready);
+  if (nextBtn) nextBtn.classList.toggle("is-loading", !ready);
 }
 
 /* ---------------- engine ---------------- */

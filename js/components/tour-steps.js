@@ -123,6 +123,7 @@ export const TOUR_STEPS = [
     passThrough: true,
     swipeArrows: true,
     autoAdvance: true,
+    forceView: "grid",
     selector: ".cal-grid, .shift-table-scroll",
     title: "کشیدن انگشت بین ماه‌ها",
     text: "همین حالا امتحان کنید: روی تقویم انگشت‌تان را به راست یا چپ بکشید تا ماه عوض شود — یا از فلش‌های دو طرف صفحه استفاده کنید.",
