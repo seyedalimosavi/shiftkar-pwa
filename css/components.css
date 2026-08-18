@@ -505,6 +505,17 @@
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tour-prev:focus-visible,
+.tour-next:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .tour-prev {

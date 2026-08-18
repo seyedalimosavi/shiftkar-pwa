@@ -30,7 +30,7 @@ let rootEl = null;
 let savedTab = null;
 let savedView = null;
 let savedScrollY = 0;
-let tourForcedGrid = false;
+
 let passThroughActive = false;
 /** When false (during step transition), بعدی/قبلی buttons are disabled
  *  and grayed out so the user can't skip ahead before the spotlight
@@ -381,10 +381,12 @@ async function spotlight(stepDef) {
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
 
   if (needsScroll) {
-    // Hide the bubble while the target scrolls into view, then wait for the
-    // scroll to SETTLE before measuring — measuring mid-smooth-scroll left
-    // the ring stuck at a wrong spot (e.g. floating over the bottom nav).
+    // Hide both the bubble AND the ring while the target scrolls into
+    // view — the old ring stays at its stale position during the scroll
+    // and looks like a glitch. Both are restored after the scroll settles.
     bubble.style.opacity = "0";
+    const ring = rootEl.querySelector(".tour-ring");
+    ring.style.opacity = "0";
     try {
       els[0].scrollIntoView({ block: "center", behavior: "smooth" });
     } catch {
@@ -397,8 +399,13 @@ async function spotlight(stepDef) {
     // the bubble hidden for the step that replaced us.
     if (stepIndex !== thisStep) {
       bubble.style.opacity = "";
+      ring.style.opacity = "";
       return;
     }
+    // Wait one frame for the layout to stabilise after scroll, then
+    // measure and show the ring + bubble at the final position.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    if (!stillCurrent(thisStep)) { bubble.style.opacity = ""; ring.style.opacity = ""; return; }
     const r = targetRect(stepDef.selector);
     applyHole(r);
     placeBubble(r);
@@ -605,11 +612,12 @@ async function finish(completed) {
     }
   }
 
-  // Restore the calendar view the tour forced to grid and return the user
-  // to the tab they started from.
-  if (tourForcedGrid) {
+  // Restore the calendar view to what the user had before the tour.
+  // Steps 12-13 switch to table view to demonstrate the feature; this
+  // ensures the user ends up with THEIR preferred view regardless.
+  if (savedView != null) {
     state.set({ calendarViewType: savedView });
-    tourForcedGrid = false;
+    savedView = null;
   }
   if (savedTab && getRoute() !== savedTab) {
     navigate(savedTab);
@@ -649,7 +657,6 @@ export async function startTour() {
   // user switches back to their preferred view after the tour ends.
   if (savedView === "table") {
     state.set({ calendarViewType: "grid" });
-    tourForcedGrid = true;
   }
 
   rootEl = buildRoot();
