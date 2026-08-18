@@ -378,21 +378,12 @@ async function spotlight(stepDef) {
 
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const rect = targetRect(stepDef.selector);
-  // Only scroll when the target is truly off-screen (partially or fully
-  // outside the viewport). Elements that are visible but near the top or
-  // bottom edges should NOT trigger a scroll — the bubble placement logic
-  // already positions the tooltip above or below as needed, and scrolling
-  // visible elements (like the bottom nav or theme grid) hides the very
-  // content the step is trying to showcase.
-  const needsScroll = els.length > 0 && rect && (
-    rect.bottom < 80 || rect.top > window.innerHeight - 20
-  );
+  const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
 
   if (needsScroll) {
-    // Hide both the bubble AND the ring while the target scrolls into
-    // view — the old ring stays at its stale position during the scroll
-    // and looks like a glitch. Both are restored after the scroll settles.
-    bubble.style.opacity = "0";
+    // Hide the ring during the scroll (the old ring stays at its stale
+    // position and looks like a ghost). The bubble stays visible — it
+    // repositions smoothly via CSS transition.
     const ring = rootEl.querySelector(".tour-ring");
     ring.style.opacity = "0";
     try {
@@ -402,22 +393,18 @@ async function spotlight(stepDef) {
     }
     await waitForScrollSettle(stepDef.selector);
     if (!active || !rootEl || !rootEl.isConnected) return;
-    // A newer step may have started while the scroll settled — don't let a
-    // stale spotlight overwrite the new step's ring/bubble, and don't leave
-    // the bubble hidden for the step that replaced us.
     if (stepIndex !== thisStep) {
-      bubble.style.opacity = "";
       ring.style.opacity = "";
       return;
     }
-    // Wait one frame for the layout to stabilise after scroll, then
-    // measure and show the ring + bubble at the final position.
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    if (!stillCurrent(thisStep)) { bubble.style.opacity = ""; ring.style.opacity = ""; return; }
+    // Short settle delay: the browser needs a paint cycle after scroll to
+    // finalise element positions before we measure. 180ms is enough for
+    // smooth-scroll to settle on all target devices.
+    await new Promise((r) => setTimeout(r, 180));
+    if (!stillCurrent(thisStep)) { ring.style.opacity = ""; return; }
     const r = targetRect(stepDef.selector);
     applyHole(r);
     placeBubble(r);
-    bubble.style.opacity = "";
     return;
   }
 
