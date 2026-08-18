@@ -340,6 +340,58 @@ function placeBubble(rect) {
   bubble.querySelector(".tour-arrow").style.left = arrowLeft;
 }
 
+/** Measure the target element with validation and retry.
+ *  On mobile browsers, getBoundingClientRect() can return stale or zeroed
+ *  coordinates right after a page transition, tab switch, or sheet
+ *  animation — the element exists in the DOM but hasn't been laid out yet.
+ *  This function:
+ *   1. Measures immediately
+ *   2. If the rect looks wrong (< 30px wide/tall, or fully off-screen),
+ *      waits 200ms and retries once
+ *   3. If still wrong, returns a centered viewport rect so the bubble
+ *      and ring at least appear in a reasonable position
+ */
+async function measureTarget(selector, els) {
+  if (!els || !els.length) return null;
+  const VISIBLE_MIN = 30;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  function isGood(r) {
+    if (!r) return false;
+    // Must have reasonable size
+    if (r.width < VISIBLE_MIN || r.height < VISIBLE_MIN) return false;
+    // Must overlap the viewport (at least partially)
+    if (r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) return false;
+    return true;
+  }
+
+  function fallback() {
+    // Centered rect in the viewport — guarantees the ring + bubble land
+    // somewhere reasonable even if the target can't be measured.
+    const w = Math.min(200, vw * 0.5);
+    const h = Math.min(80, vh * 0.15);
+    return { left: (vw - w) / 2, top: (vh - h) / 2, width: w, height: h, right: (vw + w) / 2, bottom: (vh + h) / 2 };
+  }
+
+  // Attempt 1: immediate measurement
+  let r = targetRect(selector);
+  if (isGood(r)) return r;
+
+  // Attempt 2: wait for layout, then retry
+  await new Promise((res) => setTimeout(res, 200));
+  r = targetRect(selector);
+  if (isGood(r)) return r;
+
+  // Attempt 3: another retry (sheet animations, page transitions)
+  await new Promise((res) => setTimeout(res, 300));
+  r = targetRect(selector);
+  if (isGood(r)) return r;
+
+  // All retries failed — use viewport fallback
+  return fallback();
+}
+
 async function spotlight(stepDef) {
   const thisStep = stepIndex;
   const bubble = rootEl.querySelector(".tour-bubble");
@@ -377,7 +429,7 @@ async function spotlight(stepDef) {
   }
 
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
-  const rect = targetRect(stepDef.selector);
+  let rect = await measureTarget(stepDef.selector, els);
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
 
   if (needsScroll) {
@@ -397,15 +449,10 @@ async function spotlight(stepDef) {
       ring.style.opacity = "";
       return;
     }
-    // Short settle delay: the browser needs a paint cycle after scroll to
-    // finalise element positions before we measure. 180ms is enough for
-    // smooth-scroll to settle on all target devices.
-    await new Promise((r) => setTimeout(r, 180));
+    // Wait for layout to finalise after scroll, then re-measure.
+    await new Promise((r) => setTimeout(r, 200));
     if (!stillCurrent(thisStep)) { ring.style.opacity = ""; return; }
-    const r = targetRect(stepDef.selector);
-    applyHole(r);
-    placeBubble(r);
-    return;
+    rect = await measureTarget(stepDef.selector, els);
   }
 
   applyHole(rect);
