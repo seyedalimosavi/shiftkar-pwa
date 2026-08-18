@@ -508,7 +508,11 @@ async function step(index) {
 async function finish(completed) {
   if (!active) return;
   active = false;
-  if (completed) markSeen();
+  // Mark as seen for BOTH completion AND skip — once the user has
+  // interacted with the guide (even if they skipped it), don't force
+  // it to reappear on next page refresh. They can always replay
+  // from Settings → راهنمای شروع.
+  markSeen();
 
   closeOverlays();
   setTodayChipHold(false);

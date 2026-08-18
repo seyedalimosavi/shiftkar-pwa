@@ -167,12 +167,9 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
-    sheetStep: true,
-    settle: true,
-    selector: ".sheet",
-    click: "openNotes",
+    selector: '[data-action="notes"]',
     title: "مدیریت همهٔ یادداشت‌ها",
-    text: "دکمهٔ یادداشت بالای تقویم، همهٔ یادداشت‌های شما را با جستجو و پرش به همان روز نشان می‌دهد.",
+    text: "دکمهٔ یادداشت بالای تقویم، همهٔ یادداشت‌های شما را با جستجو و پرش به همان روز نشان می‌دهد. روی آن بزنید.",
   },
 
   // ---------- systems ----------
