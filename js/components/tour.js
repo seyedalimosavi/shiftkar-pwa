@@ -284,25 +284,13 @@ function applyHole(rect) {
   // Glowing ring around the showcased group — skipped when the target
   // covers most of the screen (whole calendar/sheet/grid), where the crisp
   // hole itself is the highlight and a huge frame reads as a glitch.
-  // Ring is hidden instantly, repositioned, then shown via rAF — so the
-  // browser paints the hidden state before the ring fades in at the new
-  // position. No visible lag from old → new.
   const coversScreen =
     rect.width * rect.height > window.innerWidth * window.innerHeight * 0.4;
-  ring.style.opacity = "0";
   ring.style.display = coversScreen ? "none" : "block";
   ring.style.top = `${rect.top - 5}px`;
   ring.style.left = `${rect.left - 5}px`;
   ring.style.width = `${rect.width + 10}px`;
   ring.style.height = `${rect.height + 10}px`;
-  // Let the browser paint the hidden state before revealing the ring at
-  // its new position. Without this, the opacity 0→1 happens in the same
-  // frame as the reposition and the browser skips the paint — the old
-  // ring position lingers visibly until the transition completes.
-  requestAnimationFrame(() => {
-    if (!active || !rootEl || !rootEl.isConnected) return;
-    ring.style.opacity = "1";
-  });
 }
 
 function placeBubble(rect) {
@@ -338,58 +326,6 @@ function placeBubble(rect) {
   bubble.style.right = "auto";
   bubble.dataset.arrow = arrowPos;
   bubble.querySelector(".tour-arrow").style.left = arrowLeft;
-}
-
-/** Measure the target element with validation and retry.
- *  On mobile browsers, getBoundingClientRect() can return stale or zeroed
- *  coordinates right after a page transition, tab switch, or sheet
- *  animation — the element exists in the DOM but hasn't been laid out yet.
- *  This function:
- *   1. Measures immediately
- *   2. If the rect looks wrong (< 30px wide/tall, or fully off-screen),
- *      waits 200ms and retries once
- *   3. If still wrong, returns a centered viewport rect so the bubble
- *      and ring at least appear in a reasonable position
- */
-async function measureTarget(selector, els) {
-  if (!els || !els.length) return null;
-  const VISIBLE_MIN = 30;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  function isGood(r) {
-    if (!r) return false;
-    // Must have reasonable size
-    if (r.width < VISIBLE_MIN || r.height < VISIBLE_MIN) return false;
-    // Must overlap the viewport (at least partially)
-    if (r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) return false;
-    return true;
-  }
-
-  function fallback() {
-    // Centered rect in the viewport — guarantees the ring + bubble land
-    // somewhere reasonable even if the target can't be measured.
-    const w = Math.min(200, vw * 0.5);
-    const h = Math.min(80, vh * 0.15);
-    return { left: (vw - w) / 2, top: (vh - h) / 2, width: w, height: h, right: (vw + w) / 2, bottom: (vh + h) / 2 };
-  }
-
-  // Attempt 1: immediate measurement
-  let r = targetRect(selector);
-  if (isGood(r)) return r;
-
-  // Attempt 2: wait for layout, then retry
-  await new Promise((res) => setTimeout(res, 200));
-  r = targetRect(selector);
-  if (isGood(r)) return r;
-
-  // Attempt 3: another retry (sheet animations, page transitions)
-  await new Promise((res) => setTimeout(res, 300));
-  r = targetRect(selector);
-  if (isGood(r)) return r;
-
-  // All retries failed — use viewport fallback
-  return fallback();
 }
 
 async function spotlight(stepDef) {
@@ -429,15 +365,11 @@ async function spotlight(stepDef) {
   }
 
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
-  let rect = await measureTarget(stepDef.selector, els);
+  const rect = targetRect(stepDef.selector);
   const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
 
   if (needsScroll) {
-    // Hide the ring during the scroll (the old ring stays at its stale
-    // position and looks like a ghost). The bubble stays visible — it
-    // repositions smoothly via CSS transition.
-    const ring = rootEl.querySelector(".tour-ring");
-    ring.style.opacity = "0";
+    bubble.style.opacity = "0";
     try {
       els[0].scrollIntoView({ block: "center", behavior: "smooth" });
     } catch {
@@ -446,13 +378,14 @@ async function spotlight(stepDef) {
     await waitForScrollSettle(stepDef.selector);
     if (!active || !rootEl || !rootEl.isConnected) return;
     if (stepIndex !== thisStep) {
-      ring.style.opacity = "";
+      bubble.style.opacity = "";
       return;
     }
-    // Wait for layout to finalise after scroll, then re-measure.
-    await new Promise((r) => setTimeout(r, 200));
-    if (!stillCurrent(thisStep)) { ring.style.opacity = ""; return; }
-    rect = await measureTarget(stepDef.selector, els);
+    const r = targetRect(stepDef.selector);
+    applyHole(r);
+    placeBubble(r);
+    bubble.style.opacity = "";
+    return;
   }
 
   applyHole(rect);
@@ -557,19 +490,6 @@ async function step(index) {
     }
   }
 
-  // forceView: explicitly set the calendar view before spotlighting. This
-  // is more reliable than relying on a click action that may race with
-  // re-renders — e.g. switching from grid to table so the fullscreen
-  // button appears, or vice versa.
-  if (stepDef.forceView) {
-    const cur = state.settings.calendarViewType === "table" ? "table" : "grid";
-    if (cur !== stepDef.forceView) {
-      state.set({ calendarViewType: stepDef.forceView });
-      // Wait for the browser to paint the new layout before measuring.
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      if (!stillCurrent(token)) return;
-    }
-  }
   // click actions REVEAL the target (switch month / view) and run before
   // the spotlight; demo actions run after it, as a live demonstration.
   if (stepDef.click) await runAction(stepDef.click);
