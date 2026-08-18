@@ -672,11 +672,3 @@ export function maybeAutoStartTour() {
 export function isTourActive() {
   return active;
 }
-
-/** While the tour is running and the user prefers table view, the calendar
- *  is forced to grid so steps that target calendar cells, the notes button,
- *  and the day-detail sheet all work correctly. The user's real preference
- *  is restored when the tour finishes. */
-export function isTourForcingGrid() {
-  return tourForcedGrid;
-}
