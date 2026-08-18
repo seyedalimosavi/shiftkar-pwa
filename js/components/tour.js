@@ -280,8 +280,9 @@ function applyHole(rect) {
   // Glowing ring around the showcased group — skipped when the target
   // covers most of the screen (whole calendar/sheet/grid), where the crisp
   // hole itself is the highlight and a huge frame reads as a glitch.
-  // Ring is hidden first, repositioned, then shown — so there is never
-  // a visible lag of the old position transitioning to the new one.
+  // Ring is hidden instantly, repositioned, then shown via rAF — so the
+  // browser paints the hidden state before the ring fades in at the new
+  // position. No visible lag from old → new.
   const coversScreen =
     rect.width * rect.height > window.innerWidth * window.innerHeight * 0.4;
   ring.style.opacity = "0";
@@ -290,9 +291,14 @@ function applyHole(rect) {
   ring.style.left = `${rect.left - 5}px`;
   ring.style.width = `${rect.width + 10}px`;
   ring.style.height = `${rect.height + 10}px`;
-  // Force layout so the reposition takes effect before the opacity fade in.
-  ring.offsetHeight; // eslint-disable-line no-unused-expressions
-  ring.style.opacity = "1";
+  // Let the browser paint the hidden state before revealing the ring at
+  // its new position. Without this, the opacity 0→1 happens in the same
+  // frame as the reposition and the browser skips the paint — the old
+  // ring position lingers visibly until the transition completes.
+  requestAnimationFrame(() => {
+    if (!active || !rootEl || !rootEl.isConnected) return;
+    ring.style.opacity = "1";
+  });
 }
 
 function placeBubble(rect) {
@@ -665,4 +671,12 @@ export function maybeAutoStartTour() {
 /** Lets the install-prompt skip its auto-ask while the tour is running. */
 export function isTourActive() {
   return active;
+}
+
+/** While the tour is running and the user prefers table view, the calendar
+ *  is forced to grid so steps that target calendar cells, the notes button,
+ *  and the day-detail sheet all work correctly. The user's real preference
+ *  is restored when the tour finishes. */
+export function isTourForcingGrid() {
+  return tourForcedGrid;
 }

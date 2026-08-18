@@ -26,7 +26,7 @@ import { shiftBadge, shiftCodeBadge, miniGroupBadge } from "../components/shift-
 import { icon } from "../components/icons.js";
 import { registerBackHandler, consumeBackEntry, lockBodyScroll, unlockBodyScroll } from "../components/bottom-sheet.js";
 import { maybeAutoPromptInstall } from "../components/install-prompt.js";
-import { maybeAutoStartTour } from "../components/tour.js";
+import { maybeAutoStartTour, isTourForcingGrid } from "../components/tour.js";
 
 let container = null;
 let unsubscribe = null;
@@ -121,6 +121,9 @@ export function renderCalendar(el) {
 }
 
 function currentView() {
+  // During the tour, always use grid view so calendar cells, the notes
+  // button, and the day-detail sheet are all accessible to the spotlight.
+  if (isTourForcingGrid()) return "grid";
   return state.settings.calendarViewType === "table" ? "table" : "grid";
 }
 
