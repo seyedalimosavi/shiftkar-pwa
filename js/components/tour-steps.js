@@ -133,10 +133,12 @@ export const TOUR_STEPS = [
     selector: ".view-toggle-nav, .view-single-toggle",
     title: "نمای تقویم و جدول",
     text: "بین نمای شبکه‌ای (تقویم) و جدول شیفت‌ها جابه‌جا شوید — الان نمای جدولی را می‌بینید.",
+    forceView: "table",
     click: "toTable",
   },
   {
     tab: "calendar",
+    forceView: "table",
     focus: "soft",
     selector: '[data-action="fullscreen"]',
     title: "جدول تمام‌صفحه",

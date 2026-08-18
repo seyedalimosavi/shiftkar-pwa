@@ -32,6 +32,10 @@ let savedView = null;
 let savedScrollY = 0;
 let tourForcedGrid = false;
 let passThroughActive = false;
+/** When false (during step transition), بعدی/قبلی buttons are disabled
+ *  and grayed out so the user can't skip ahead before the spotlight
+ *  has been placed. Set to true once the ring + bubble are positioned. */
+let stepReady = false;
 /** Monotonic token for step transitions — invalidates stale async step()
  *  invocations (see step() below). */
 let stepToken = 0;
@@ -416,6 +420,23 @@ function showStep(stepDef) {
   nextBtn.textContent = stepIndex === TOUR_STEPS.length - 1 ? "تمام" : "بعدی";
 }
 
+/** Enable/disable بعدی/قبلی buttons while the spotlight is being placed.
+ *  Disabled buttons get a "is-loading" class that grays them out and
+ *  blocks clicks, so the user can't skip ahead before seeing the step. */
+function setButtonsReady(ready) {
+  if (!rootEl || !rootEl.isConnected) return;
+  const prevBtn = rootEl.querySelector(".tour-prev");
+  const nextBtn = rootEl.querySelector(".tour-next");
+  if (prevBtn) {
+    prevBtn.disabled = !ready;
+    prevBtn.classList.toggle("is-loading", !ready);
+  }
+  if (nextBtn) {
+    nextBtn.disabled = !ready;
+    nextBtn.classList.toggle("is-loading", !ready);
+  }
+}
+
 /* ---------------- engine ---------------- */
 
 /** Install step: once the app is installed, pointing at the CTA is
@@ -491,6 +512,19 @@ async function step(index) {
     }
   }
 
+  // forceView: explicitly set the calendar view before spotlighting. This
+  // is more reliable than relying on a click action that may race with
+  // re-renders — e.g. switching from grid to table so the fullscreen
+  // button appears, or vice versa.
+  if (stepDef.forceView) {
+    const cur = state.settings.calendarViewType === "table" ? "table" : "grid";
+    if (cur !== stepDef.forceView) {
+      state.set({ calendarViewType: stepDef.forceView });
+      // Wait for the browser to paint the new layout before measuring.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (!stillCurrent(token)) return;
+    }
+  }
   // click actions REVEAL the target (switch month / view) and run before
   // the spotlight; demo actions run after it, as a live demonstration.
   if (stepDef.click) await runAction(stepDef.click);
@@ -521,9 +555,18 @@ async function step(index) {
     setTodayChipHold(true);
   }
 
+  // Disable بعدی/قبلی until the spotlight is placed — ensures the user
+  // actually sees the current step before skipping ahead.
+  stepReady = false;
+  setButtonsReady(false);
+
   showStep(stepDef);
   await spotlight(stepDef);
   if (!stillCurrent(token)) return;
+
+  // Spotlight is placed — enable navigation buttons.
+  stepReady = true;
+  setButtonsReady(true);
 
   // Demo (e.g. «برو به امروز»): perform the action a moment later. The
   // target usually disappears (the chip only exists off the current month),

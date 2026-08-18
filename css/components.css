@@ -518,6 +518,26 @@
   box-shadow: var(--shadow-primary);
 }
 
+/* Disabled/loading state for بعدی/قبلی while the spotlight is being
+   placed — grayed out, non-clickable, subtle pulse animation so the
+   user knows something is happening. */
+.tour-prev.is-loading,
+.tour-next.is-loading {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.4);
+  animation: tour-btn-pulse 1.2s ease-in-out infinite;
+}
+
+.tour-next.is-loading {
+  box-shadow: none;
+}
+
+@keyframes tour-btn-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.6; }
+}
+
 @keyframes tour-bubble-in {
   from {
     opacity: 0;
