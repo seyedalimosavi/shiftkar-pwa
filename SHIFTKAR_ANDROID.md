@@ -39,7 +39,7 @@ Use the web project prompt (`SHIFTKAR_FULL_PROJECT.md`) to set up the web app fi
 #### 2. Install Capacitor
 ```bash
 bun add @capacitor/core @capacitor/cli @capacitor/android
-npx cap init "ShiftKar" "ir.bipc.shiftkar" --web-dir dist
+npx cap init "ShiftKar" "com.seyedhosseinmousavisaeedi.shiftkar" --web-dir dist
 ```
 
 #### 3. Build the web app
@@ -62,7 +62,7 @@ npx cap sync android
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ir.bipc.shiftkar">
+    package="com.seyedhosseinmousavisaeedi.shiftkar">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -254,11 +254,11 @@ plugins {
 }
 
 android {
-    namespace = "ir.bipc.shiftkar"
+    namespace = "com.seyedhosseinmousavisaeedi.shiftkar"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "ir.bipc.shiftkar"
+        applicationId = "com.seyedhosseinmousavisaeedi.shiftkar"
         minSdk = 26
         targetSdk = 35
         versionCode = 7
@@ -329,7 +329,7 @@ dependencies {
 
 #### Color.kt
 ```kotlin
-package ir.bipc.shiftkar.ui.theme
+package com.seyedhosseinmousavisaeedi.shiftkar.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
@@ -433,7 +433,7 @@ object ShiftColors {
 
 #### Type.kt
 ```kotlin
-package ir.bipc.shiftkar.ui.theme
+package com.seyedhosseinmousavisaeedi.shiftkar.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
@@ -441,7 +441,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import ir.bipc.shiftkar.R
+import com.seyedhosseinmousavisaeedi.shiftkar.R
 
 val IRANSansX = FontFamily(
     Font(R.font.iransansx_regular, FontWeight.Normal),
@@ -476,10 +476,10 @@ Port `js/domain/jalali.js` to Kotlin. The algorithm is identical:
 
 #### ShiftCalculator.kt
 ```kotlin
-package ir.bipc.shiftkar.domain.shift
+package com.seyedhosseinmousavisaeedi.shiftkar.domain.shift
 
-import ir.bipc.shiftkar.domain.jalali.JalaliDate
-import ir.bipc.shiftkar.domain.jalali.toGregorian
+import com.seyedhosseinmousavisaeedi.shiftkar.domain.jalali.JalaliDate
+import com.seyedhosseinmousavisaeedi.shiftkar.domain.jalali.toGregorian
 
 enum class ShiftType { DAY, NIGHT, REST }
 enum class ShiftCode(val fa: String) {
