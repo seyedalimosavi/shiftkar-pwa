@@ -30,10 +30,13 @@ let rootEl = null;
 let savedTab = null;
 let savedView = null;
 let savedScrollY = 0;
+let tourForcedGrid = false;
 let passThroughActive = false;
 /** Monotonic token for step transitions — invalidates stale async step()
  *  invocations (see step() below). */
 let stepToken = 0;
+/** Cleanup for auto-advance subscriber set up during swipe steps. */
+let autoAdvanceCleanup = null;
 
 function seen() {
   try {
@@ -277,13 +280,19 @@ function applyHole(rect) {
   // Glowing ring around the showcased group — skipped when the target
   // covers most of the screen (whole calendar/sheet/grid), where the crisp
   // hole itself is the highlight and a huge frame reads as a glitch.
+  // Ring is hidden first, repositioned, then shown — so there is never
+  // a visible lag of the old position transitioning to the new one.
   const coversScreen =
     rect.width * rect.height > window.innerWidth * window.innerHeight * 0.4;
+  ring.style.opacity = "0";
   ring.style.display = coversScreen ? "none" : "block";
   ring.style.top = `${rect.top - 5}px`;
   ring.style.left = `${rect.left - 5}px`;
   ring.style.width = `${rect.width + 10}px`;
   ring.style.height = `${rect.height + 10}px`;
+  // Force layout so the reposition takes effect before the opacity fade in.
+  ring.offsetHeight; // eslint-disable-line no-unused-expressions
+  ring.style.opacity = "1";
 }
 
 function placeBubble(rect) {
@@ -335,6 +344,27 @@ async function spotlight(stepDef) {
   rootEl.querySelector(".tour-overlay").style.pointerEvents = passThroughActive ? "none" : "auto";
   const swipeNav = rootEl.querySelector(".tour-swipe-nav");
   if (swipeNav) swipeNav.hidden = !stepDef.swipeArrows;
+
+  // Auto-advance: when a passThrough step has autoAdvance (the swipe
+  // lesson), watch for a month change and advance automatically once the
+  // user swipes — no need to tap بعدی.
+  if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
+  if (stepDef.autoAdvance && passThroughActive) {
+    const monthBefore = `${state.settings.viewYear}-${state.settings.viewMonth}`;
+    const unsub = state.subscribe(() => {
+      if (!active || stepIndex !== thisStep) return;
+      const monthNow = `${state.settings.viewYear}-${state.settings.viewMonth}`;
+      if (monthNow !== monthBefore) {
+        // Month changed — clean up and advance after a brief pause so the
+        // user can see the new month render before the bubble moves on.
+        if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
+        setTimeout(() => {
+          if (active && stepIndex === thisStep) step(thisStep + 1);
+        }, 600);
+      }
+    });
+    autoAdvanceCleanup = unsub;
+  }
 
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const rect = targetRect(stepDef.selector);
@@ -414,6 +444,8 @@ async function step(index) {
   // current bails before touching the UI.
   const token = ++stepToken;
   stepIndex = index;
+  // Clean up any auto-advance subscriber from a previous pass-through step.
+  if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
   const baseDef = TOUR_STEPS[index];
 
   // Close any sheet/fullscreen left open by a previous step (sheet steps
@@ -514,6 +546,7 @@ async function finish(completed) {
   // from Settings → راهنمای شروع.
   markSeen();
 
+  if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
   closeOverlays();
   setTodayChipHold(false);
 
@@ -527,10 +560,11 @@ async function finish(completed) {
     }
   }
 
-  // Restore the calendar view the tour switched (grid ↔ table) and return
-  // the user to the tab they started from.
-  if (savedView && state.settings.calendarViewType !== savedView) {
+  // Restore the calendar view the tour forced to grid and return the user
+  // to the tab they started from.
+  if (tourForcedGrid) {
     state.set({ calendarViewType: savedView });
+    tourForcedGrid = false;
   }
   if (savedTab && getRoute() !== savedTab) {
     navigate(savedTab);
@@ -563,6 +597,15 @@ export async function startTour() {
   savedTab = getRoute() || "calendar";
   savedView = state.settings.calendarViewType === "table" ? "table" : "grid";
   savedScrollY = window.scrollY || 0;
+
+  // Force calendar grid view for the tour — table view hides the calendar
+  // cells that several steps want to spotlight (day cells, notes button).
+  // The tour's step 11 (view toggle) teaches the table view exists; the
+  // user switches back to their preferred view after the tour ends.
+  if (savedView === "table") {
+    state.set({ calendarViewType: "grid" });
+    tourForcedGrid = true;
+  }
 
   rootEl = buildRoot();
 

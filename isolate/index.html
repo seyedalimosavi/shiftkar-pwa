@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="شیفت‌کار — تقویم هوشمند شیفت کاری با محاسبه خودکار شیفت‌های روز، شب و استراحت" />
+  <meta name="theme-color" content="#3d6bf5" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="شیفت‌کار" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="./assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
+  <script>
+    /* Apply the saved theme before first paint to avoid a light-mode flash. */
+    (function () {
+      try {
+        var raw = localStorage.getItem("shiftkar.settings.v1");
+        var s = raw ? JSON.parse(raw) : {};
+        var mode = s.themeMode || "system";
+        var dark =
+          mode === "dark" ||
+          (mode === "system" &&
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.themeMode = dark ? "dark" : "light";
+        if (s.theme) document.documentElement.dataset.theme = s.theme;
+      } catch (e) {
+        /* keep defaults */
+      }
+    })();
+  </script>
+  <title>شیفت‌کار | ShiftKar</title>
+  <script type="module" crossorigin src="./assets/index-DO05vtll.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-lL347aPv.css">
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>

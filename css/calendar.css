@@ -812,6 +812,8 @@
    hogs the row — the label stays reachable via title/aria and re-expands
    on hover (desktop). */
 .today-chip {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;

@@ -330,8 +330,8 @@
 }
 
 /* Glowing ring marking the showcased element (positioned from JS).
-   Smooth transitions give the ring a polished, app-like feel as the
-   spotlight glides between targets. */
+   Ring position is set instantly (hidden → reposition → show) so there
+   is no visible lag between steps. Only opacity gets a short fade. */
 .tour-ring {
   position: fixed;
   display: none;
@@ -341,12 +341,7 @@
     0 0 0 3px var(--color-surface-solid),
     0 0 22px rgba(61, 107, 245, 0.55);
   pointer-events: none;
-  transition:
-    top 380ms var(--ease-out),
-    left 380ms var(--ease-out),
-    width 380ms var(--ease-out),
-    height 380ms var(--ease-out),
-    opacity 250ms var(--ease-out);
+  transition: opacity 180ms var(--ease-out);
 }
 
 /* Floating month arrows shown during the swipe step — the user can also
@@ -414,9 +409,9 @@
   opacity: 1;
   transition:
     opacity 200ms var(--ease-out),
-    top 320ms var(--ease-out),
-    left 320ms var(--ease-out);
-  animation: tour-bubble-in 220ms var(--ease-out) both;
+    top 180ms var(--ease-out),
+    left 180ms var(--ease-out);
+  animation: tour-bubble-in 180ms var(--ease-out) both;
 }
 
 /* Desktop: wider bubble + extra safe-area for iPhone notch/Dynamic Island. */
