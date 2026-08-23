@@ -53,6 +53,8 @@ const PATHS = {
   chart: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-6"/>',
   globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  /* RTL "back" arrow — points right, the backward direction in RTL UIs. */
+  back: '<path d="M4 12h16M14 6l6 6-6 6"/>',
 };
 
 /** Wraps icon paths in a standard SVG element. */

@@ -2162,3 +2162,54 @@ body.tour-lock .tour {
 [data-theme-mode="dark"] .btn-ghost:hover {
   background: var(--color-surface-solid);
 }
+
+/* ---------- in-app back affordance (standalone PWA) ----------
+   iOS/Android standalone and desktop installed windows have no visible
+   back control, so a floating pill appears on non-home tabs. */
+.standalone-back {
+  position: fixed;
+  inset-inline-start: 14px;
+  top: calc(var(--safe-top) + 10px);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+  animation: fab-in 0.25s var(--ease-out);
+}
+
+.standalone-back .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
+}
+
+.standalone-back:hover {
+  color: var(--color-primary-strong);
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+}
+
+.standalone-back:active {
+  transform: scale(0.96);
+}
+
+/* Reserve room so the pill never covers the page header. */
+body.has-standalone-back .page {
+  padding-top: calc(var(--safe-top) + 60px);
+}

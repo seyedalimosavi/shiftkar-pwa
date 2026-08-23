@@ -5,6 +5,7 @@
  */
 import { state } from "./state.js";
 import { renderBottomNav } from "../components/bottom-nav.js";
+import { icon } from "../components/icons.js";
 import { renderSplash } from "../pages/splash.js";
 import { renderOnboarding } from "../pages/onboarding.js";
 import { renderCalendar } from "../pages/calendar.js";
@@ -25,6 +26,57 @@ const PAGES = {
 
 export function getRoute() {
   return window.location.hash.replace(/^#\/?/, "").split("?")[0] || "";
+}
+
+/* ---------- in-app back navigation (standalone PWAs) ----------
+ *
+ * Installed PWAs have no browser chrome: iOS/Android standalone has no
+ * address bar, and on desktop (macOS/Windows/Linux) the window has no
+ * toolbar either. The system back gesture exists only on Android — so on
+ * iOS and desktop we provide our own back affordance: a floating pill on
+ * non-home tabs plus keyboard shortcuts (Alt+←, or ⌘[ on macOS).
+ * We keep our own route stack instead of relying on history entries, so
+ * going back never leaves junk forward-entries behind.
+ */
+const routeStack = [];
+
+function isStandaloneDisplay() {
+  return (
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+    window.navigator.standalone === true
+  );
+}
+
+function trackRoute(route) {
+  if (!SHELL_ROUTES.includes(route)) return; // never push splash/onboarding
+  const len = routeStack.length;
+  if (len && routeStack[len - 1] === route) return;
+  // Browser/system back moves to the previous entry — pop instead of push.
+  if (len > 1 && routeStack[len - 2] === route) {
+    routeStack.pop();
+    return;
+  }
+  routeStack.push(route);
+  if (routeStack.length > 20) routeStack.shift();
+}
+
+/** True when there is an in-app route to go back to. */
+export function canGoBack() {
+  return routeStack.length > 1;
+}
+
+/** Go one step back in the app's own history. Returns true if it moved. */
+export function goBack() {
+  if (!canGoBack()) return false;
+  routeStack.pop();
+  const prev = routeStack[routeStack.length - 1];
+  try {
+    history.replaceState(null, "", `#/${prev}`);
+  } catch {
+    /* sandboxed environments — fall through to a manual render */
+  }
+  render();
+  return true;
 }
 
 export function navigate(route) {
@@ -82,10 +134,55 @@ function render() {
 
   const pageRenderer = PAGES[route] || renderCalendar;
   pageRenderer(main);
+
+  trackRoute(route);
+  renderStandaloneBack(appEl, route);
+}
+
+/** Floating back pill, shown only in standalone mode on non-home tabs. */
+function renderStandaloneBack(appEl, route) {
+  const old = document.getElementById("standalone-back");
+  if (old) old.remove();
+  document.body.classList.remove("has-standalone-back");
+
+  if (!isStandaloneDisplay()) return;
+  if (!SHELL_ROUTES.includes(route) || route === "calendar") return;
+  if (!canGoBack()) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "standalone-back";
+  btn.className = "standalone-back";
+  btn.setAttribute("aria-label", "بازگشت");
+  btn.innerHTML = `${icon("back")}<span>بازگشت</span>`;
+  btn.addEventListener("click", () => goBack());
+  appEl.appendChild(btn);
+  // Reserve room so the pill never covers the page header.
+  document.body.classList.add("has-standalone-back");
 }
 
 export function initRouter(app) {
   appEl = app;
   window.addEventListener("hashchange", render);
+
+  // Keyboard back shortcuts (desktop installed apps have no back button):
+  // Alt+← works everywhere; ⌘[ is the macOS convention.
+  window.addEventListener("keydown", (e) => {
+    const mac = /Mac|iPhone|iPad/i.test(
+      navigator.platform || navigator.userAgent || "",
+    );
+    const hit =
+      (e.altKey && e.key === "ArrowLeft") || (mac && e.metaKey && e.key === "[");
+    if (!hit) return;
+    const t = e.target;
+    if (
+      t &&
+      (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+    )
+      return;
+    e.preventDefault();
+    goBack();
+  });
+
   render();
 }
