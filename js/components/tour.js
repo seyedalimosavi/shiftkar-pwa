@@ -198,27 +198,77 @@ function targetRect(selector) {
   return r;
 }
 
-/** Resolve once the target has stopped moving (smooth scroll finished), so
- *  measurements happen at the final resting position. */
-function waitForScrollSettle(selector, timeout = 1500) {
+/** True when two rects occupy (essentially) the same viewport position —
+ *  used to detect that layout has fully settled (scroll finished, sheet
+ *  animation done, chip collapsed…) before drawing the spotlight. */
+function rectsEqual(a, b) {
+  return (
+    a &&
+    b &&
+    Math.round(a.left) === Math.round(b.left) &&
+    Math.round(a.top) === Math.round(b.top) &&
+    Math.round(a.right) === Math.round(b.right) &&
+    Math.round(a.bottom) === Math.round(b.bottom)
+  );
+}
+
+/** Resolve with the target's rect once it has stopped moving — measured per
+ *  ANIMATION FRAME and compared on all four edges. Frame-accurate, unlike
+ *  timer polling: a smooth scroll or sheet slide changes the rect every
+ *  frame, so the counter only reaches `stableFrames` after real stillness.
+ *  A target that never appears resolves null quickly (no 4s hang). */
+function waitForRectStable(selector, timeout = 1800) {
   return new Promise((resolve) => {
-    const start = Date.now();
-    let lastTop = null;
+    const start = performance.now();
+    let prev = null;
     let stable = 0;
-    const poll = () => {
+    let nullFrames = 0;
+    const tick = () => {
       const r = targetRect(selector);
-      const top = r ? Math.round(r.top) : null;
-      if (top !== null && top === lastTop) stable += 1;
-      else if (top !== null) {
-        stable = 0;
-        lastTop = top;
-      }
-      if (Date.now() - start > timeout) return resolve();
-      if (top !== null && stable >= 4) return resolve();
-      setTimeout(poll, 60);
+      if (r && rectsEqual(r, prev)) stable += 1;
+      else stable = 0;
+      prev = r;
+      // Target present and motionless for several frames → done.
+      if (r && stable >= 4) return resolve(r);
+      // Target absent for ~8 frames → it is really not there; don't hang.
+      if (!r && ++nullFrames >= 8) return resolve(null);
+      if (performance.now() - start > timeout) return resolve(r);
+      requestAnimationFrame(tick);
     };
-    poll();
+    requestAnimationFrame(tick);
   });
+}
+
+/** True when the element (or an ancestor) is fixed-positioned — sheets,
+ *  the bottom nav, the fullscreen table. scrollIntoView is meaningless (and
+ *  destabilising) for those; they are always fully on-screen by design. */
+function isFixed(el) {
+  let n = el;
+  while (n && n !== document.body) {
+    if (getComputedStyle(n).position === "fixed") return true;
+    n = n.parentElement;
+  }
+  return false;
+}
+
+/** Height of the fixed bottom nav (the effective bottom edge of the
+ *  visible page area) — 0 when the nav is absent. */
+function bottomNavHeight() {
+  const nav = document.getElementById("bottom-nav");
+  if (!nav || !nav.isConnected) return 0;
+  const style = getComputedStyle(nav);
+  return style.display === "none" || style.visibility === "hidden" ? 0 : nav.offsetHeight;
+}
+
+/** Keep a rect fully on-screen — a target that pokes past the viewport edge
+ *  (the folded «امروز» chip at the screen corner) gets a ring/hole that is
+ *  clamped to the viewport instead of being cut off. */
+function clampRect(r, margin = 8) {
+  const left = Math.max(margin, r.left);
+  const top = Math.max(margin, r.top);
+  const right = Math.min(window.innerWidth - margin, r.right);
+  const bottom = Math.min(window.innerHeight - margin, r.bottom);
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
 }
 
 /* Focus levels: some steps only point at a control and the surrounding
@@ -309,35 +359,58 @@ function placeBubble(rect) {
   const bubble = rootEl.querySelector(".tour-bubble");
   const bubbleW = bubble.offsetWidth;
   const bubbleH = bubble.offsetHeight;
-  const margin = 14;
+  /* The ring is drawn ~5px outside the rect plus a glow — the bubble must
+   * clear that, so the gap is measured from the ring's outer edge. */
+  const gap = 16;
+  const safeTop = 12;
+  const safeBottom = 12;
   let top;
   let arrowPos = "bottom"; // arrow on bottom edge → bubble above target
-  let arrowLeft = "50%";
 
   if (!rect) {
     // No target (or it vanished after a demo): center the bubble WITHOUT an
     // arrow — a dangling pointer at nothing looks broken.
-    top = Math.max(12, (window.innerHeight - bubbleH) / 2);
+    top = Math.max(safeTop, (window.innerHeight - bubbleH) / 2);
     arrowPos = "none";
-    arrowLeft = "50%";
-  } else if (rect.top - bubbleH - margin > 8) {
-    top = rect.top - bubbleH - margin;
-    arrowPos = "bottom";
-    arrowLeft = `${Math.min(Math.max(rect.left + rect.width / 2 - 10, 18), window.innerWidth - 28)}px`;
   } else {
-    top = Math.min(rect.bottom + margin, window.innerHeight - bubbleH - 12);
-    arrowPos = "top";
-    arrowLeft = `${Math.min(Math.max(rect.left + rect.width / 2 - 10, 18), window.innerWidth - 28)}px`;
+    const spaceAbove = rect.top - gap;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const fitsAbove = spaceAbove >= Math.min(bubbleH + safeTop, 200);
+    const fitsBelow = spaceBelow >= Math.min(bubbleH + safeBottom, 220);
+    if (fitsAbove && (!fitsBelow || spaceAbove >= spaceBelow)) {
+      // Above the target (arrow at the bubble's bottom edge).
+      top = Math.max(safeTop, rect.top - gap - bubbleH);
+      arrowPos = "bottom";
+    } else if (fitsBelow) {
+      // Below the target (arrow at the bubble's top edge).
+      top = Math.min(rect.bottom + gap, window.innerHeight - bubbleH - safeBottom);
+      arrowPos = "top";
+    } else {
+      // Neither side fits the whole bubble: overlap the LARGER side and
+      // drop the arrow — a pointer buried under its own bubble looks broken.
+      if (spaceBelow >= spaceAbove) {
+        top = window.innerHeight - bubbleH - safeBottom;
+      } else {
+        top = Math.max(safeTop, rect.top - gap - bubbleH);
+      }
+      arrowPos = "none";
+    }
   }
 
   // Safety: never push the bubble off-screen.
-  top = Math.max(10, Math.min(top, window.innerHeight - bubbleH - 10));
+  top = Math.max(safeTop, Math.min(top, window.innerHeight - bubbleH - safeBottom));
+
+  // Arrow points at the target's horizontal center (clamped inside the bubble).
+  const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
 
   bubble.style.top = `${top}px`;
   bubble.style.left = `${Math.max(8, (window.innerWidth - bubbleW) / 2)}px`;
   bubble.style.right = "auto";
   bubble.dataset.arrow = arrowPos;
-  bubble.querySelector(".tour-arrow").style.left = arrowLeft;
+  bubble.querySelector(".tour-arrow").style.left = `${Math.min(
+    Math.max(cx - 10, 18),
+    window.innerWidth - 28,
+  )}px`;
 }
 
 async function spotlight(stepDef) {
@@ -379,31 +452,41 @@ async function spotlight(stepDef) {
   }
 
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
-  const rect = targetRect(stepDef.selector);
-  const needsScroll = els.length > 0 && rect && (rect.top < 80 || rect.bottom > window.innerHeight - 90);
+  const firstRect = targetRect(stepDef.selector);
 
-  if (needsScroll) {
+  // Scroll the page ONLY when the target is genuinely not fully visible in
+  // the effective viewport (below the top edge, or hidden behind the fixed
+  // bottom nav / under the viewport bottom) AND the target actually lives
+  // in the scrollable page. Fixed elements (sheets, bottom nav, fullscreen
+  // table) are always fully on-screen by design — scrolling them used to
+  // destabilise the measurement and misplace the ring.
+  if (
+    firstRect &&
+    els.length &&
+    !isFixed(els[0]) &&
+    (firstRect.top < 8 ||
+      firstRect.bottom > window.innerHeight - bottomNavHeight() - 8)
+  ) {
     bubble.style.opacity = "0";
     try {
       els[0].scrollIntoView({ block: "center", behavior: "smooth" });
     } catch {
       /* ignore */
     }
-    await waitForScrollSettle(stepDef.selector);
-    if (!active || !rootEl || !rootEl.isConnected) return;
-    if (stepIndex !== thisStep) {
-      bubble.style.opacity = "";
-      return;
-    }
-    const r = targetRect(stepDef.selector);
-    applyHole(r);
-    placeBubble(r);
+  }
+
+  // Wait for the layout to be truly still (scroll finished, sheet animation
+  // done, chip collapsed), then measure the FINAL resting rect.
+  const rect = await waitForRectStable(stepDef.selector, stepDef.settle ? 2200 : 1600);
+  if (!active || !rootEl || !rootEl.isConnected) return;
+  if (stepIndex !== thisStep) {
     bubble.style.opacity = "";
     return;
   }
 
-  applyHole(rect);
-  placeBubble(rect);
+  applyHole(rect ? clampRect(rect) : null);
+  placeBubble(rect ? clampRect(rect) : null);
+  bubble.style.opacity = "";
 }
 
 function showStep(stepDef) {
@@ -529,10 +612,8 @@ async function step(index) {
       target = await waitFor(() => document.querySelector(stepDef.selector));
     }
     if (!stillCurrent(token)) return;
-    // Sheet steps animate in — wait for the motion to settle so the
-    // spotlight lands on the final position.
-    if (stepDef.settle) await waitForScrollSettle(stepDef.selector);
-    if (!stillCurrent(token)) return;
+    // Sheet/animation settling is handled by the frame-stable measurement
+    // inside spotlight() — no separate wait needed here.
   }
   // The tour froze the chip when it started; re-asserting is a no-op but
   // keeps the step flag meaningful. The chip keeps whatever state it is in
@@ -664,7 +745,10 @@ export async function startTour() {
     if (e.key === "Escape") finish(false);
   };
   const onResize = () => {
-    if (active && rootEl && rootEl.isConnected) spotlight(TOUR_STEPS[stepIndex]);
+    // Only re-spotlight a FULLY-placed step — during a transition the
+    // step() engine is mid-measurement and a parallel spotlight() here
+    // would draw the ring from a half-settled rect.
+    if (active && stepReady && rootEl && rootEl.isConnected) spotlight(TOUR_STEPS[stepIndex]);
   };
 
   window.addEventListener("wheel", blockWheel, { passive: false, capture: true });
@@ -681,9 +765,10 @@ export async function startTour() {
 
   await step(0);
 
-  // Reposition once images/fonts settle (e.g. roster image loads).
+  // Reposition once images/fonts settle (e.g. roster image loads). Guarded
+  // by stepReady so it never races an in-flight step transition.
   setTimeout(() => {
-    if (active && rootEl && rootEl.isConnected) spotlight(TOUR_STEPS[stepIndex]);
+    if (active && stepReady && rootEl && rootEl.isConnected) spotlight(TOUR_STEPS[stepIndex]);
   }, 400);
 }
 

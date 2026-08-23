@@ -1300,6 +1300,19 @@ body.tour-lock .tour {
   margin-bottom: var(--space-3);
 }
 
+.install-desc-warn {
+  font-size: var(--fs-xs);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--color-text);
+}
+
+.install-desc-warn strong {
+  color: var(--color-text);
+}
+
 .install-sheet {
   display: flex;
   flex-direction: column;

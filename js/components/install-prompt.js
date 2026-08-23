@@ -252,15 +252,18 @@ const GENERIC_STEPS = `
 /** Chromium-specific guide: the native prompt just wasn't available at
  *  tap-time (e.g. Chrome's re-offer cooldown after an uninstall) — the
  *  browser CAN install, so point at the menu instead of claiming lack of
- *  support. */
+ *  support. CRITICAL: the user must pick «نصب برنامه» — Chrome's OTHER
+ *  item «افزودن به صفحهٔ اصلی» creates a dumb bookmark shortcut without
+ *  app behaviour (no offline shell, no app info, no uninstall entry). */
 const CHROMIUM_FALLBACK_HTML = `
   <div class="install-state install-state-generic">
     <p class="install-desc">نصب خودکار همین حالا در دسترس نیست؛ اما می‌توانید مستقیم از منوی مرورگر نصب کنید:</p>
     <ol class="install-steps">
       <li>منوی کروم را باز کنید (⋮ در بالای مرورگر).</li>
-      <li>روی «نصب برنامه» (Install app) بزنید.</li>
+      <li><strong>«نصب برنامه» (Install app)</strong> را بزنید.</li>
       <li>با تأیید، شیفت‌کار مثل یک اپلیکیشن واقعی نصب می‌شود.</li>
     </ol>
+    <p class="install-desc install-desc-warn">⚠️ توجه: اگر در منو فقط «افزودن به صفحهٔ اصلی» (Add to Home screen) را بزنید، فقط یک میان‌بر ساده ساخته می‌شود — نه اپ واقعی. گزینهٔ «نصب برنامه» را انتخاب کنید. اگر این گزینه را نمی‌بینید، چند ثانیه در صفحه بمانید (کروم باید سرویس نصب را آماده کند) یا چند لحظه بعد دوباره امتحان کنید.</p>
   </div>`;
 
 /** Generic manual guide for browsers without any install support. */
