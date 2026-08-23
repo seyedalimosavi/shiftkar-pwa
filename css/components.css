@@ -1180,8 +1180,18 @@ body.tour-lock .tour {
   border-radius: 26px 26px 0 0;
   box-shadow: 0 -12px 40px -10px rgba(23, 40, 80, 0.25);
   transform: translateY(100%);
-  transition: transform var(--motion-slow) var(--ease-out);
+  transition:
+    transform var(--motion-slow) var(--ease-out),
+    max-height var(--motion-slow) var(--ease-out),
+    border-radius var(--motion-slow) var(--ease-out);
   overflow: hidden;
+}
+
+/* Full-height expansion (swipe up / scroll to bottom / tap the handle). */
+.sheet.is-fullscreen {
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
 }
 
 /* No press-scale on sheet buttons: transform + overlay blur = flicker on mobile */
@@ -1197,13 +1207,35 @@ body.tour-lock .tour {
   transform: translateY(0);
 }
 
+/* Handle = tap target (expand/collapse) holding the pill + a chevron hint. */
 .sheet-handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 18px 3px;
+  margin: 0 auto;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sheet-handle-bar {
   width: 42px;
   height: 5px;
   border-radius: 3px;
   background: rgba(120, 137, 170, 0.4);
-  margin: 10px auto 2px;
-  flex-shrink: 0;
+}
+
+.sheet-handle-chevron {
+  display: flex;
+  color: var(--color-text-faint);
+}
+
+.sheet-handle-chevron .icon {
+  width: 14px;
+  height: 14px;
 }
 
 .sheet-header {
@@ -1298,19 +1330,6 @@ body.tour-lock .tour {
   color: var(--color-text-muted);
   line-height: 1.8;
   margin-bottom: var(--space-3);
-}
-
-.install-desc-warn {
-  font-size: var(--fs-xs);
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  color: var(--color-text);
-}
-
-.install-desc-warn strong {
-  color: var(--color-text);
 }
 
 .install-sheet {
@@ -2168,7 +2187,7 @@ body.tour-lock .tour {
   box-shadow: 0 -12px 40px -10px rgba(0, 0, 0, 0.6);
 }
 
-[data-theme-mode="dark"] .sheet-handle {
+[data-theme-mode="dark"] .sheet-handle-bar {
   background: rgba(255, 255, 255, 0.22);
 }
 

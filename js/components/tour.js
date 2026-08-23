@@ -240,8 +240,9 @@ function waitForRectStable(selector, timeout = 1800) {
 }
 
 /** True when the element (or an ancestor) is fixed-positioned — sheets,
- *  the bottom nav, the fullscreen table. scrollIntoView is meaningless (and
- *  destabilising) for those; they are always fully on-screen by design. */
+ *  the bottom nav, the fullscreen table. The WINDOW cannot scroll them; if
+ *  such a target is hidden below the fold it lives inside its OWN scroll
+ *  container (the sheet body), which nearestScroller() finds. */
 function isFixed(el) {
   let n = el;
   while (n && n !== document.body) {
@@ -249,6 +250,24 @@ function isFixed(el) {
     n = n.parentElement;
   }
   return false;
+}
+
+/** Nearest scrollable ancestor (the sheet body for content inside a
+ *  fixed overlay). The window itself is excluded — it is handled by the
+ *  page-scroll path in spotlight(). */
+function nearestScroller(el) {
+  let n = el.parentElement;
+  while (n && n !== document.documentElement) {
+    const style = getComputedStyle(n);
+    if (
+      n.scrollHeight > n.clientHeight + 2 &&
+      /(auto|scroll)/.test(style.overflowY || "")
+    ) {
+      return n;
+    }
+    n = n.parentElement;
+  }
+  return null;
 }
 
 /** Height of the fixed bottom nav (the effective bottom edge of the
@@ -454,24 +473,46 @@ async function spotlight(stepDef) {
   const els = stepDef.selector ? document.querySelectorAll(stepDef.selector) : [];
   const firstRect = targetRect(stepDef.selector);
 
-  // Scroll the page ONLY when the target is genuinely not fully visible in
-  // the effective viewport (below the top edge, or hidden behind the fixed
-  // bottom nav / under the viewport bottom) AND the target actually lives
-  // in the scrollable page. Fixed elements (sheets, bottom nav, fullscreen
-  // table) are always fully on-screen by design — scrolling them used to
-  // destabilise the measurement and misplace the ring.
+  // Scroll ONLY when the target is genuinely not fully visible in the
+  // effective viewport (poking past the top edge, or hidden behind the
+  // fixed bottom nav / under the viewport bottom).
   if (
     firstRect &&
     els.length &&
-    !isFixed(els[0]) &&
     (firstRect.top < 8 ||
       firstRect.bottom > window.innerHeight - bottomNavHeight() - 8)
   ) {
     bubble.style.opacity = "0";
-    try {
-      els[0].scrollIntoView({ block: "center", behavior: "smooth" });
-    } catch {
-      /* ignore */
+    if (isFixed(els[0])) {
+      // Target inside a fixed overlay (sheet, fullscreen table): the window
+      // can't scroll it, but it may sit BELOW THE FOLD inside the overlay's
+      // own scroll container (e.g. the note editor at the bottom of the
+      // day-detail sheet). Scroll that container so the spotlight lands on
+      // the real element instead of a clamped spot at the screen edge.
+      const scroller = nearestScroller(els[0]);
+      if (scroller) {
+        const sRect = scroller.getBoundingClientRect();
+        const inside =
+          firstRect.top >= sRect.top + 6 && firstRect.bottom <= sRect.bottom - 6;
+        if (!inside) {
+          const targetTop =
+            firstRect.top -
+            sRect.top +
+            scroller.scrollTop -
+            (sRect.height - firstRect.height) / 2;
+          try {
+            scroller.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+          } catch {
+            scroller.scrollTop = Math.max(0, targetTop);
+          }
+        }
+      }
+    } else {
+      try {
+        els[0].scrollIntoView({ block: "center", behavior: "smooth" });
+      } catch {
+        /* ignore */
+      }
     }
   }
 

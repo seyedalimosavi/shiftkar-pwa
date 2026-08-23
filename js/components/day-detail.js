@@ -19,6 +19,15 @@ import { shiftBadge } from "./shift-badge.js";
 import { createNoteEditor } from "./notes.js";
 import { icon } from "./icons.js";
 
+function toFa(n) {
+  return String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
+}
+
+/** Keep the day sheet compact: a day can carry dozens of occasions, and a
+ *  wall of text pushes the shift rows and the note editor out of view.
+ *  Show the first MAX_OCCASIONS, with a small «+N مناسبت دیگر» expander. */
+const MAX_OCCASIONS = 3;
+
 export function openDayDetail(dateKey, opts = {}) {
   const { jy, jm, jd } = parseDateKey(dateKey);
   const g = toGregorian(jy, jm, jd);
@@ -26,6 +35,7 @@ export function openDayDetail(dateKey, opts = {}) {
   const isToday = today.jy === jy && today.jm === jm && today.jd === jd;
   const holiday = getHoliday(jy, jm, jd);
   const occasions = getDayEvents(jy, jm, jd).filter((e) => !e.isHoliday);
+  const hiddenOccasions = occasions.length - MAX_OCCASIONS;
 
   const content = document.createElement("div");
   content.className = "day-detail";
@@ -47,9 +57,12 @@ export function openDayDetail(dateKey, opts = {}) {
     ${occasions.length ? `
       <div class="day-detail-occasions" role="note">
         <span class="day-detail-occasions-icon">${icon("holiday")}</span>
-        <ul class="day-detail-occasions-list">
-          ${occasions.map((o) => `<li>${o.title}</li>`).join("")}
-        </ul>
+        <div class="day-detail-occasions-body">
+          <ul class="day-detail-occasions-list">
+            ${occasions.slice(0, MAX_OCCASIONS).map((o) => `<li>${o.title}</li>`).join("")}
+          </ul>
+          ${hiddenOccasions > 0 ? `<button type="button" class="occasions-more" data-expand-occasions>+${toFa(hiddenOccasions)} مناسبت دیگر</button>` : ""}
+        </div>
       </div>` : ""}
     <div class="day-detail-groups">
       <div class="day-detail-groups-title">${icon("groups")} شیفت گروه‌ها</div>
@@ -66,6 +79,20 @@ export function openDayDetail(dateKey, opts = {}) {
           </div>`;
       }).join("")}
     </div>`;
+
+  // «+N مناسبت دیگر» → reveal the remaining occasions (no re-render).
+  const moreBtn = content.querySelector("[data-expand-occasions]");
+  if (moreBtn) {
+    moreBtn.addEventListener("click", () => {
+      const list = content.querySelector(".day-detail-occasions-list");
+      if (!list) return;
+      list.insertAdjacentHTML(
+        "beforeend",
+        occasions.slice(MAX_OCCASIONS).map((o) => `<li>${o.title}</li>`).join(""),
+      );
+      moreBtn.remove();
+    });
+  }
 
   content.appendChild(createNoteEditor(dateKey, { startInEdit: opts.editNote === true }));
 

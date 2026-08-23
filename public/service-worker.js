@@ -6,7 +6,7 @@
  * same-origin GET at runtime — the first visit downloads the whole app,
  * and the hashed names mean stale files are never served.
  */
-const VERSION = "51";
+const VERSION = "52";
 const CACHE_NAME = `shiftkar-${VERSION}`;
 
 /* Only the shell — everything else (hashed JS/CSS/assets) is cached on

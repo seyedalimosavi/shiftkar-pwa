@@ -69,7 +69,7 @@ if (typeof window !== "undefined") {
 
 /* ---------------- sheet ---------------- */
 
-export function openSheet({ title = "", content = "", onMount = null, dismissable = true, onClose = null } = {}) {
+export function openSheet({ title = "", content = "", onMount = null, dismissable = true, onClose = null, expandable = true } = {}) {
   if (activeSheet) activeSheet.close();
 
   const overlay = document.createElement("div");
@@ -81,7 +81,10 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
   const sheet = document.createElement("div");
   sheet.className = "sheet";
   sheet.innerHTML = `
-    <div class="sheet-handle" aria-hidden="true"></div>
+    <button type="button" class="sheet-handle" aria-label="بزرگ‌نمایی برگه">
+      <span class="sheet-handle-bar"></span>
+      <span class="sheet-handle-chevron">${icon("chevronUp")}</span>
+    </button>
     <header class="sheet-header">
       <h2 class="sheet-title">${title}</h2>
       <button type="button" class="icon-btn sheet-close" aria-label="بستن">${icon("close")}</button>
@@ -135,14 +138,79 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
   }
   sheet.querySelector(".sheet-close").addEventListener("click", () => close());
 
-  // Swipe down to dismiss
+  /* ---------------- expand / fullscreen ----------------
+     A sheet with enough content can be expanded to full height: swipe UP
+     on it, or keep scrolling when the body reaches the bottom. While
+     fullscreen, swipe DOWN collapses it back (instead of dismissing); a
+     full dismiss still works via the X, backdrop or the swipe from the
+     collapsed state. */
+  const bodyEl = sheet.querySelector(".sheet-body");
+  const handleBtn = sheet.querySelector(".sheet-handle");
+  const chevron = sheet.querySelector(".sheet-handle-chevron");
+  let fullscreen = false;
+
+  const isScrollable = () =>
+    !!bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight + 6;
+
+  function setFullscreen(on) {
+    fullscreen = on;
+    sheet.classList.toggle("is-fullscreen", on);
+    chevron.innerHTML = on ? icon("chevronDown") : icon("chevronUp");
+    handleBtn.setAttribute("aria-label", on ? "کوچک‌کردن برگه" : "بزرگ‌نمایی برگه");
+    if (on) {
+      try {
+        sheet.focus();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  // Reveal the handle affordance only when expanding is actually possible.
+  // While fullscreen it ALWAYS shows (the collapse gesture is available
+  // even when the content fits the full-height body).
+  const syncHandle = () => {
+    if (!expandable) {
+      chevron.style.display = "none";
+      return;
+    }
+    chevron.style.display = fullscreen || isScrollable() ? "" : "none";
+  };
+  syncHandle();
+  if (bodyEl) bodyEl.addEventListener("scroll", syncHandle, { passive: true });
+
+  // Scroll the body to the very bottom → the sheet expands.
+  if (bodyEl) {
+    bodyEl.addEventListener(
+      "scroll",
+      () => {
+        if (!expandable || fullscreen || !isScrollable()) return;
+        if (bodyEl.scrollTop + bodyEl.clientHeight >= bodyEl.scrollHeight - 10) {
+          setFullscreen(true);
+        }
+      },
+      { passive: true },
+    );
+  }
+
+  // Tap the handle to expand/collapse.
+  handleBtn.addEventListener("click", () => {
+    if (!expandable) return;
+    if (!fullscreen && !isScrollable()) return;
+    setFullscreen(!fullscreen);
+  });
+
+  // Swipe gestures: down = dismiss (collapsed) / collapse (fullscreen),
+  // up = expand (only when the body is scrollable).
   let startY = null;
   let dragging = false;
+  let dragMode = null; // "dismiss" | "collapse" | "expand"
   sheet.addEventListener(
     "touchstart",
     (e) => {
       startY = e.touches[0].clientY;
       dragging = false;
+      dragMode = null;
     },
     { passive: true },
   );
@@ -151,10 +219,23 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
     (e) => {
       if (startY == null) return;
       const dy = e.touches[0].clientY - startY;
-      if (dy > 8) dragging = true;
-      if (dragging && dy > 0) {
-        sheet.style.transform = `translateY(${Math.min(dy, 140)}px)`;
+      if (!dragging) {
+        if (dy > 8) {
+          dragging = true;
+          dragMode = fullscreen ? "collapse" : "dismiss";
+        } else if (dy < -30 && expandable && isScrollable() && !fullscreen) {
+          dragging = true;
+          dragMode = "expand";
+        }
+      }
+      if (!dragging) return;
+      if (dragMode === "dismiss" || dragMode === "collapse") {
+        const d = Math.max(0, dy);
+        sheet.style.transform = `translateY(${Math.min(d, 160)}px)`;
         overlay.style.background = "rgba(15, 23, 42, 0.25)";
+      } else if (dragMode === "expand") {
+        const d = Math.min(0, dy);
+        sheet.style.transform = `translateY(${Math.max(d, -48)}px)`;
       }
     },
     { passive: true },
@@ -166,9 +247,16 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
       sheet.style.transform = "";
       overlay.style.background = "";
       const dy = t ? parseFloat(t.replace("translateY(", "")) || 0 : 0;
-      if (dy > 90) close();
+      if (dragMode === "expand") {
+        if (dy < -24) setFullscreen(true);
+      } else if (dragMode === "collapse") {
+        if (dy > 90) setFullscreen(false);
+      } else if (dragMode === "dismiss") {
+        if (dy > 90) close();
+      }
       startY = null;
       dragging = false;
+      dragMode = null;
     },
     { passive: true },
   );

@@ -718,6 +718,13 @@
   height: 16px;
 }
 
+.day-detail-occasions-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
 .day-detail-occasions-list {
   list-style: none;
   margin: 0;
@@ -731,6 +738,23 @@
   content: "•";
   margin-left: 6px;
   color: var(--color-text-faint);
+}
+
+/* «+N مناسبت دیگر» — compact expander for long occasion lists. */
+.occasions-more {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.occasions-more:hover {
+  text-decoration: underline;
 }
 
 .day-detail-groups {

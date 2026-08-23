@@ -159,12 +159,39 @@ export function getInstallState() {
  * While waiting, a `shiftkar:install-waiting` event lets the UI show a
  * busy state on the CTA.
  */
+/** Chrome only fires `beforeinstallprompt` once the page is CONTROLLED by
+ *  an active service worker — on a cold first visit the SW is still
+ *  registering while the user is swiping through onboarding, so the native
+ *  prompt hasn't fired yet. Make sure the SW is registered and active
+ *  BEFORE waiting for the event; this removes the "it only works after a
+ *  refresh or two" behaviour (the old SW-less session never got the
+ *  event and fell back to the manual guide). */
+async function ensureServiceWorkerReady() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    if (!navigator.serviceWorker.controller) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) await navigator.serviceWorker.register("./service-worker.js");
+    }
+    // `ready` resolves once a SW is active AND controlling the page; the
+    // SW uses skipWaiting + clients.claim, so on a cold visit this is
+    // typically 1-3s after load. Bound it — never block the UI forever.
+    await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((r) => setTimeout(r, 4000)),
+    ]);
+  } catch {
+    /* registration unsupported / blocked — fall through to the manual guide */
+  }
+}
+
 export async function promptInstall() {
   const st = getInstallState();
   if (st.installed) return "installed";
 
   if (!deferredPrompt && isChromium()) {
     window.dispatchEvent(new CustomEvent("shiftkar:install-waiting"));
+    await ensureServiceWorkerReady();
     const arrived = await Promise.race([
       installReadyPromise.then(() => true),
       new Promise((r) => setTimeout(() => r(false), WAIT_FOR_PROMPT_MS)),
@@ -263,7 +290,6 @@ const CHROMIUM_FALLBACK_HTML = `
       <li><strong>«نصب برنامه» (Install app)</strong> را بزنید.</li>
       <li>با تأیید، شیفت‌کار مثل یک اپلیکیشن واقعی نصب می‌شود.</li>
     </ol>
-    <p class="install-desc install-desc-warn">⚠️ توجه: اگر در منو فقط «افزودن به صفحهٔ اصلی» (Add to Home screen) را بزنید، فقط یک میان‌بر ساده ساخته می‌شود — نه اپ واقعی. گزینهٔ «نصب برنامه» را انتخاب کنید. اگر این گزینه را نمی‌بینید، چند ثانیه در صفحه بمانید (کروم باید سرویس نصب را آماده کند) یا چند لحظه بعد دوباره امتحان کنید.</p>
   </div>`;
 
 /** Generic manual guide for browsers without any install support. */
