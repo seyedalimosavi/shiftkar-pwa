@@ -26,8 +26,18 @@ import { isTourActive } from "./tour.js";
 
 const FLAG_KEY = "shiftkar.installPrompt.v1";
 
+/* Chrome fires `beforeinstallprompt` only after its service worker is
+ * ACTIVE. On a cold visit the SW takes a few seconds, so the event can
+ * arrive AFTER the user taps نصب برنامه — we wait briefly for it instead
+ * of instantly claiming the browser is unsupported. */
+const WAIT_FOR_PROMPT_MS = 6000;
 let deferredPrompt = null;
 let installedFlag = false;
+let notifyInstallReady = null;
+let autoPromptScheduled = false;
+const installReadyPromise = new Promise((resolve) => {
+  notifyInstallReady = resolve;
+});
 
 /* ---------------- helpers ---------------- */
 
@@ -63,6 +73,14 @@ function isIOSDevice() {
 /** Firefox never fires `beforeinstallprompt` — detect it for the manual guide. */
 function isFirefox() {
   return /Firefox\//.test(navigator.userAgent || "");
+}
+
+/** Chromium browsers (Chrome/Edge/Samsung Internet) support the native
+ *  install prompt — if it hasn't fired yet, it's usually just late, not
+ *  unsupported. */
+function isChromium() {
+  const ua = navigator.userAgent || "";
+  return !isIOSDevice() && !isFirefox() && /Chrome|Chromium|Edg\//.test(ua);
 }
 
 function isFirefoxAndroid() {
@@ -107,6 +125,7 @@ export function initInstallPrompt() {
     e.preventDefault();
     deferredPrompt = e;
     emitState();
+    notifyInstallReady();
     window.dispatchEvent(new CustomEvent("shiftkar:install-ready"));
   });
   window.addEventListener("appinstalled", () => {
@@ -132,10 +151,28 @@ export function getInstallState() {
 /**
  * Try to install the app.
  * Returns: "installed" | "dismissed" | "instructions" | "unavailable".
+ *
+ * On Chromium browsers with no prompt in hand yet, waits a few seconds for
+ * the late `beforeinstallprompt` (fires only once the service worker is
+ * active) before falling back to the manual guide — Chrome is never
+ * reported as "unsupported" while it's still preparing installability.
+ * While waiting, a `shiftkar:install-waiting` event lets the UI show a
+ * busy state on the CTA.
  */
 export async function promptInstall() {
   const st = getInstallState();
   if (st.installed) return "installed";
+
+  if (!deferredPrompt && isChromium()) {
+    window.dispatchEvent(new CustomEvent("shiftkar:install-waiting"));
+    const arrived = await Promise.race([
+      installReadyPromise.then(() => true),
+      new Promise((r) => setTimeout(() => r(false), WAIT_FOR_PROMPT_MS)),
+    ]);
+    window.dispatchEvent(new CustomEvent("shiftkar:install-wait-done"));
+    if (!arrived || !deferredPrompt) return "instructions";
+  }
+
   if (deferredPrompt) {
     const prompt = deferredPrompt;
     deferredPrompt = null;
@@ -212,8 +249,23 @@ const GENERIC_STEPS = `
     <li>با تأیید، آیکون شیفت‌کار روی صفحهٔ اصلی قرار می‌گیرد.</li>
   </ol>`;
 
+/** Chromium-specific guide: the native prompt just wasn't available at
+ *  tap-time (e.g. Chrome's re-offer cooldown after an uninstall) — the
+ *  browser CAN install, so point at the menu instead of claiming lack of
+ *  support. */
+const CHROMIUM_FALLBACK_HTML = `
+  <div class="install-state install-state-generic">
+    <p class="install-desc">نصب خودکار همین حالا در دسترس نیست؛ اما می‌توانید مستقیم از منوی مرورگر نصب کنید:</p>
+    <ol class="install-steps">
+      <li>منوی کروم را باز کنید (⋮ در بالای مرورگر).</li>
+      <li>روی «نصب برنامه» (Install app) بزنید.</li>
+      <li>با تأیید، شیفت‌کار مثل یک اپلیکیشن واقعی نصب می‌شود.</li>
+    </ol>
+  </div>`;
+
 /** Generic manual guide for browsers without any install support. */
 function genericInstructionsHtml() {
+  if (isChromium()) return CHROMIUM_FALLBACK_HTML;
   return `
     <div class="install-state install-state-generic">
       <p class="install-desc">مرورگر شما دکمهٔ نصب خودکار ندارد؛ به‌صورت دستی هم می‌توانید شیفت‌کار را اضافه کنید:</p>
@@ -230,6 +282,33 @@ export function tutorialHtml() {
   if (st.isIOS) return iosInstructionsHtml();
   if (st.isFirefox) return firefoxInstructionsHtml();
   return genericInstructionsHtml();
+}
+
+/** Wire a نصب برنامه CTA: native prompt → done, otherwise the right manual
+ *  guide. Shows a busy state while waiting for a late install event. */
+function wireInstallCta(btn, api) {
+  const setBusy = (busy) => {
+    btn.classList.toggle("is-busy", busy);
+  };
+  btn.addEventListener("click", async () => {
+    setBusy(true);
+    try {
+      const res = await promptInstall();
+      if (!api.body.isConnected) return;
+      if (res === "installed") {
+        api.close();
+        toast("شیفت‌کار نصب شد");
+      } else if (res === "instructions") {
+        api.body.innerHTML = tutorialHtml();
+      } else if (res === "dismissed") {
+        toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
+      } else {
+        toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
+      }
+    } finally {
+      setBusy(false);
+    }
+  });
 }
 
 const INSTALL_CTA_MARKUP = `
@@ -262,21 +341,7 @@ export function showInstallSheet() {
   // Wire the CTA after openSheet returns — openSheet calls onMount
   // synchronously, so referencing `api` inside onMount would hit the TDZ.
   const installBtn = api.body.querySelector("#install-sheet-action");
-  if (installBtn) {
-    installBtn.addEventListener("click", async () => {
-      const res = await promptInstall();
-      if (res === "installed") {
-        api.close();
-        toast("شیفت‌کار نصب شد");
-      } else if (res === "instructions") {
-        api.body.innerHTML = tutorialHtml();
-      } else if (res === "dismissed") {
-        toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
-      } else {
-        toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
-      }
-    });
-  }
+  if (installBtn) wireInstallCta(installBtn, api);
 
   // Chrome may fire `beforeinstallprompt` while the sheet is open (first
   // visit). Re-render the CTA so the tap uses the native prompt instead of
@@ -287,21 +352,7 @@ export function showInstallSheet() {
     if (api.body.querySelector("#install-sheet-action") || getInstallState().installed) return;
     api.body.innerHTML = INSTALL_CTA_MARKUP;
     const btn = api.body.querySelector("#install-sheet-action");
-    if (btn) {
-      btn.addEventListener("click", async () => {
-        const res = await promptInstall();
-        if (res === "installed") {
-          api.close();
-          toast("شیفت‌کار نصب شد");
-        } else if (res === "instructions") {
-          api.body.innerHTML = tutorialHtml();
-        } else if (res === "dismissed") {
-          toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
-        } else {
-          toast("دوباره تلاش کنید؛ نصب برنامه فعلاً ممکن نشد");
-        }
-      });
-    }
+    if (btn) wireInstallCta(btn, api);
   };
   window.addEventListener("shiftkar:install-ready", onReady, { once: true });
 }
@@ -315,16 +366,19 @@ export function showInstallSheet() {
 export function maybeAutoPromptInstall() {
   if (getInstallState().installed) return;
   const flag = loadFlag();
-  if (flag.autoShown) return;
+  if (flag.autoShown || autoPromptScheduled) return;
   // Don't stack the install sheet on top of the first-run guided tour.
   if (isTourActive()) return;
-  saveFlag({ autoShown: true });
+  autoPromptScheduled = true;
   // Give Chrome time to finish service-worker setup and decide
   // installability before we ask — `beforeinstallprompt` only fires after
   // the SW is active, which takes a moment on a cold visit. Re-check the
   // tour: it may have started after this call (tour wins on first run).
   setTimeout(() => {
     if (isTourActive()) return;
+    // Consume the one-time flag only when the sheet actually shows — an
+    // abandoned session or a tour running at fire-time must not burn it.
+    saveFlag({ autoShown: true });
     showInstallSheet();
   }, 4000);
 }

@@ -209,17 +209,23 @@ export function renderOnboarding(container) {
   const installAction = container.querySelector("#install-slide-action");
   if (installAction && installBody) {
     installAction.addEventListener("click", async () => {
-      const res = await promptInstall();
-      if (res === "installed") {
-        installBody.innerHTML = `<div class="install-state install-state-done">${icon("check")} شیفت‌کار روی دستگاه شما نصب است.</div>`;
-      } else if (res === "instructions") {
-        // iOS / Firefox / other unsupported browsers — show the manual
-        // install guide that matches this exact browser.
-        installBody.innerHTML = tutorialHtml();
-      } else if (res === "dismissed") {
-        toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
-      } else {
-        toast("مرورگر شما نصب برنامه را پشتیبانی نمی‌کند");
+      // Dim the button while we wait for a late native-install event.
+      installAction.classList.add("is-busy");
+      try {
+        const res = await promptInstall();
+        if (res === "installed") {
+          installBody.innerHTML = `<div class="install-state install-state-done">${icon("check")} شیفت‌کار روی دستگاه شما نصب است.</div>`;
+        } else if (res === "instructions") {
+          // iOS / Firefox / other unsupported browsers — show the manual
+          // install guide that matches this exact browser.
+          installBody.innerHTML = tutorialHtml();
+        } else if (res === "dismissed") {
+          toast("برای نصب، از منوی مرورگر «نصب برنامه» را انتخاب کنید");
+        } else {
+          toast("نصب برنامه فعلاً ممکن نشد؛ دوباره تلاش کنید");
+        }
+      } finally {
+        installAction.classList.remove("is-busy");
       }
     });
   }

@@ -1284,6 +1284,14 @@ body.tour-lock .tour {
   justify-content: center;
 }
 
+/* CTA busy state — while we wait a few seconds for Chrome's late
+   beforeinstallprompt event, the button is dimmed and non-clickable. */
+.btn.is-busy {
+  opacity: 0.55;
+  pointer-events: none;
+  filter: saturate(0.7);
+}
+
 .install-desc {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);

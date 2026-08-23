@@ -21,17 +21,20 @@ function registerServiceWorker() {
   // preview always serves fresh files; production builds register it.
   const isDev = import.meta.env?.DEV === true;
   if (isDev) return;
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .then((reg) => {
-        // Check for a new version right away, then periodically — new SWs
-        // take over silently (skipWaiting) and refresh the cache.
-        reg.update().catch(() => {});
-        setInterval(() => reg.update().catch(() => {}), SW_REFRESH_MS);
-      })
-      .catch((err) => console.warn("Service worker registration failed:", err));
-  });
+  // Register immediately, not on window "load": Chrome can't fire
+  // beforeinstallprompt (the native install prompt) until a service
+  // worker is ACTIVE, and "load" waits for every image/font. Registering
+  // at script-eval time makes installability (and the auto-prompt) appear
+  // seconds earlier and far more reliably.
+  navigator.serviceWorker
+    .register("./service-worker.js")
+    .then((reg) => {
+      // Check for a new version right away, then periodically — new SWs
+      // take over silently (skipWaiting) and refresh the cache.
+      reg.update().catch(() => {});
+      setInterval(() => reg.update().catch(() => {}), SW_REFRESH_MS);
+    })
+    .catch((err) => console.warn("Service worker registration failed:", err));
 }
 
 function boot() {
