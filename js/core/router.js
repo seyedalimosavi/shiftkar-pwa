@@ -6,6 +6,7 @@
 import { state } from "./state.js";
 import { renderBottomNav } from "../components/bottom-nav.js";
 import { icon } from "../components/icons.js";
+import { isTourActive } from "../components/tour.js";
 import { renderSplash } from "../pages/splash.js";
 import { renderOnboarding } from "../pages/onboarding.js";
 import { renderCalendar } from "../pages/calendar.js";
@@ -67,7 +68,7 @@ export function canGoBack() {
 
 /** Go one step back in the app's own history. Returns true if it moved. */
 export function goBack() {
-  if (!canGoBack()) return false;
+  if (isTourActive() || !canGoBack()) return false;
   routeStack.pop();
   const prev = routeStack[routeStack.length - 1];
   try {
@@ -167,7 +168,10 @@ export function initRouter(app) {
 
   // Keyboard back shortcuts (desktop installed apps have no back button):
   // Alt+← works everywhere; ⌘[ is the macOS convention.
+  // Disabled while the guided tour is open — navigating behind the tour
+  // would leave the spotlight on the wrong page.
   window.addEventListener("keydown", (e) => {
+    if (isTourActive()) return;
     const mac = /Mac|iPhone|iPad/i.test(
       navigator.platform || navigator.userAgent || "",
     );

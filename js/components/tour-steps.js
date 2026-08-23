@@ -133,7 +133,10 @@ export const TOUR_STEPS = [
     selector: ".view-toggle-nav, .view-single-toggle",
     title: "نمای تقویم و جدول",
     text: "بین نمای شبکه‌ای (تقویم) و جدول شیفت‌ها جابه‌جا شوید — الان نمای جدولی را می‌بینید.",
+    // Only toggle if we aren't already in table view (idempotent — going
+    // back from step 13 to 12 must not toggle back to grid).
     click: "toTable",
+    ensureVisibleTable: true,
   },
   {
     tab: "calendar",
@@ -156,6 +159,8 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    // Keep the sheet open from the previous step so we don't close-reopen
+    // it (jarring flash). The editor lives INSIDE the day-detail sheet.
     sheetStep: true,
     settle: true,
     selector: ".note-editor",

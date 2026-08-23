@@ -12,7 +12,12 @@ const CACHE_NAME = `shiftkar-${VERSION}`;
 /* Only the shell — everything else (hashed JS/CSS/assets) is cached on
    first use by the fetch handler below. The لوحه picture is pre-cached
    here too so it is downloaded in the background on first use and ready
-   offline even if the user never visits the tab. */
+   offline even if the user never visits the tab.
+
+   ⚠️  MAINTENANCE: when the roster image changes (new year, updated file),
+       update the filename below AND bump VERSION at the top of this file.
+       Failing to update the filename means the install pre-cache silently
+       skips the image (the .catch(() => {}) swallows a 404). */
 const SHELL = ["./", "./index.html", "./assets/roster-1405.png"];
 
 self.addEventListener("install", (event) => {

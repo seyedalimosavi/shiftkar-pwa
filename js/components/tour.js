@@ -41,6 +41,9 @@ let stepReady = false;
 let stepToken = 0;
 /** Cleanup for auto-advance subscriber set up during swipe steps. */
 let autoAdvanceCleanup = null;
+/** Pending auto-advance timeout ID — cancelled when user taps بعدی/قبلی
+ *  so a stale timeout can't re-run a step that already advanced. */
+let autoAdvanceTimer = null;
 
 function seen() {
   try {
@@ -75,6 +78,18 @@ function waitFor(fn, timeout = 4000) {
 
 function toPersian(n) {
   return String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
+}
+
+/** True while `token` is still the latest step transition — a newer «بعدی» /
+ *  «قبلی» tap, or a finished tour, invalidates older ones. */
+function stillCurrent(token) {
+  return active && rootEl && rootEl.isConnected && token === stepToken;
+}
+
+/** Check if the table view is already active — avoids toggling back to grid
+ *  when going назад from a table-view step. */
+function isTableActive() {
+  return state.settings.calendarViewType === "table";
 }
 
 /** Run the step's click action (reveals the element being explained). */
@@ -206,12 +221,6 @@ function waitForScrollSettle(selector, timeout = 1500) {
   });
 }
 
-/** True while `token` is still the latest step transition — a newer «بعدی» /
- *  «قبلی» tap, or a finished tour, invalidates older ones. */
-function stillCurrent(token) {
-  return active && rootEl && rootEl.isConnected && token === stepToken;
-}
-
 /* Focus levels: some steps only point at a control and the surrounding
    content is the real subject (tabs, group chips, theme grid, view switch,
    systems…) — blurring it would hide exactly what the step is about. Those
@@ -252,7 +261,7 @@ function applyHole(rect) {
   if (!rect) {
     overlay.style.maskImage = "none";
     overlay.style.webkitMaskImage = "none";
-    ring.style.display = "none";
+    ring.style.opacity = "0";
     return;
   }
 
@@ -284,9 +293,12 @@ function applyHole(rect) {
   // Glowing ring around the showcased group — skipped when the target
   // covers most of the screen (whole calendar/sheet/grid), where the crisp
   // hole itself is the highlight and a huge frame reads as a glitch.
+  // Opacity-only so the 180ms CSS transition fades it in/out; toggling
+  // display:none breaks transitions on Safari and hides the ring until
+  // after a layout tick.
   const coversScreen =
     rect.width * rect.height > window.innerWidth * window.innerHeight * 0.4;
-  ring.style.display = coversScreen ? "none" : "block";
+  ring.style.opacity = coversScreen ? "0" : "1";
   ring.style.top = `${rect.top - 5}px`;
   ring.style.left = `${rect.left - 5}px`;
   ring.style.width = `${rect.width + 10}px`;
@@ -347,6 +359,7 @@ async function spotlight(stepDef) {
   // lesson), watch for a month change and advance automatically once the
   // user swipes — no need to tap بعدی.
   if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
   if (stepDef.autoAdvance && passThroughActive) {
     const monthBefore = `${state.settings.viewYear}-${state.settings.viewMonth}`;
     const unsub = state.subscribe(() => {
@@ -356,7 +369,8 @@ async function spotlight(stepDef) {
         // Month changed — clean up and advance after a brief pause so the
         // user can see the new month render before the bubble moves on.
         if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
-        setTimeout(() => {
+        autoAdvanceTimer = setTimeout(() => {
+          autoAdvanceTimer = null;
           if (active && stepIndex === thisStep) step(thisStep + 1);
         }, 600);
       }
@@ -492,7 +506,15 @@ async function step(index) {
 
   // click actions REVEAL the target (switch month / view) and run before
   // the spotlight; demo actions run after it, as a live demonstration.
-  if (stepDef.click) await runAction(stepDef.click);
+  // ensureVisibleTable: only toggle to table if not already there — going
+  // back from a table-view step must not toggle back to grid.
+  if (stepDef.click) {
+    if (stepDef.click === "toTable" && stepDef.ensureVisibleTable && isTableActive()) {
+      /* already table — skip the toggle */
+    } else {
+      await runAction(stepDef.click);
+    }
+  }
   if (stepDef.selector) {
     // Steps with ensureVisible get a short first wait: if their subject was
     // consumed by an earlier demo (the «برو به امروز» chip after its demo,
@@ -525,7 +547,6 @@ async function step(index) {
   stepReady = false;
   setButtonsReady(false);
 
-  showStep(stepDef);
   await spotlight(stepDef);
   if (!stillCurrent(token)) return;
 
@@ -544,7 +565,7 @@ async function step(index) {
       if (stepIndex !== demoIndex) return;
       runAction(stepDef.demo);
       const ring = rootEl.querySelector(".tour-ring");
-      ring.style.display = "none";
+      ring.style.opacity = "0";
       const bubble = rootEl.querySelector(".tour-bubble");
       bubble.dataset.arrow = "none";
     }, 1000);
@@ -561,6 +582,7 @@ async function finish(completed) {
   markSeen();
 
   if (autoAdvanceCleanup) { autoAdvanceCleanup(); autoAdvanceCleanup = null; }
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
   closeOverlays();
   setTodayChipHold(false);
 
