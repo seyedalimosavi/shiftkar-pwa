@@ -189,28 +189,11 @@ for (const f of files) {
   console.log("wrote", f.path, `(${f.size}x${f.size})`);
 }
 
-// Maskable 512: cream canvas + the mark at 80% (safe zone), so launcher
-// cropping keeps the logo visible on any device.
-{
-  const M = 512;
-  const pad = Math.round(M * 0.1); // 10% margin each side → content at 80%
-  const content = resizeArea(rgb, width, M - pad * 2);
-  const canvas = Buffer.alloc(M * M * 4);
-  for (let y = 0; y < M; y++) {
-    for (let x = 0; x < M; x++) {
-      const i = (y * M + x) * 4;
-      canvas[i] = CREAM[0];
-      canvas[i + 1] = CREAM[1];
-      canvas[i + 2] = CREAM[2];
-      canvas[i + 3] = CREAM[3];
-    }
-  }
-  content.copy(canvas, (pad * M + pad) * 4);
-  const out = join(root, "public/assets/icons/icon-maskable-512.png");
-  mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, encodePng(M, canvas));
-  console.log("wrote assets/icons/icon-maskable-512.png (512x512)");
-}
+// Maskable 512: full-bleed background + the mark tangent to the maskable
+// safe zone — the largest size no launcher can crop. The dedicated script
+// measures the artwork's ink and auto-refines the scale (arrow tips often
+// bulge past the bounding box), so delegation keeps both paths identical.
+await import("./fix-maskable-icon.mjs");
 
 // Roster image (JPEG data served as .png — browsers sniff the content).
 copyFileSync(
