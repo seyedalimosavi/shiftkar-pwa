@@ -170,12 +170,28 @@ function resizeArea(rgb, srcSize, dstSize) {
 
 /* ---------------- apply ---------------- */
 
-// Icons + logo: all PWA icon slots and the splash logo are rebuilt from
-// public/assets/icon.png as navy full-bleed tiles by rebuild-icons.mjs
-// (the mark keeps its colors, the cream tile becomes the brand navy so the
-// installed-app launch splash is seamless). Delegation keeps every future
-// rebuild identical to the current assets.
-await import("./rebuild-icons.mjs");
+const { rgb, width } = decodeRgbPng(readFileSync(join(root, "public/assets/icon.png")));
+console.log(`decoded icon: ${width}×${width}`);
+
+const files = [
+  { path: "public/assets/logo.png", size: 512 },
+  { path: "public/assets/icons/icon-192.png", size: 192 },
+  { path: "public/assets/icons/icon-512.png", size: 512 },
+  { path: "public/assets/icons/apple-touch-icon.png", size: 180 },
+];
+
+for (const f of files) {
+  const out = join(root, f.path);
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, encodePng(f.size, resizeArea(rgb, width, f.size)));
+  console.log("wrote", f.path, `(${f.size}x${f.size})`);
+}
+
+// Maskable 512: full-bleed background + the mark tangent to the maskable
+// safe zone — the largest size no launcher can crop. The dedicated script
+// measures the artwork's ink and auto-refines the scale (arrow tips often
+// bulge past the bounding box), so delegation keeps both paths identical.
+await import("./fix-maskable-icon.mjs");
 
 // Roster image (JPEG data served as .png — browsers sniff the content).
 copyFileSync(

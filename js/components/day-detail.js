@@ -25,9 +25,8 @@ function toFa(n) {
 
 /** Keep the day sheet compact: a day can carry dozens of occasions, and a
  *  wall of text pushes the shift rows and the note editor out of view.
- *  Show the first MAX_OCCASIONS, with a small «+N مناسبت دیگر» expander. */
-const MAX_OCCASIONS = 3;
-
+ *  Occasions collapse into a single chip row («تعطیل رسمی + N مناسبت»);
+ *  tapping the chip expands the full details behind it. */
 export function openDayDetail(dateKey, opts = {}) {
   const { jy, jm, jd } = parseDateKey(dateKey);
   const g = toGregorian(jy, jm, jd);
@@ -35,7 +34,7 @@ export function openDayDetail(dateKey, opts = {}) {
   const isToday = today.jy === jy && today.jm === jm && today.jd === jd;
   const holiday = getHoliday(jy, jm, jd);
   const occasions = getDayEvents(jy, jm, jd).filter((e) => !e.isHoliday);
-  const hiddenOccasions = occasions.length - MAX_OCCASIONS;
+  const hasOccasions = occasions.length > 0;
 
   const content = document.createElement("div");
   content.className = "day-detail";
@@ -49,19 +48,31 @@ export function openDayDetail(dateKey, opts = {}) {
       <span class="day-detail-gregorian">${formatGregorian(g.gy, g.gm, g.gd)}</span>
     </div>
     ${chips ? `<div class="day-detail-chips">${chips}</div>` : ""}
-    ${holiday ? `
+    ${!hasOccasions && holiday ? `
       <div class="day-detail-holiday" role="note">
         <span class="day-detail-holiday-icon">${icon("holiday")}</span>
         <span class="day-detail-holiday-text">${holiday.name}</span>
       </div>` : ""}
-    ${occasions.length ? `
-      <div class="day-detail-occasions" role="note">
-        <span class="day-detail-occasions-icon">${icon("holiday")}</span>
-        <div class="day-detail-occasions-body">
-          <ul class="day-detail-occasions-list">
-            ${occasions.slice(0, MAX_OCCASIONS).map((o) => `<li>${o.title}</li>`).join("")}
-          </ul>
-          ${hiddenOccasions > 0 ? `<button type="button" class="occasions-more" data-expand-occasions>+${toFa(hiddenOccasions)} مناسبت دیگر</button>` : ""}
+    ${hasOccasions ? `
+      <div class="day-detail-events">
+        <button type="button" class="events-summary" data-toggle-events aria-expanded="false">
+          <span class="events-summary-icon">${icon("holiday")}</span>
+          <span class="events-summary-text">${holiday ? holiday.name : occasions[0].title}</span>
+          <span class="events-summary-count">+${toFa(occasions.length)} مناسبت</span>
+          <span class="events-summary-chevron">${icon("chevronDown")}</span>
+        </button>
+        <div class="events-details" data-events-details hidden>
+          ${holiday ? `
+            <div class="day-detail-holiday" role="note">
+              <span class="day-detail-holiday-icon">${icon("holiday")}</span>
+              <span class="day-detail-holiday-text">${holiday.name}</span>
+            </div>` : ""}
+          <div class="day-detail-occasions" role="note">
+            <span class="day-detail-occasions-icon">${icon("holiday")}</span>
+            <ul class="day-detail-occasions-list">
+              ${occasions.map((o) => `<li>${o.title}</li>`).join("")}
+            </ul>
+          </div>
         </div>
       </div>` : ""}
     <div class="day-detail-groups">
@@ -80,17 +91,15 @@ export function openDayDetail(dateKey, opts = {}) {
       }).join("")}
     </div>`;
 
-  // «+N مناسبت دیگر» → reveal the remaining occasions (no re-render).
-  const moreBtn = content.querySelector("[data-expand-occasions]");
-  if (moreBtn) {
-    moreBtn.addEventListener("click", () => {
-      const list = content.querySelector(".day-detail-occasions-list");
-      if (!list) return;
-      list.insertAdjacentHTML(
-        "beforeend",
-        occasions.slice(MAX_OCCASIONS).map((o) => `<li>${o.title}</li>`).join(""),
-      );
-      moreBtn.remove();
+  // «تعطیل رسمی + N مناسبت» chip → expand/collapse the full details.
+  const toggleBtn = content.querySelector("[data-toggle-events]");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const details = content.querySelector("[data-events-details]");
+      const wasOpen = toggleBtn.getAttribute("aria-expanded") === "true";
+      toggleBtn.setAttribute("aria-expanded", String(!wasOpen));
+      toggleBtn.classList.toggle("is-open", !wasOpen);
+      if (details) details.hidden = wasOpen;
     });
   }
 

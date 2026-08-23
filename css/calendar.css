@@ -718,13 +718,6 @@
   height: 16px;
 }
 
-.day-detail-occasions-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
 .day-detail-occasions-list {
   list-style: none;
   margin: 0;
@@ -740,21 +733,82 @@
   color: var(--color-text-faint);
 }
 
-/* «+N مناسبت دیگر» — compact expander for long occasion lists. */
-.occasions-more {
-  align-self: flex-start;
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--color-primary);
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-  border-radius: 6px;
+/* ---------- compact events chip (suggestion: one line, expandable) ----------
+   A day with occasions collapses to a single row — «تعطیل رسمی + N مناسبت» —
+   so the shift rows and the note editor stay visible. Tapping expands the
+   full holiday banner + complete list behind it. */
+.day-detail-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.occasions-more:hover {
-  text-decoration: underline;
+.events-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--holiday-soft);
+  border: 1px solid var(--holiday-border);
+  color: var(--holiday);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  cursor: pointer;
+  text-align: start;
+}
+
+.events-summary-icon {
+  display: flex;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--holiday);
+  color: #ffffff;
+  align-items: center;
+  justify-content: center;
+}
+
+.events-summary-icon .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.events-summary-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.events-summary-count {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--holiday);
+  color: #ffffff;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+}
+
+.events-summary-chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--holiday);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.events-summary-chevron .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.events-summary.is-open .events-summary-chevron {
+  transform: rotate(180deg);
 }
 
 .day-detail-groups {

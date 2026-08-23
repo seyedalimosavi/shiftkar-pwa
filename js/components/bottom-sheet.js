@@ -81,10 +81,7 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
   const sheet = document.createElement("div");
   sheet.className = "sheet";
   sheet.innerHTML = `
-    <button type="button" class="sheet-handle" aria-label="بزرگ‌نمایی برگه">
-      <span class="sheet-handle-bar"></span>
-      <span class="sheet-handle-chevron">${icon("chevronUp")}</span>
-    </button>
+    <div class="sheet-handle" aria-hidden="true"></div>
     <header class="sheet-header">
       <h2 class="sheet-title">${title}</h2>
       <button type="button" class="icon-btn sheet-close" aria-label="بستن">${icon("close")}</button>
@@ -145,8 +142,6 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
      full dismiss still works via the X, backdrop or the swipe from the
      collapsed state. */
   const bodyEl = sheet.querySelector(".sheet-body");
-  const handleBtn = sheet.querySelector(".sheet-handle");
-  const chevron = sheet.querySelector(".sheet-handle-chevron");
   let fullscreen = false;
 
   const isScrollable = () =>
@@ -155,29 +150,7 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
   function setFullscreen(on) {
     fullscreen = on;
     sheet.classList.toggle("is-fullscreen", on);
-    chevron.innerHTML = on ? icon("chevronDown") : icon("chevronUp");
-    handleBtn.setAttribute("aria-label", on ? "کوچک‌کردن برگه" : "بزرگ‌نمایی برگه");
-    if (on) {
-      try {
-        sheet.focus();
-      } catch {
-        /* ignore */
-      }
-    }
   }
-
-  // Reveal the handle affordance only when expanding is actually possible.
-  // While fullscreen it ALWAYS shows (the collapse gesture is available
-  // even when the content fits the full-height body).
-  const syncHandle = () => {
-    if (!expandable) {
-      chevron.style.display = "none";
-      return;
-    }
-    chevron.style.display = fullscreen || isScrollable() ? "" : "none";
-  };
-  syncHandle();
-  if (bodyEl) bodyEl.addEventListener("scroll", syncHandle, { passive: true });
 
   // Scroll the body to the very bottom → the sheet expands.
   if (bodyEl) {
@@ -192,13 +165,6 @@ export function openSheet({ title = "", content = "", onMount = null, dismissabl
       { passive: true },
     );
   }
-
-  // Tap the handle to expand/collapse.
-  handleBtn.addEventListener("click", () => {
-    if (!expandable) return;
-    if (!fullscreen && !isScrollable()) return;
-    setFullscreen(!fullscreen);
-  });
 
   // Swipe gestures: down = dismiss (collapsed) / collapse (fullscreen),
   // up = expand (only when the body is scrollable).
