@@ -484,8 +484,9 @@ async function spotlight(stepDef) {
     return;
   }
 
-  applyHole(rect ? clampRect(rect) : null);
-  placeBubble(rect ? clampRect(rect) : null);
+  const clamped = rect ? clampRect(rect) : null;
+  applyHole(clamped);
+  placeBubble(clamped);
   bubble.style.opacity = "";
 }
 
