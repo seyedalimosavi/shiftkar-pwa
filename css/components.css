@@ -1732,6 +1732,16 @@ body.tour-lock .tour {
   animation: pop 0.5s var(--ease-out);
 }
 
+/* Dark mode: the navy logo square sits on a near-navy background — give it
+   a soft ring so it reads as a distinct card instead of blending into the
+   splash (only the cream medallion used to show). */
+[data-theme-mode="dark"] .splash-logo {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 0 5px rgba(255, 255, 255, 0.05),
+    var(--shadow-float);
+}
+
 .splash-name {
   font-size: var(--fs-2xl);
   font-weight: var(--fw-black);

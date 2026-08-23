@@ -564,6 +564,16 @@ async function step(index) {
   let stepDef = installedVariant(baseDef);
   showStep(stepDef);
 
+  // Lesson view: steps 1-11 always run in calendar GRID view, steps 12-13
+  // (view toggle + fullscreen) in TABLE view. Enforced on ENTRY — so pressing
+  // «قبلی» from a table step restores the calendar grid instead of stranding
+  // the guide in table view, and step 13 always finds the fullscreen button
+  // (it only exists in table view). No-op when already in the right view;
+  // finish() restores the user's own preference.
+  if (baseDef.forceView && state.settings.calendarViewType !== baseDef.forceView) {
+    state.set({ calendarViewType: baseDef.forceView });
+  }
+
   // Move to the right tab first. If the route doesn't land where we asked,
   // retry once — a stale history entry used to let the bubble advance while
   // the page stayed behind.
@@ -742,6 +752,18 @@ export async function startTour() {
     if (rootEl && e.target && rootEl.contains(e.target)) return;
     e.preventDefault();
   };
+  // During pass-through steps (the swipe lesson) the overlay lets touches
+  // reach the app so the gesture actually works — but a TAP on a day cell
+  // would open the day-detail sheet (or any other overlay) behind the guide
+  // and break the step's context. Block clicks outside the tour UI while
+  // pass-through is active; swipes (touchmove) still flow through untouched.
+  const blockClick = (e) => {
+    if (!active || !passThroughActive) return;
+    if (rootEl && e.target instanceof Node && rootEl.contains(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  document.addEventListener("click", blockClick, { capture: true });
   const onKey = (e) => {
     if (e.key === "Escape") finish(false);
   };
@@ -760,6 +782,7 @@ export async function startTour() {
   rootEl._cleanup = () => {
     window.removeEventListener("wheel", blockWheel, { capture: true });
     window.removeEventListener("touchmove", blockTouch, { capture: true });
+    document.removeEventListener("click", blockClick, { capture: true });
     document.removeEventListener("keydown", onKey);
     window.removeEventListener("resize", onResize);
   };

@@ -3,6 +3,12 @@
  *
  * Each step:
  *  - tab:      route to navigate to before looking for the target
+ *  - forceView: "grid" | "table" — the calendar view this step is taught
+ *              in. Applied on ENTRY (see tour.js step()), so steps 1-11
+ *              always show the calendar grid even when the user presses
+ *              «قبلی» from a table-view step, and steps 12-13 always show
+ *              the table (the fullscreen button only exists there).
+ *              finish() restores the user's own preference afterwards.
  *  - focus:    "soft" (default "strong") — soft keeps the page readable and
  *              only marks the target with the ring; strong blurs + dims
  *              everything except the target. Use soft when the surrounding
@@ -42,6 +48,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: ".bottom-nav-inner",
     title: "نوار پایین برنامه",
     text: "چهار بخش اصلی برنامه در این نوار قرار دارد: تقویم، سامانه‌ها، تصویر لوحه و تنظیمات. در ادامه هر کدام را می‌بینید.",
@@ -49,6 +56,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: '.nav-item[data-route="calendar"]',
     title: "تقویم",
     text: "بخش اصلی برنامه: تقویم ماهانهٔ شیفت‌ها با محاسبهٔ خودکار روزکار، شب‌کاری و استراحت.",
@@ -56,6 +64,7 @@ export const TOUR_STEPS = [
   {
     tab: "systems",
     focus: "soft",
+    forceView: "grid",
     selector: '.nav-item[data-route="systems"]',
     title: "سامانه‌ها",
     text: "دسترسی سریع به سامانه‌های شرکت پتروشیمی بندر امام خمینی (ره).",
@@ -63,6 +72,7 @@ export const TOUR_STEPS = [
   {
     tab: "roster",
     focus: "soft",
+    forceView: "grid",
     selector: '.nav-item[data-route="roster"]',
     title: "تصویر لوحه",
     text: "لوحهٔ شیفت همان تصویری است که همیشه در محل کار نصب است؛ اینجا همیشه به‌روز در دسترس شماست.",
@@ -70,6 +80,7 @@ export const TOUR_STEPS = [
   {
     tab: "settings",
     focus: "soft",
+    forceView: "grid",
     selector: '.nav-item[data-route="settings"]',
     title: "تنظیمات",
     text: "شخصی‌سازی برنامه: گروه شیفت، تم، نمای تقویم و نصب برنامه.",
@@ -79,6 +90,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: ".today-banner",
     title: "بنر شیفت امروز",
     text: "در بالای تقویم، تاریخ امروز و شیفت شما (روزکار، شب‌کار یا استراحت) را یک‌جا می‌بینید؛ با ضربه روی آن، جزئیات همان روز باز می‌شود.",
@@ -86,6 +98,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: ".cal-title-btn",
     title: "ماه و سال",
     text: "روی عنوان ماه بزنید تا با تقویم انتخاب ماه، ماه و سال دلخواه را پیدا کنید.",
@@ -93,6 +106,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: ".cal-nav-start, .cal-nav-end",
     title: "جابه‌جایی بین ماه‌ها",
     text: "با این دو دکمه (فلش‌های دو طرف عنوان ماه) به ماه بعد و قبل بروید. روی «بعدی» بزنید تا ببینید.",
@@ -101,6 +115,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: ".today-chip",
     title: "برو به امروز",
     text: "هر وقت از ماه جاری دور شدید، با این دکمهٔ کوچک یک‌تپه به ماه و روز امروز برمی‌گردید. الان می‌بینیدش!",
@@ -113,6 +128,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "grid",
     selector: ".group-filter",
     title: "فیلتر گروه شیفت",
     text: "گروه شیفت خود (A تا D) را انتخاب کنید؛ «همه» هم وضعیت هر چهار گروه را یک‌جا نشان می‌دهد.",
@@ -123,6 +139,7 @@ export const TOUR_STEPS = [
     passThrough: true,
     swipeArrows: true,
     autoAdvance: true,
+    forceView: "grid",
     selector: ".cal-grid, .shift-table-scroll",
     title: "کشیدن انگشت بین ماه‌ها",
     text: "همین حالا امتحان کنید: روی تقویم انگشت‌تان را به راست یا چپ بکشید تا ماه عوض شود — یا از فلش‌های دو طرف صفحه استفاده کنید.",
@@ -130,6 +147,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "table",
     selector: ".view-toggle-nav, .view-single-toggle",
     title: "نمای تقویم و جدول",
     text: "بین نمای شبکه‌ای (تقویم) و جدول شیفت‌ها جابه‌جا شوید — الان نمای جدولی را می‌بینید.",
@@ -141,6 +159,7 @@ export const TOUR_STEPS = [
   {
     tab: "calendar",
     focus: "soft",
+    forceView: "table",
     selector: '[data-action="fullscreen"]',
     title: "جدول تمام‌صفحه",
     text: "با این دکمه جدول شیفت‌ها تمام‌صفحه می‌شود؛ با دکمهٔ بستن یا دکمهٔ بازگشت گوشی، تمام‌صفحه بسته می‌شود.",
