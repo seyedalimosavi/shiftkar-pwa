@@ -1,0 +1,75 @@
+name: Deploy ShiftKar Neo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compute base path & site URL
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          SITE="https://${OWNER}.github.io"
+          # repo called <user>.github.io → user site (root); otherwise project pages (/repo)
+          if [ "$REPO_NAME" = "${OWNER}.github.io" ]; then
+            BASE=""
+          else
+            BASE="/${REPO_NAME}"
+          fi
+          {
+            echo "BASE_PATH=${BASE}"
+            echo "SITE_URL=${SITE}"
+          } >> "$GITHUB_ENV"
+
+      # GitHub Pages is static-only: no Node server → the notes API
+      # (Prisma/SQLite) cannot run there. The app detects the missing
+      # API at runtime and falls back to localStorage automatically.
+      - name: Remove server-only API routes for the static build
+        run: rm -rf src/app/api
+
+      # Point the manifest (id/start_url/scope/icons) at the Pages origin,
+      # so the PWA is installable & valid on github.io too.
+      - name: Rewrite manifest URLs for the Pages origin
+        run: |
+          sed -i "s#https://shiftkar\.space-z\.ai#${SITE_URL}${BASE_PATH}#g" public/manifest.webmanifest
+          echo "--- manifest.webmanifest (rewritten) ---"
+          cat public/manifest.webmanifest
+
+      - name: Static export build
+        run: NEXT_EXPORT=1 NEXT_PUBLIC_BASE_PATH="$BASE_PATH" bun run build:gh
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
