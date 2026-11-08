@@ -14,6 +14,7 @@ import { initInstallPrompt, maybeAutoPromptInstall } from "@/lib/install";
 import { ensureCalendarSyncLoaded, syncCalendarNow } from "@/lib/holidays";
 import { toPersianDigits } from "@/lib/jalali";
 import { APP } from "@/lib/models";
+import { getActivePattern } from "@/lib/shift-engine";
 import { CalendarView } from "./calendar-view";
 import { SystemsView } from "./systems-view";
 import { RosterView } from "./roster-view";
