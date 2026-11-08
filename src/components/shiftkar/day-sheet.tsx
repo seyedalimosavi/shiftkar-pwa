@@ -539,12 +539,18 @@ function DaySheetBody({
           <div className="text-[11.5px] font-bold text-[var(--sk-text-muted)]">
             جابه‌جایی نوبت (وضعیت واقعی شما در این روز):
           </div>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div
+            className={`grid gap-1.5 ${
+              (pat.eveningCount ?? 0) > 0 || swapKind === "EVENING" ? "grid-cols-5" : "grid-cols-4"
+            }`}
+          >
             {(
               [
                 { id: null, fa: "برنامه", activeCls: "bg-[var(--sk-primary-soft)] text-[var(--sk-primary)] border-[var(--sk-primary)]" },
                 { id: "DAY", fa: "صبح‌کار", activeCls: "sk-grad-day border-[var(--sk-day-ink)]" },
-                { id: "EVENING", fa: "عصرکار", activeCls: "sk-grad-evening border-[var(--sk-evening-ink)]" },
+                ...((pat.eveningCount ?? 0) > 0 || swapKind === "EVENING"
+                  ? [{ id: "EVENING" as const, fa: "عصرکار", activeCls: "sk-grad-evening border-[var(--sk-evening-ink)]" }]
+                  : []),
                 { id: "NIGHT", fa: "شب‌کار", activeCls: "sk-grad-night border-[var(--sk-night-ink)]" },
                 { id: "REST", fa: "استراحت", activeCls: "sk-grad-rest border-[var(--sk-rest-ink)]" },
               ] as const
@@ -572,19 +578,13 @@ function DaySheetBody({
         </div>
       </div>
 
-      {/* ---- Personal Note Editor (matching DaySheet.kt lines 550-621) ---- */}
+      {/* ---- Personal Note Editor (clean frosted glass style) ---- */}
       <div>
         <div className="flex items-center gap-1.5 text-[13px] font-bold text-[var(--sk-text-muted)] mb-2">
           <NotesIcon size={13} className="text-[var(--sk-primary)]" />
           <span>یادداشت شخصی</span>
         </div>
-        <div
-          className="glass rounded-2xl p-3 space-y-2"
-          style={{
-            backgroundColor: "var(--sk-note)",
-            borderColor: "color-mix(in srgb, var(--sk-note-ink) 25%, transparent)",
-          }}
-        >
+        <div className="glass rounded-2xl p-3 space-y-2 border border-[var(--sk-border)] focus-within:border-[var(--sk-primary)] transition-colors">
           <textarea
             value={text}
             onChange={(e) => {

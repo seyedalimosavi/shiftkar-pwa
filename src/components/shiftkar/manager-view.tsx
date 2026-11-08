@@ -69,6 +69,7 @@ import {
 import { listNotes } from "@/lib/notes-store";
 import { renderWorkReportCanvas, type WorkReportSnapshot } from "@/lib/image-exporter";
 import { ExportImageDialog } from "./export-dialog";
+import { Sheet } from "./sheet";
 import {
   CheckIcon,
   TrashIcon,
@@ -393,7 +394,6 @@ function PatternsSubTab() {
             onClick={() => {
               haptic(hapticOn);
               loadPatternIntoBuilder(activePattern);
-              toast(`در حال ویرایش الگوی «${activePattern.name}»`);
             }}
             className="flex-1 py-2 px-2.5 rounded-xl bg-[var(--sk-surface-strong)] text-[11.5px] font-extrabold text-[var(--sk-primary)] flex items-center justify-center gap-1.5"
             style={{
@@ -419,39 +419,51 @@ function PatternsSubTab() {
         </div>
       </div>
 
-      {/* 2. Collapsible Custom Shift Builder Card (matching ShiftManagerScreen.kt lines 323-631) */}
-      <div className="glass rounded-[22px] p-3.5 space-y-2.5">
-        <button
-          type="button"
-          onClick={() => {
-            haptic(hapticOn);
-            setBuilderOpen((v) => !v);
-          }}
-          className="w-full flex items-center gap-2.5 text-start"
-        >
-          <span className="size-9 rounded-[11px] bg-[var(--sk-primary-soft)] text-[var(--sk-primary)] grid place-items-center shrink-0">
-            <PaletteIcon size={18} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13.5px] font-extrabold text-[var(--sk-primary)] truncate">
-              {editingPatternId
-                ? `ویرایش الگوی «${customName}»`
-                : "ساخت سیستم شیفت سفارشی جدید"}
-            </div>
-            <div className="text-[11px] text-[var(--sk-text-muted)] truncate">
-              {editingPatternId
-                ? "تغییر روزهای نوبت، گروه‌ها یا تاریخ تراز امروز"
-                : "طراحی چرخه با صبح‌کار، عصرکار، شب‌کار و استراحت"}
-            </div>
+      {/* 2. Custom Shift Builder Trigger Card (opens Popup Sheet) */}
+      <button
+        type="button"
+        onClick={() => {
+          haptic(hapticOn);
+          setEditingPatternId(null);
+          setCustomName("شیفت سفارشی من");
+          setDayCount(2);
+          setEveningCount(0);
+          setNightCount(2);
+          setRestCount(4);
+          setNoGroupMode(false);
+          setGroupCells(["A", "B", "C", "D"]);
+          setTodayCycleStep(0);
+          setBuilderOpen(true);
+        }}
+        className="w-full glass rounded-[22px] p-3.5 flex items-center gap-2.5 text-start border border-[var(--sk-border)] hover:border-[var(--sk-primary)]/60 active:scale-[0.99] transition-all"
+      >
+        <span className="size-9 rounded-[11px] bg-[var(--sk-primary-soft)] text-[var(--sk-primary)] grid place-items-center shrink-0">
+          <PaletteIcon size={18} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13.5px] font-extrabold text-[var(--sk-primary)] truncate">
+            + ساخت سیستم شیفت سفارشی جدید
           </div>
-          <span className="text-[var(--sk-primary)] shrink-0">
-            {builderOpen ? <ChevronUpIcon size={16} /> : <ChevronDown size={16} />}
-          </span>
-        </button>
+          <div className="text-[11px] text-[var(--sk-text-muted)] truncate">
+            طراحی چرخه با صبح‌کار، عصرکار، شب‌کار، استراحت و گروه‌های دلخواه
+          </div>
+        </div>
+        <span className="px-2.5 py-1 rounded-lg bg-[var(--sk-primary-soft)] text-[11px] font-black text-[var(--sk-primary)] shrink-0">
+          طراحی الگو
+        </span>
+      </button>
 
-        {builderOpen && (
-          <div className="space-y-2.5 pt-1">
-            <div className="h-[0.5px] bg-[var(--sk-border-soft)]" />
+      {/* Pattern Editor / Custom Builder Popup Modal Sheet */}
+      <Sheet
+        open={builderOpen}
+        onClose={() => setBuilderOpen(false)}
+        title={
+          editingPatternId
+            ? `ویرایش الگوی «${customName}»`
+            : "ساخت سیستم شیفت سفارشی"
+        }
+      >
+        <div className="px-4 pb-8 pt-2 space-y-3">
 
             {editingPatternId && (
               <div
@@ -744,21 +756,29 @@ function PatternsSubTab() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSaveBuilder}
-              className="w-full py-3 rounded-[14px] bg-[var(--sk-primary)] text-white text-[13px] font-black flex items-center justify-center gap-2 shadow-[0_10px_24px_-8px_var(--sk-glow-a)] active:scale-[0.98] transition-transform"
-            >
-              <CheckIcon size={16} />
-              <span>
-                {editingPatternId
-                  ? "ذخیرهٔ تغییرات الگو و اعمال در برنامه"
-                  : "ذخیره و اعمال در کل برنامه"}
-              </span>
-            </button>
-          </div>
-        )}
-      </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setBuilderOpen(false)}
+                className="flex-1 py-3 rounded-[14px] bg-[var(--sk-surface-strong)] border border-[var(--sk-border-soft)] text-[12.5px] font-bold text-[var(--sk-text-muted)]"
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveBuilder}
+                className="flex-[2] py-3 rounded-[14px] bg-[var(--sk-primary)] text-white text-[13px] font-black flex items-center justify-center gap-2 shadow-[0_10px_24px_-8px_var(--sk-glow-a)] active:scale-[0.98] transition-transform"
+              >
+                <CheckIcon size={16} />
+                <span>
+                  {editingPatternId
+                    ? "ذخیرهٔ تغییرات الگو"
+                    : "ذخیره و فعال‌سازی الگو"}
+                </span>
+              </button>
+            </div>
+        </div>
+      </Sheet>
 
       {/* 3. User's Saved Custom Patterns */}
       {pureCustomPatterns.length > 0 && (
@@ -780,7 +800,6 @@ function PatternsSubTab() {
               onEdit={() => {
                 haptic(hapticOn);
                 loadPatternIntoBuilder(pat);
-                toast(`در حال ویرایش الگوی «${pat.name}»`);
               }}
               onRestoreDefault={null}
               onDelete={() => {
@@ -831,7 +850,6 @@ function PatternsSubTab() {
                 onEdit={() => {
                   haptic(hapticOn);
                   loadPatternIntoBuilder(resolvedPat);
-                  toast(`در حال ویرایش الگوی «${resolvedPat.name}»`);
                 }}
                 onRestoreDefault={
                   isMod
@@ -1564,17 +1582,25 @@ function PersonnelSubTab({ onOpenDay }: { onOpenDay: (dateKey: string) => void }
                   </div>
                 </div>
 
-                {/* 6 Quick Daily Exception Chips with FULL shift names (Fix #2E) */}
-                <div className="grid grid-cols-6 gap-1">
+                {/* Quick Daily Exception Chips with FULL shift names */}
+                <div
+                  className={`grid gap-1 ${
+                    (empPat.eveningCount ?? 0) > 0 || curStatus === "EVENING"
+                      ? "grid-cols-6"
+                      : "grid-cols-5"
+                  }`}
+                >
                   {(
                     [
-                      { id: "AS_SCHEDULED", fa: "برنامه" },
-                      { id: "LEAVE", fa: "مرخصی" },
-                      { id: "DAY", fa: "صبح‌کار" },
-                      { id: "EVENING", fa: "عصرکار" },
-                      { id: "NIGHT", fa: "شب‌کار" },
-                      { id: "REST", fa: "استراحت" },
-                    ] as const
+                      { id: "AS_SCHEDULED" as const, fa: "برنامه" },
+                      { id: "LEAVE" as const, fa: "مرخصی" },
+                      { id: "DAY" as const, fa: "صبح‌کار" },
+                      ...((empPat.eveningCount ?? 0) > 0 || curStatus === "EVENING"
+                        ? [{ id: "EVENING" as const, fa: "عصرکار" }]
+                        : []),
+                      { id: "NIGHT" as const, fa: "شب‌کار" },
+                      { id: "REST" as const, fa: "استراحت" },
+                    ]
                   ).map((st) => {
                     const active = curStatus === st.id;
                     return (

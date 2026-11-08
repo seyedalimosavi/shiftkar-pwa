@@ -297,10 +297,12 @@ function SplashArt() {
           <SunIcon size={12} />
           صبح‌کار
         </span>
-        <span className="sk-splash-p2 h-7 px-3 rounded-full sk-grad-evening text-[10.5px] font-black inline-flex items-center gap-1.5 border border-[var(--sk-evening-ink)]/30">
-          <SunsetIcon size={12} />
-          عصرکار
-        </span>
+        {(getActivePattern().eveningCount ?? 0) > 0 && (
+          <span className="sk-splash-p2 h-7 px-3 rounded-full sk-grad-evening text-[10.5px] font-black inline-flex items-center gap-1.5 border border-[var(--sk-evening-ink)]/30">
+            <SunsetIcon size={12} />
+            عصرکار
+          </span>
+        )}
         <span className="sk-splash-p3 h-7 px-3 rounded-full sk-grad-night text-[10.5px] font-black inline-flex items-center gap-1.5 border border-[var(--sk-night-ink)]/30">
           <MoonIcon size={12} />
           شب‌کار

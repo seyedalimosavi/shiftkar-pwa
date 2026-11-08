@@ -112,7 +112,7 @@ function GroupNumBadge({ label, code }: { label: string; code: ShiftCode }) {
   const ord = toPersianDigits(shiftCodeIndex(code));
   return (
     <span
-      className={`inline-flex items-center justify-center w-[19px] h-[13px] rounded-[5px] text-[7.5px] font-black leading-none ${KIND_GRAD[kind]}`}
+      className={`inline-flex items-center justify-center w-[18px] h-[11.5px] sm:w-[20px] sm:h-[13.5px] rounded-[4px] sm:rounded-[5px] text-[7px] sm:text-[8px] font-black leading-none ${KIND_GRAD[kind]}`}
       title={`شیفت ${label}: ${CODE_FA[code]}`}
     >
       {label}
@@ -132,7 +132,7 @@ function ShiftDayOrdinalBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center gap-[2px] h-[19px] px-1.5 rounded-[7px] border border-current/35 text-[9px] font-black leading-none ${KIND_GRAD[kind]}`}
+      className={`inline-flex items-center justify-center gap-[2px] h-[17px] sm:h-[19px] px-1.5 rounded-[6px] sm:rounded-[7px] border border-current/35 text-[8.5px] sm:text-[9.5px] font-black leading-none ${KIND_GRAD[kind]}`}
     >
       {KIND_ICON_SM[kind]}
       <span>{swapped ? "*" : toPersianDigits(ordinal)}</span>
@@ -456,7 +456,7 @@ export function CalendarView({
 
   return (
     <div
-      className="flex h-full flex-col gap-2.5 px-4 md:px-6 pt-3"
+      className="flex h-full flex-col gap-1.5 sm:gap-2 px-3.5 md:px-6 pt-2.5 overflow-hidden"
       onKeyDown={onKeyDown}
     >
       {/* ============ Today banner ============ */}
@@ -599,36 +599,40 @@ export function CalendarView({
 
       {/* ============ Legend (grid + ALL) ============ */}
       {viewType === "grid" && effectiveFilterGroup === "ALL" && (
-        <div className="flex items-center gap-4 px-1 flex-wrap shrink-0" aria-label="راهنمای شیفت‌ها">
-          <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--sk-text-muted)]">
+        <div className="flex items-center gap-3.5 px-1 flex-wrap shrink-0 leading-none" aria-label="راهنمای شیفت‌ها">
+          <span className="flex items-center gap-1 text-[10.5px] text-[var(--sk-text-muted)]">
             <span className="size-2 rounded-full bg-[var(--sk-day)]" />
             صبح‌کار
           </span>
           {pat.eveningCount > 0 && (
-            <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--sk-text-muted)]">
+            <span className="flex items-center gap-1 text-[10.5px] text-[var(--sk-text-muted)]">
               <span className="size-2 rounded-full bg-[var(--sk-evening)]" />
               عصرکار
             </span>
           )}
-          <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--sk-text-muted)]">
+          <span className="flex items-center gap-1 text-[10.5px] text-[var(--sk-text-muted)]">
             <span className="size-2 rounded-full bg-[var(--sk-night)]" />
             شب‌کار
           </span>
-          <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--sk-text-muted)]">
+          <span className="flex items-center gap-1 text-[10.5px] text-[var(--sk-text-muted)]">
             <span className="size-2 rounded-full bg-[var(--sk-rest)]" />
             استراحت
           </span>
         </div>
       )}
 
-      {/* ============ Swipeable body (extends behind floating bottom nav with bottom clearance!) ============ */}
+      {/* ============ Swipeable body (elastic viewport-fitting in grid mode, scrollable in table mode) ============ */}
       <div
         ref={bodyRef}
-        className={`touch-pan-y ${animClass} flex-1 min-h-0 overflow-y-auto sk-scroll overscroll-contain pb-[calc(env(safe-area-inset-bottom)+90px)]`}
+        className={`touch-pan-y ${animClass} flex-1 min-h-0 ${
+          viewType === "grid"
+            ? "flex flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+78px)]"
+            : "overflow-y-auto sk-scroll overscroll-contain pb-[calc(env(safe-area-inset-bottom)+90px)]"
+        }`}
         key={`${viewYear}-${viewMonth}-${viewType}-${activePatternId}-${calendarSyncRev}`}
       >
         {viewType === "grid" ? (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex-1 min-h-0 flex flex-col justify-between gap-1.5">
             <GridView
               dayInfo={dayInfo}
               firstWeekday={firstWeekday}
@@ -734,15 +738,15 @@ function TodayBanner({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") onOpenDay(todayKey);
         }}
-        className="glass rounded-2xl px-3 py-2.5 flex flex-col gap-2 cursor-pointer hover:bg-[var(--sk-primary-soft)]/30 transition-colors shrink-0"
+        className="glass rounded-2xl px-3 py-2 flex flex-col gap-1.5 cursor-pointer hover:bg-[var(--sk-primary-soft)]/30 transition-colors shrink-0"
         data-tour="today-banner"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="size-[26px] rounded-[9px] bg-[var(--sk-primary-soft)] text-[var(--sk-primary)] grid place-items-center">
-              <CalendarIcon size={14} />
+            <span className="size-[24px] rounded-[8px] bg-[var(--sk-primary-soft)] text-[var(--sk-primary)] grid place-items-center">
+              <CalendarIcon size={13} />
             </span>
-            <span className="text-[13.5px] font-extrabold">شیفت امروز</span>
+            <span className="text-[13px] font-extrabold">شیفت امروز</span>
           </div>
           <span className="text-[10.5px] text-[var(--sk-text-muted)]">{dateLine}</span>
         </div>
@@ -757,12 +761,12 @@ function TodayBanner({
             return (
               <div
                 key={g}
-                className={`rounded-[13px] py-2 px-1 flex flex-col items-center gap-1 ${KIND_GRAD[s.type]}`}
+                className={`rounded-[12px] py-1.5 px-1 flex flex-col items-center gap-0.5 ${KIND_GRAD[s.type]}`}
               >
-                <span className="text-[10px] font-black leading-none">
+                <span className="text-[9.5px] font-black leading-none">
                   {getGroupLetter(g, pat)}
                 </span>
-                {KIND_ICON_MD[s.type]}
+                {KIND_ICON_SM[s.type]}
                 <span className="text-[8.5px] font-bold leading-none truncate max-w-full">
                   {CODE_NUM_FA[s.code]}
                 </span>
@@ -874,7 +878,7 @@ function MonthlySummaryStrip({
 
   return (
     <div
-      className="glass rounded-[14px] px-1.5 py-1 flex items-center gap-1"
+      className="glass rounded-[14px] px-1.5 py-1 flex items-center gap-1 shrink-0"
       data-tour="summary-strip"
     >
       {items.map((it) => (
@@ -939,7 +943,7 @@ const DayCell = memo(function DayCell({
     <button
       onClick={() => onOpenDay(info.key)}
       data-tour={isTourCell ? "today-cell" : undefined}
-      className={`sk-cell-in relative rounded-[14px] h-full w-full overflow-hidden flex flex-col items-center justify-center gap-[3px] p-0.5 select-none
+      className={`sk-cell-in relative rounded-[13px] sm:rounded-[14px] h-full w-full overflow-hidden flex flex-col items-center justify-center gap-[1.5px] sm:gap-[3px] p-0.5 select-none
         transition-[transform,border-color] active:scale-[0.97]
         ${
           holiday
@@ -955,7 +959,7 @@ const DayCell = memo(function DayCell({
     >
       <span className="flex items-center gap-0.5 leading-none">
         <span
-          className={`text-[13.5px] font-bold leading-none ${
+          className={`text-[12px] sm:text-[13.5px] font-bold leading-none ${
             holiday
               ? "text-[var(--sk-holiday)]"
               : info.isFriday
@@ -965,7 +969,7 @@ const DayCell = memo(function DayCell({
         >
           {toPersianDigits(info.d)}
         </span>
-        {info.note && <span className="size-1 rounded-full bg-[var(--sk-note-ink)]" />}
+        {info.note && <span className="size-1 rounded-full bg-[var(--sk-primary)]" />}
         {(hasOvertime || swapKind !== null) && (
           <span className="size-1 rounded-full bg-[var(--sk-primary)]" />
         )}
@@ -979,7 +983,7 @@ const DayCell = memo(function DayCell({
         <span
           className={`grid ${
             info.all.length > 4 ? "grid-cols-3" : "grid-cols-2"
-          } gap-[2px] place-items-center`}
+          } gap-[1.5px] sm:gap-[2px] place-items-center`}
         >
           {info.all.slice(0, 6).map((s) => (
             <GroupNumBadge key={s.group} label={s.label} code={s.code} />
@@ -1014,12 +1018,12 @@ function GridView(props: {
   const hasTodayInMonth = dayInfo.some((d) => d.isToday);
 
   return (
-    <div className="flex flex-col">
-      <div className="grid grid-cols-7 mb-1 shrink-0" aria-hidden>
+    <div className="flex-1 min-h-0 flex flex-col">
+      <div className="grid grid-cols-7 mb-0.5 shrink-0" aria-hidden>
         {WEEKDAY_SHORT.map((w, i) => (
           <div
             key={w}
-            className={`text-center text-[12px] font-bold leading-5 py-0.5 ${
+            className={`text-center text-[11.5px] sm:text-[12px] font-bold leading-4 py-0.5 ${
               i === 6 ? "text-[var(--sk-text-muted)]" : "text-[var(--sk-text-faint)]"
             }`}
           >
@@ -1028,17 +1032,9 @@ function GridView(props: {
         ))}
       </div>
       <div
-        className="grid grid-cols-7 gap-1"
+        className="flex-1 min-h-0 grid grid-cols-7 gap-1"
         style={{
-          gridTemplateRows: `repeat(${rows}, minmax(${
-            rows >= 6
-              ? filterGroup === "ALL"
-                ? "45px"
-                : "42px"
-              : filterGroup === "ALL"
-                ? "48px"
-                : "46px"
-          }, var(--sk-cell-h)))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
         }}
       >
         {cells.map((info, i) =>

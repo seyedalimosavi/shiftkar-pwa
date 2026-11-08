@@ -378,18 +378,12 @@ function Classic1405LoheView({
   showEvents: boolean;
   onOpenMonth: (jy: number, jm: number) => void;
 }) {
+  const pat = getActivePattern();
+  const hasEvening = (pat.eveningCount ?? 0) > 0;
   const rowsData = useMemo(() => buildClassic1405LoheData(jy, showEvents), [jy, showEvents]);
 
   const firstHalfMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور"];
-  const secondHalfMonths = [
-    "مهر",
-    "آبان",
-    "آذر",
-    "دی",
-    "بهمن",
-    "اسفند",
-    `فروردین ${toPersianDigits(jy + 1)}`,
-  ];
+  const secondHalfMonths = ["مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 
   const grpCols = [
     {
@@ -414,9 +408,9 @@ function Classic1405LoheView({
     },
   ];
 
-  // Grid template: 6 left months (1fr each) + 4 center groups (1.22fr each) + 7 right months (1fr each)
+  // Grid template: 6 left months (1fr each) + 4 center groups (1.22fr each) + 6 right months (1fr each)
   const gridCols =
-    "repeat(6, minmax(0, 1fr)) repeat(4, minmax(0, 1.22fr)) repeat(7, minmax(0, 1fr))";
+    "repeat(6, minmax(0, 1fr)) repeat(4, minmax(0, 1.22fr)) repeat(6, minmax(0, 1fr))";
 
   return (
     <div className="space-y-2">
@@ -432,7 +426,7 @@ function Classic1405LoheView({
         </div>
       </div>
 
-      {/* 2. 17-Column × 32-Row Chart Card (LTR layout direction matching RosterScreen.kt) */}
+      {/* 2. 16-Column × 32-Row Chart Card (LTR layout direction matching RosterScreen.kt) */}
       <div dir="ltr" className="glass rounded-[18px] p-1 border border-[var(--sk-border)]">
         {/* Header Row */}
         <div
@@ -446,7 +440,7 @@ function Classic1405LoheView({
               onClick={() => onOpenMonth(jy, idx + 1)}
               className="h-full border-r border-[var(--sk-border-soft)] flex items-center justify-center overflow-hidden"
             >
-              <span className="-rotate-90 whitespace-nowrap text-[8px] font-extrabold">
+              <span className="-rotate-90 whitespace-nowrap text-[8px] sm:text-[9.5px] font-extrabold">
                 {mName}
               </span>
             </button>
@@ -455,27 +449,22 @@ function Classic1405LoheView({
           {grpCols.map((g) => (
             <div
               key={g.letter}
-              className={`h-full border-x border-[var(--sk-border)] flex items-center justify-center text-[10.5px] font-black ${g.headCls}`}
+              className={`h-full border-x border-[var(--sk-border)] flex items-center justify-center text-[10.5px] sm:text-[12px] font-black ${g.headCls}`}
             >
               {g.letter}
             </div>
           ))}
 
           {secondHalfMonths.map((mName, idx) => {
-            const targetYear = idx === 6 ? jy + 1 : jy;
-            const targetMonth = idx === 6 ? 1 : idx + 7;
+            const targetMonth = idx + 7;
             return (
               <button
                 key={`rh-${idx}`}
                 type="button"
-                onClick={() => onOpenMonth(targetYear, targetMonth)}
+                onClick={() => onOpenMonth(jy, targetMonth)}
                 className="h-full border-l border-[var(--sk-border-soft)] flex items-center justify-center overflow-hidden"
               >
-                <span
-                  className={`-rotate-90 whitespace-nowrap font-extrabold ${
-                    idx === 6 ? "text-[6.6px]" : "text-[8px]"
-                  }`}
-                >
+                <span className="-rotate-90 whitespace-nowrap text-[8px] sm:text-[9.5px] font-extrabold">
                   {mName}
                 </span>
               </button>
@@ -491,7 +480,7 @@ function Classic1405LoheView({
             return (
               <div
                 key={row.rowIndex}
-                className={`grid h-[20px] ${
+                className={`grid h-[20px] sm:h-[23px] ${
                   thickBottom
                     ? "border-b-[1.5px] border-[var(--sk-border)]"
                     : "border-b border-[var(--sk-border-soft)]"
@@ -509,7 +498,7 @@ function Classic1405LoheView({
                   return (
                     <div
                       key={`lc-${mIdx}`}
-                      className={`h-full border-r border-[var(--sk-border-soft)] grid place-items-center text-[8px] font-bold ${
+                      className={`h-full border-r border-[var(--sk-border-soft)] grid place-items-center text-[8px] sm:text-[9.5px] font-bold ${
                         !cell
                           ? "bg-transparent"
                           : cell.isOfficialHoliday
@@ -528,14 +517,14 @@ function Classic1405LoheView({
                 {codes.map((code, gIdx) => (
                   <div
                     key={`gc-${gIdx}`}
-                    className={`h-full border-x border-[var(--sk-border)] grid place-items-center text-[7.5px] font-black ${grpCols[gIdx].cellCls}`}
+                    className={`h-full border-x border-[var(--sk-border)] grid place-items-center text-[7.5px] sm:text-[9px] font-black ${grpCols[gIdx].cellCls}`}
                   >
                     {code}
                   </div>
                 ))}
 
-                {/* Right 7 months (6..12) */}
-                {Array.from({ length: 7 }, (_, idx) => {
+                {/* Right 6 months (6..11) */}
+                {Array.from({ length: 6 }, (_, idx) => {
                   const mIdx = 6 + idx;
                   const cell = row.monthCells[mIdx];
                   const isToday =
@@ -546,7 +535,7 @@ function Classic1405LoheView({
                   return (
                     <div
                       key={`rc-${mIdx}`}
-                      className={`h-full border-l border-[var(--sk-border-soft)] grid place-items-center text-[8px] font-bold ${
+                      className={`h-full border-l border-[var(--sk-border-soft)] grid place-items-center text-[8px] sm:text-[9.5px] font-bold ${
                         !cell
                           ? "bg-transparent"
                           : cell.isOfficialHoliday
@@ -577,7 +566,9 @@ function Classic1405LoheView({
           جمعه
         </span>
         <span className="text-[var(--sk-text-muted)]">
-          M: صبح‌کار · E: عصرکار · N: شب‌کار · R: استراحت
+          {hasEvening
+            ? "M: صبح‌کار · E: عصرکار · N: شب‌کار · R: استراحت"
+            : "M: صبح‌کار · N: شب‌کار · R: استراحت"}
         </span>
       </div>
     </div>

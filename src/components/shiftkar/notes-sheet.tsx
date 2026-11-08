@@ -217,16 +217,12 @@ export function NotesSheet({
                   onClose();
                   onPickDate(row.dateKey);
                 }}
-                className="w-full text-start glass rounded-2xl ps-4 pe-2.5 py-3 flex items-center gap-2 transition-colors active:scale-[0.99]"
-                style={{
-                  backgroundColor: "var(--sk-note)",
-                  borderColor: "color-mix(in srgb, var(--sk-note-ink) 25%, transparent)",
-                }}
+                className="w-full text-start glass rounded-2xl ps-4 pe-2.5 py-3 flex items-center gap-2 border border-[var(--sk-border)] hover:border-[var(--sk-primary)]/60 transition-colors active:scale-[0.99]"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <CalendarIcon size={11} className="text-[var(--sk-note-ink)] shrink-0" />
-                    <span className="text-[12px] font-bold text-[var(--sk-note-ink)]">
+                    <CalendarIcon size={11} className="text-[var(--sk-primary)] shrink-0" />
+                    <span className="text-[12px] font-bold text-[var(--sk-primary)]">
                       {row.label}
                     </span>
                     {row.overtimeHours > 0 && (

@@ -132,6 +132,6 @@ export const CALENDAR_SYSTEMS = [
 export const APP = {
   name: "شیفت‌کار",
   nameEn: "ShiftKar",
-  version: "6.7.1",
+  version: "6.7.3",
   tagline: "تقویم هوشمند شیفت کاری",
 } as const;

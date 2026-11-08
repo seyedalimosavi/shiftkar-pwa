@@ -87,7 +87,7 @@ export function buildClassic1405LoheData(jy: number, showEvents = true): Classic
   const totalRows = 32;
   const jdnFarvardin1 = jalaliToJdn(jy, 1, 1);
 
-  const monthColumns: (ClassicLoheCellData | null)[][] = Array.from({ length: 13 }, () =>
+  const monthColumns: (ClassicLoheCellData | null)[][] = Array.from({ length: 12 }, () =>
     Array.from({ length: totalRows }, () => null),
   );
 
@@ -105,19 +105,18 @@ export function buildClassic1405LoheData(jy: number, showEvents = true): Classic
     startRowLeft = (startRowLeft + len) % totalRows;
   }
 
-  // Right half (Mehr .. Esfand + Farvardin jy+1): 1 Mehr is +186 days after 1 Farvardin (186 mod 8 = 2 -> row index 2, 3rd row)
+  // Right half (Mehr .. Esfand): 1 Mehr is +186 days after 1 Farvardin (186 mod 8 = 2 -> row index 2, 3rd row)
   let startRowRight = 2;
-  for (let idx = 0; idx < 7; idx++) {
-    const mYear = idx === 6 ? jy + 1 : jy;
-    const mMonth = idx === 6 ? 1 : idx + 7;
-    const len = jalaaliMonthLength(mYear, mMonth);
-    const firstWd = jalaaliWeekday(mYear, mMonth, 1);
+  for (let idx = 0; idx < 6; idx++) {
+    const mMonth = idx + 7;
+    const len = jalaaliMonthLength(jy, mMonth);
+    const firstWd = jalaaliWeekday(jy, mMonth, 1);
     for (let d = 1; d <= len; d++) {
       const r = (startRowRight + d - 1) % totalRows;
-      const isHol = showEvents && isHoliday(mYear, mMonth, d);
+      const isHol = showEvents && isHoliday(jy, mMonth, d);
       const isFri = (firstWd + d - 1) % 7 === 6;
       monthColumns[6 + idx][r] = {
-        jy: mYear,
+        jy,
         jm: mMonth,
         day: d,
         isOfficialHoliday: isHol,
@@ -137,7 +136,7 @@ export function buildClassic1405LoheData(jy: number, showEvents = true): Classic
       codeB: all.B,
       codeC: all.C,
       codeD: all.D,
-      monthCells: Array.from({ length: 13 }, (_, col) => monthColumns[col][r]),
+      monthCells: Array.from({ length: 12 }, (_, col) => monthColumns[col][r]),
     });
   }
   return rows;
@@ -799,13 +798,13 @@ export function renderClassic1405RosterCanvas(jy: number, dark = true): HTMLCanv
   const rowH = availRowsH / 32;
 
   const totalTableW = tableRight - tableLeft;
-  const monthColW = totalTableW / (13 + 4 * 1.24);
+  const monthColW = totalTableW / (12 + 4 * 1.24);
   const groupColW = monthColW * 1.24;
 
   const colLefts: number[] = [];
   const colRights: number[] = [];
   let curX = tableLeft;
-  for (let c = 0; c < 17; c++) {
+  for (let c = 0; c < 16; c++) {
     const cw = c >= 6 && c <= 9 ? groupColW : monthColW;
     colLefts.push(curX);
     colRights.push(curX + cw);
@@ -840,11 +839,10 @@ export function renderClassic1405RosterCanvas(jy: number, dark = true): HTMLCanv
     "دی",
     "بهمن",
     "اسفند",
-    `فروردین ${toPersianDigits(jy + 1)}`,
   ];
   const groupLetters = ["A", "B", "C", "D"];
 
-  for (let c = 0; c < 17; c++) {
+  for (let c = 0; c < 16; c++) {
     const x = colLefts[c];
     const w = colRights[c] - x;
     if (c >= 6 && c <= 9) {
@@ -871,7 +869,7 @@ export function renderClassic1405RosterCanvas(jy: number, dark = true): HTMLCanv
       ctx.translate(x + w / 2, tableTop + headerH / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = textMainColor;
-      ctx.font = `900 ${c === 16 ? 20 : 24}px ${FONT}`;
+      ctx.font = `900 24px ${FONT}`;
       ctx.textAlign = "center";
       ctx.fillText(mLabel, 0, 0);
       ctx.restore();
@@ -882,7 +880,7 @@ export function renderClassic1405RosterCanvas(jy: number, dark = true): HTMLCanv
     const row = rowsData[r];
     const rTop = rowsTop + r * rowH;
 
-    for (let c = 0; c < 17; c++) {
+    for (let c = 0; c < 16; c++) {
       const x = colLefts[c];
       const w = colRights[c] - x;
 
@@ -957,9 +955,10 @@ export function renderClassic1405RosterCanvas(jy: number, dark = true): HTMLCanv
   const fy = H - 110;
   drawGlassCard(ctx, cardPadX, fy, cardW, 78, 26, sk);
 
+  const pat = getActivePattern();
   const guideItems: { text: string; kind: ShiftKind | "HOLIDAY" }[] = [
     { text: "M : صبح‌کار", kind: "DAY" },
-    { text: "E : عصرکار", kind: "EVENING" },
+    ...((pat.eveningCount ?? 0) > 0 ? [{ text: "E : عصرکار", kind: "EVENING" as const }] : []),
     { text: "N : شب‌کار", kind: "NIGHT" },
     { text: "R : استراحت", kind: "REST" },
     { text: "قرمز: تعطیل رسمی", kind: "HOLIDAY" },
@@ -1722,8 +1721,8 @@ export function renderDayCanvas(
 
   if (hasNote) {
     drawGlassCard(ctx, innerLeft, curY, innerRight - innerLeft, 170, 26, sk, {
-      tintColor: sk.noteBg,
-      borderColor: sk.noteInk,
+      tintColor: sk.surface,
+      borderColor: sk.primary,
       borderWidth: 2,
     });
     const otHours = dayRecord?.overtimeHours ?? 0;
@@ -1731,7 +1730,7 @@ export function renderDayCanvas(
       otHours > 0
         ? `یادداشت و اضافه‌کاری روز (${toPersianDigits(otHours)} ساعت اضافه‌کاری):`
         : "یادداشت روز:";
-    ctx.fillStyle = sk.noteInk;
+    ctx.fillStyle = sk.primary;
     ctx.font = `800 22px ${FONT}`;
     ctx.textAlign = "right";
     ctx.fillText(headerTitle, innerRight - 26, curY + 52);
@@ -1890,7 +1889,9 @@ export function renderWorkReportCanvas(rep: WorkReportSnapshot): HTMLCanvasEleme
 
   const shiftRows: { label: string; days: number; kind: ShiftKind }[] = [
     { label: "نوبت صبح‌کار (M)", days: rep.dayShiftDays, kind: "DAY" },
-    { label: "نوبت عصرکار (E)", days: rep.eveningShiftDays, kind: "EVENING" },
+    ...(rep.eveningShiftDays > 0
+      ? [{ label: "نوبت عصرکار (E)", days: rep.eveningShiftDays, kind: "EVENING" as const }]
+      : []),
     { label: "نوبت شب‌کار (N)", days: rep.nightShiftDays, kind: "NIGHT" },
     { label: "روزهای استراحت (R)", days: rep.restDays, kind: "REST" },
   ];
