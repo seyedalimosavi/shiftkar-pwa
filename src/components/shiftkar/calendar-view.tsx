@@ -112,7 +112,7 @@ function GroupNumBadge({ label, code }: { label: string; code: ShiftCode }) {
   const ord = toPersianDigits(shiftCodeIndex(code));
   return (
     <span
-      className={`inline-flex items-center justify-center w-[18px] h-[11.5px] sm:w-[20px] sm:h-[13.5px] rounded-[4px] sm:rounded-[5px] text-[7px] sm:text-[8px] font-black leading-none ${KIND_GRAD[kind]}`}
+      className={`inline-flex items-center justify-center w-[19px] h-[13px] rounded-[5px] text-[7.5px] font-black leading-none ${KIND_GRAD[kind]}`}
       title={`شیفت ${label}: ${CODE_FA[code]}`}
     >
       {label}
@@ -132,7 +132,7 @@ function ShiftDayOrdinalBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center gap-[2px] h-[17px] sm:h-[19px] px-1.5 rounded-[6px] sm:rounded-[7px] border border-current/35 text-[8.5px] sm:text-[9.5px] font-black leading-none ${KIND_GRAD[kind]}`}
+      className={`inline-flex items-center justify-center gap-[2px] h-[19px] px-1.5 rounded-[7px] border border-current/35 text-[9px] font-black leading-none ${KIND_GRAD[kind]}`}
     >
       {KIND_ICON_SM[kind]}
       <span>{swapped ? "*" : toPersianDigits(ordinal)}</span>
@@ -632,7 +632,7 @@ export function CalendarView({
         key={`${viewYear}-${viewMonth}-${viewType}-${activePatternId}-${calendarSyncRev}`}
       >
         {viewType === "grid" ? (
-          <div className="flex-1 min-h-0 flex flex-col justify-between gap-1.5">
+          <div className="flex-1 min-h-0 flex flex-col gap-1.5">
             <GridView
               dayInfo={dayInfo}
               firstWeekday={firstWeekday}
@@ -943,7 +943,7 @@ const DayCell = memo(function DayCell({
     <button
       onClick={() => onOpenDay(info.key)}
       data-tour={isTourCell ? "today-cell" : undefined}
-      className={`sk-cell-in relative rounded-[13px] sm:rounded-[14px] h-full w-full overflow-hidden flex flex-col items-center justify-center gap-[1.5px] sm:gap-[3px] p-0.5 select-none
+      className={`sk-cell-in relative rounded-[14px] h-full w-full overflow-hidden flex flex-col items-center justify-center gap-[2px] p-0.5 select-none
         transition-[transform,border-color] active:scale-[0.97]
         ${
           holiday
@@ -959,7 +959,7 @@ const DayCell = memo(function DayCell({
     >
       <span className="flex items-center gap-0.5 leading-none">
         <span
-          className={`text-[12px] sm:text-[13.5px] font-bold leading-none ${
+          className={`text-[13px] font-bold leading-none ${
             holiday
               ? "text-[var(--sk-holiday)]"
               : info.isFriday
@@ -983,7 +983,7 @@ const DayCell = memo(function DayCell({
         <span
           className={`grid ${
             info.all.length > 4 ? "grid-cols-3" : "grid-cols-2"
-          } gap-[1.5px] sm:gap-[2px] place-items-center`}
+          } gap-[2px] place-items-center`}
         >
           {info.all.slice(0, 6).map((s) => (
             <GroupNumBadge key={s.group} label={s.label} code={s.code} />
@@ -1018,12 +1018,12 @@ function GridView(props: {
   const hasTodayInMonth = dayInfo.some((d) => d.isToday);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col">
-      <div className="grid grid-cols-7 mb-0.5 shrink-0" aria-hidden>
+    <div className="shrink min-h-0 flex flex-col">
+      <div className="grid grid-cols-7 mb-1 shrink-0" aria-hidden>
         {WEEKDAY_SHORT.map((w, i) => (
           <div
             key={w}
-            className={`text-center text-[11.5px] sm:text-[12px] font-bold leading-4 py-0.5 ${
+            className={`text-center text-[12px] font-bold leading-4 py-0.5 ${
               i === 6 ? "text-[var(--sk-text-muted)]" : "text-[var(--sk-text-faint)]"
             }`}
           >
@@ -1032,9 +1032,17 @@ function GridView(props: {
         ))}
       </div>
       <div
-        className="flex-1 min-h-0 grid grid-cols-7 gap-1"
+        className="shrink min-h-0 grid grid-cols-7 gap-1"
         style={{
-          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, ${
+            rows >= 6
+              ? filterGroup === "ALL"
+                ? "45px"
+                : "46px"
+              : filterGroup === "ALL"
+                ? "50px"
+                : "49px"
+          }))`,
         }}
       >
         {cells.map((info, i) =>
