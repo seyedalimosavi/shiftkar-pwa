@@ -112,7 +112,7 @@ function GroupNumBadge({ label, code }: { label: string; code: ShiftCode }) {
   const ord = toPersianDigits(shiftCodeIndex(code));
   return (
     <span
-      className={`inline-flex items-center justify-center w-[19px] h-[13px] rounded-[5px] text-[7.5px] font-black leading-none ${KIND_GRAD[kind]}`}
+      className={`inline-flex items-center justify-center w-[20px] h-[13.5px] sm:w-[23px] sm:h-[15.5px] rounded-[5px] text-[7.5px] sm:text-[8.5px] font-black leading-none ${KIND_GRAD[kind]}`}
       title={`شیفت ${label}: ${CODE_FA[code]}`}
     >
       {label}
@@ -132,7 +132,7 @@ function ShiftDayOrdinalBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center gap-[2px] h-[19px] px-1.5 rounded-[7px] border border-current/35 text-[9px] font-black leading-none ${KIND_GRAD[kind]}`}
+      className={`inline-flex items-center justify-center gap-[2px] h-[20px] sm:h-[22px] px-1.5 sm:px-2 rounded-[7px] border border-current/35 text-[9.5px] sm:text-[10.5px] font-black leading-none ${KIND_GRAD[kind]}`}
     >
       {KIND_ICON_SM[kind]}
       <span>{swapped ? "*" : toPersianDigits(ordinal)}</span>
@@ -258,8 +258,18 @@ export function CalendarView({
     return () => clearTimeout(t);
   }, [isCurrentMonth, viewYear, viewMonth, chipCollapsed]);
 
+  const ignoreClickUntilRef = useRef(0);
+  const touchStateRef = useRef<{
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
+  const wheelLockUntilRef = useRef(0);
+
   const openDay = useCallback(
     (key: string) => {
+      if (Date.now() < ignoreClickUntilRef.current) return;
       set({ selectedDateKey: key });
       onOpenDay(key);
     },
@@ -351,62 +361,49 @@ export function CalendarView({
     calendarSyncRev,
   ]);
 
-  /* Swipe + horizontal wheel month navigation */
-  useEffect(() => {
-    const area =
-      viewType === "grid"
-        ? bodyRef.current
-        : bodyRef.current?.querySelector<HTMLElement>("[data-table-head]");
-    if (!area) return;
-    let startX: number | null = null;
-    let startY: number | null = null;
+  /* Reliable Touch Swipe + Horizontal Wheel Month Navigation (never detaches on re-render) */
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    touchStateRef.current = { startX: x, startY: y, lastX: x, lastY: y };
+  }, []);
 
-    const onTouchStart = (e: TouchEvent) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (startX == null || startY == null) return;
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStateRef.current || e.touches.length !== 1) return;
+    touchStateRef.current.lastX = e.touches[0].clientX;
+    touchStateRef.current.lastY = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchFinish = useCallback(
+    (e: React.TouchEvent) => {
+      const st = touchStateRef.current;
+      touchStateRef.current = null;
+      if (!st) return;
+      const endX = e.changedTouches?.[0]?.clientX ?? st.lastX;
+      const endY = e.changedTouches?.[0]?.clientY ?? st.lastY;
+      const dx = endX - st.startX;
+      const dy = endY - st.startY;
+      if (Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        ignoreClickUntilRef.current = Date.now() + 450;
         goMonth(dx > 0 ? 1 : -1);
-        const swallow = (ev: Event) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          document.removeEventListener("click", swallow, true);
-        };
-        document.addEventListener("click", swallow, true);
-        setTimeout(() => document.removeEventListener("click", swallow, true), 600);
       }
-      startX = null;
-      startY = null;
-    };
-    area.addEventListener("touchstart", onTouchStart, { passive: true });
-    area.addEventListener("touchend", onTouchEnd, { passive: true });
+    },
+    [goMonth],
+  );
 
-    let wheelLockUntil = 0;
-    const onWheel = (e: WheelEvent) => {
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
       const dx = e.deltaX;
       const dy = e.deltaY;
       if (Math.abs(dx) < 24 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       const now = Date.now();
-      if (now < wheelLockUntil) {
-        e.preventDefault();
-        return;
-      }
-      wheelLockUntil = now + 350;
+      if (now < wheelLockUntilRef.current) return;
+      wheelLockUntilRef.current = now + 350;
       goMonth(dx > 0 ? 1 : -1);
-      e.preventDefault();
-    };
-    area.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      area.removeEventListener("touchstart", onTouchStart);
-      area.removeEventListener("touchend", onTouchEnd);
-      area.removeEventListener("wheel", onWheel);
-    };
-  }, [viewType, goMonth, viewYear, viewMonth]);
+    },
+    [goMonth],
+  );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowRight") {
@@ -621,41 +618,52 @@ export function CalendarView({
         </div>
       )}
 
-      {/* ============ Swipeable body (elastic viewport-fitting in grid mode, scrollable in table mode) ============ */}
+      {/* ============ Swipeable body (permanent touch wrapper + elastic viewport-fitting grid) ============ */}
       <div
         ref={bodyRef}
-        className={`touch-pan-y ${animClass} flex-1 min-h-0 ${
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchFinish}
+        onTouchCancel={handleTouchFinish}
+        onWheel={handleWheel}
+        className={`touch-pan-y flex-1 min-h-0 ${
           viewType === "grid"
-            ? "flex flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+78px)]"
+            ? "flex flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+72px)]"
             : "overflow-y-auto sk-scroll overscroll-contain pb-[calc(env(safe-area-inset-bottom)+90px)]"
         }`}
-        key={`${viewYear}-${viewMonth}-${viewType}-${activePatternId}-${calendarSyncRev}`}
       >
-        {viewType === "grid" ? (
-          <div className="flex-1 min-h-0 flex flex-col gap-1.5">
-            <GridView
+        <div
+          key={`${viewYear}-${viewMonth}-${viewType}`}
+          className={`${animClass} ${
+            viewType === "grid" ? "flex-1 min-h-0 flex flex-col gap-1.5" : ""
+          }`}
+        >
+          {viewType === "grid" ? (
+            <>
+              <GridView
+                dayInfo={dayInfo}
+                firstWeekday={firstWeekday}
+                filterGroup={effectiveFilterGroup}
+                myGroup={myGroup}
+                selectedDateKey={selectedDateKey}
+                onOpenDay={openDay}
+              />
+              <MonthlySummaryStrip
+                dayInfo={dayInfo}
+                effGroup={summaryGroup}
+                myGroup={myGroup}
+                compareGroup={compareGroup}
+              />
+            </>
+          ) : (
+            <TableView
               dayInfo={dayInfo}
-              firstWeekday={firstWeekday}
               filterGroup={effectiveFilterGroup}
               myGroup={myGroup}
-              selectedDateKey={selectedDateKey}
               onOpenDay={openDay}
             />
-            <MonthlySummaryStrip
-              dayInfo={dayInfo}
-              effGroup={summaryGroup}
-              myGroup={myGroup}
-              compareGroup={compareGroup}
-            />
-          </div>
-        ) : (
-          <TableView
-            dayInfo={dayInfo}
-            filterGroup={effectiveFilterGroup}
-            myGroup={myGroup}
-            onOpenDay={openDay}
-          />
-        )}
+          )}
+        </div>
       </div>
 
       {/* ============ Fullscreen table ============ */}
@@ -878,13 +886,13 @@ function MonthlySummaryStrip({
 
   return (
     <div
-      className="glass rounded-[14px] px-1.5 py-1 flex items-center gap-1 shrink-0"
+      className="glass rounded-[15px] sm:rounded-[16px] px-1.5 py-1 sm:py-1.5 flex items-center gap-1 sm:gap-1.5 shrink-0"
       data-tour="summary-strip"
     >
       {items.map((it) => (
         <div
           key={it.label}
-          className={`flex-1 h-[30px] rounded-[10px] px-1 flex items-center justify-center gap-1 text-[10.5px] font-extrabold truncate ${it.cls}`}
+          className={`flex-1 h-[31px] sm:h-[36px] md:h-[40px] rounded-[10px] sm:rounded-[12px] px-1 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-[12px] md:text-[13px] font-extrabold truncate ${it.cls}`}
         >
           {it.icon}
           <span className="truncate">
@@ -943,7 +951,7 @@ const DayCell = memo(function DayCell({
     <button
       onClick={() => onOpenDay(info.key)}
       data-tour={isTourCell ? "today-cell" : undefined}
-      className={`sk-cell-in relative rounded-[14px] h-full w-full overflow-hidden flex flex-col items-center justify-center gap-[2px] p-0.5 select-none
+      className={`sk-cell-in touch-pan-y relative rounded-[14px] sm:rounded-[16px] h-full w-full overflow-hidden flex flex-col items-center justify-center gap-[3px] sm:gap-[4px] p-0.5 select-none
         transition-[transform,border-color] active:scale-[0.97]
         ${
           holiday
@@ -959,7 +967,7 @@ const DayCell = memo(function DayCell({
     >
       <span className="flex items-center gap-0.5 leading-none">
         <span
-          className={`text-[13px] font-bold leading-none ${
+          className={`text-[13.5px] sm:text-[15px] font-extrabold leading-none ${
             holiday
               ? "text-[var(--sk-holiday)]"
               : info.isFriday
@@ -983,7 +991,7 @@ const DayCell = memo(function DayCell({
         <span
           className={`grid ${
             info.all.length > 4 ? "grid-cols-3" : "grid-cols-2"
-          } gap-[2px] place-items-center`}
+          } gap-[2.5px] sm:gap-[3px] place-items-center`}
         >
           {info.all.slice(0, 6).map((s) => (
             <GroupNumBadge key={s.group} label={s.label} code={s.code} />
@@ -1018,12 +1026,18 @@ function GridView(props: {
   const hasTodayInMonth = dayInfo.some((d) => d.isToday);
 
   return (
-    <div className="shrink min-h-0 flex flex-col">
+    <div
+      className={`flex-1 min-h-0 flex flex-col ${
+        rows >= 6
+          ? "max-h-[348px] sm:max-h-[396px] md:max-h-[436px]"
+          : "max-h-[296px] sm:max-h-[340px] md:max-h-[376px]"
+      }`}
+    >
       <div className="grid grid-cols-7 mb-1 shrink-0" aria-hidden>
         {WEEKDAY_SHORT.map((w, i) => (
           <div
             key={w}
-            className={`text-center text-[12px] font-bold leading-4 py-0.5 ${
+            className={`text-center text-[12px] sm:text-[13px] font-bold leading-4 py-0.5 ${
               i === 6 ? "text-[var(--sk-text-muted)]" : "text-[var(--sk-text-faint)]"
             }`}
           >
@@ -1032,17 +1046,9 @@ function GridView(props: {
         ))}
       </div>
       <div
-        className="shrink min-h-0 grid grid-cols-7 gap-1"
+        className="flex-1 min-h-0 grid grid-cols-7 gap-1 sm:gap-1.5"
         style={{
-          gridTemplateRows: `repeat(${rows}, minmax(0, ${
-            rows >= 6
-              ? filterGroup === "ALL"
-                ? "45px"
-                : "46px"
-              : filterGroup === "ALL"
-                ? "50px"
-                : "49px"
-          }))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
         }}
       >
         {cells.map((info, i) =>

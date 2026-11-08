@@ -190,22 +190,37 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchLastX = useRef<number | null>(null);
+  const touchLastY = useRef<number | null>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    touchLastX.current = e.touches[0].clientX;
+    touchLastY.current = e.touches[0].clientY;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    touchLastX.current = e.touches[0].clientX;
+    touchLastY.current = e.touches[0].clientY;
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current == null || touchStartY.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+    const endX = e.changedTouches?.[0]?.clientX ?? touchLastX.current ?? touchStartX.current;
+    const endY = e.changedTouches?.[0]?.clientY ?? touchLastY.current ?? touchStartY.current;
+    const dx = endX - touchStartX.current;
+    const dy = endY - touchStartY.current;
+    if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.2) {
       if (dx > 0 && step < TOTAL - 1) go(step + 1);
       else if (dx < 0 && step > 0) go(step - 1);
     }
     touchStartX.current = null;
     touchStartY.current = null;
+    touchLastX.current = null;
+    touchLastY.current = null;
   };
 
   const currentThemeMeta = THEMES.find((t) => t.id === theme) ?? THEMES[0];
@@ -219,7 +234,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       <div
         className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full min-h-0"
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
       >
         {/* Step counter — TOP */}
         <div className="flex items-center justify-center pt-8 shrink-0">
